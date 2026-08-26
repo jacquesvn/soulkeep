@@ -380,7 +380,7 @@ button{font-family:Barlow,system-ui,sans-serif}
 <script>
 "use strict";
 const FACTION = { Alliance: '#4A7FD6', Horde: '#C4232B' };
-const S = Object.assign({ theme: 'midnight', showSlumber: true, motion: true, autoRefresh: true, collapsed: false, sbMode: 'static' },
+const S = Object.assign({ theme: 'midnight', showSlumber: true, motion: true, autoRefresh: true, collapsed: false, sbMode: 'hover' },
   (() => { try { return JSON.parse(localStorage.getItem('wr-settings') || '{}'); } catch (e) { return {}; } })());
 let view = 'roster', sel = null, leaving = false, chars = [], loading = true, lastSync = null, fetchOk = false;
 let armTimer = null, refreshTimer = null;
