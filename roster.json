@@ -1,4 +1,12 @@
 [
-  {"region": "eu", "realm": "draenor", "name": "oblivz"},
-  {"region": "eu", "realm": "draenor", "name": "oblivionn"}
+  {
+    "region": "eu",
+    "realm": "draenor",
+    "name": "oblivz"
+  },
+  {
+    "region": "eu",
+    "realm": "draenor",
+    "name": "oblivionn"
+  }
 ]
