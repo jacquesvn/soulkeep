@@ -22,6 +22,16 @@ Dev app registered; client-credentials token + live calls working; `spike.py` pu
 - Great Vault, currencies, gold, weekly lockouts — NOT in the REST API.
 - Companion addon exports via SavedVariables (desktop app reads it) or copy-paste string.
 
+## Phase 4 — Android (mobile) — PLANNED
+Reuse everything. The Flask backend + `wowapi.py` already do all the work server-side, so the cheapest
+real path is the **Lockin pattern**: make `roster.html` responsive, add a PWA manifest + service worker,
+and serve it from a hosted Flask instance → installable on Android, no app store.
+- KEY: the Blizzard **client_secret stays server-side** (token fetched in Flask, never shipped to the
+  phone) — so this needs a hosted backend, not a static github.io page like Lockin was.
+- Phase 2 (Battle.net login) matters more here: on mobile you want to log in once and see your roster,
+  not type region/realm/name. Do Phase 2 first, then mobile rides on it.
+- Alternative (heavier, probably skip): native wrapper (BeeWare/Kivy) or Termux-hosted Flask.
+
 ## Later ideas
 Alt gear/upgrade comparison; profession recipe/reagent planning; transmog/mount collection tracking;
 "what should I play this week" suggestions; reputation/renown tracking.
