@@ -3,7 +3,7 @@ which pulls live character data from /api/roster. Run:  python app.py  (or the p
 import json, os, secrets, shutil, socket, sys, threading, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-VERSION = "1.2.1"
+VERSION = "1.3.0"
 REPO = "jacquesvn/soulkeep"  # update banner watches this repo's latest release
 import webview
 from flask import Flask, render_template, request, jsonify, redirect, send_file
@@ -374,6 +374,36 @@ def api_version():
     except ValueError:
         pass
     return jsonify({"current": VERSION, "latest": _VER["latest"], "update": update, "url": _VER["url"]})
+
+ZAMCACHE = os.path.join(APPDIR, "zamcache")
+
+@app.route("/zam/<path:path>")
+def zam_proxy(path):
+    """Same-origin caching proxy for the Wowhead model viewer's assets (their CDN
+    blocks third-party origins via CORS; server-side fetch + disk cache keeps us
+    same-origin and gentle on their bandwidth)."""
+    if ".." in path or path.startswith("/"):
+        return jsonify({"error": "bad path"}), 400
+    local = os.path.join(ZAMCACHE, path.replace("/", os.sep))
+    if not os.path.exists(local):
+        try:
+            req = urllib.request.Request("https://wow.zamimg.com/modelviewer/live/" + path,
+                                         headers={"User-Agent": "Mozilla/5.0 Soulkeep"})
+            with urllib.request.urlopen(req, timeout=30) as r:
+                data = r.read()
+            os.makedirs(os.path.dirname(local), exist_ok=True)
+            open(local, "wb").write(data)
+        except urllib.error.HTTPError as e:
+            return jsonify({"error": e.code}), e.code
+        except Exception:
+            return jsonify({"error": "fetch failed"}), 502
+    import mimetypes
+    mt = mimetypes.guess_type(local)[0] or ("application/json" if local.endswith(".json") else "application/octet-stream")
+    return send_file(local, mimetype=mt)
+
+@app.route("/mv")
+def model_viewer():
+    return render_template("mv.html")
 
 @app.route("/manifest.webmanifest")
 def manifest():

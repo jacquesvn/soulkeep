@@ -313,6 +313,7 @@ button{font-family:Barlow,system-ui,sans-serif}
 .lb-nav.prev{left:10px;}.lb-nav.next{right:10px;}
 .lb-count{font-size:10.5px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-left:auto;}
 .kept-chip{background:rgba(111,224,192,.14);border:1px solid rgba(111,224,192,.4);color:var(--good);}
+.lb3d{width:100%;height:340px;border:0;display:block;background:#0B0A18;}
 .miss-chip{background:rgba(243,199,102,.1);border:1px solid rgba(243,199,102,.35);color:var(--gold);}
 
 /* ---------- update banner ---------- */
@@ -423,6 +424,7 @@ button{font-family:Barlow,system-ui,sans-serif}
         <div class="lb-chips" id="lb-chips"></div>
         <div class="lb-actions">
           <button class="add-btn" id="lb-guide">Open the guide ↗</button>
+          <span id="lb-extra"></span>
           <span class="lb-count" id="lb-count"></span>
         </div>
       </div>
@@ -1280,9 +1282,11 @@ function lbRender() {
   if (!x) return;
   const kept = new Set((collMine || {})[collKind] || []).has(x.id);
   const hero = $('lb-hero');
+  const dispId = collKind === 'mounts' && x.img ? (x.img.match(/creature-display-(\d+)/) || [])[1] : null;
   if (x.img && collKind === 'mounts') hero.innerHTML = `<img class="big" src="${esc(x.img)}" alt="">`;
   else if (x.img) hero.innerHTML = `<img class="iconic" src="${esc(x.img)}" alt="">`;
   else hero.innerHTML = `<div class="ph">${esc((x.name || '?')[0])}</div>`;
+  const turnBtn = dispId ? `<button class="pill-btn" style="flex:0 0 auto" onclick="lb3d(${dispId})">⟲ Turn the beast</button>` : '';
   $('lb-name').textContent = x.name || '';
   $('lb-chips').innerHTML = [
     `<span class="chip"><span class="v">${esc(x.src || 'Unknown')}</span></span>`,
@@ -1292,8 +1296,13 @@ function lbRender() {
          : `<span class="chip miss-chip"><span class="v">☾ The hunt continues</span></span>`,
   ].join('');
   $('lb-guide').onclick = () => openGuide(x.name);
+  $('lb-extra').innerHTML = turnBtn;
   $('lb-count').textContent = lbPool.length > 1 ? `${lbIdx + 1} / ${lbPool.length}` : '';
   document.querySelectorAll('.lb-nav').forEach(b => b.style.display = lbPool.length > 1 ? '' : 'none');
+}
+function lb3d(dispId) {
+  $('lb-hero').innerHTML = `<iframe class="lb3d" src="/mv?d=${dispId}" title="3D model — drag to turn, scroll to zoom"></iframe>`;
+  $('lb-extra').innerHTML = '<span class="hintline">drag to turn · scroll to zoom</span>';
 }
 function lbNav(d) { if (!lbPool.length) return; lbIdx = (lbIdx + d + lbPool.length) % lbPool.length; lbRender(); }
 function lbClose() { $('lb-back').classList.remove('open'); }

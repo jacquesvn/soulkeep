@@ -1,0 +1,25 @@
+<!doctype html>
+<html><head>
+<meta charset="utf-8">
+<script>window.CONTENT_PATH = location.origin + '/zam/';</script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script>window.WH = { debug: () => {}, WebP: { getImageExtension: () => '.webp' } };</script>
+<script src="/zam/viewer/viewer.min.js"></script>
+<style>html,body{margin:0;background:transparent;overflow:hidden}#mv{width:100vw;height:100vh}</style>
+</head><body>
+<div id="mv"></div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const id = parseInt(q.get('d') || '0', 10);
+  window.report = { made: false };
+  try {
+    // proven recipe: viewer type 2, models.type 8 = NPC/creature display
+    window.viewer = new ZamModelViewer({
+      container: jQuery('#mv'), type: 2, contentPath: window.CONTENT_PATH,
+      aspect: window.innerWidth / Math.max(1, window.innerHeight), hd: true,
+      models: { type: 8, id: id }
+    });
+    window.report.made = true;
+  } catch (e) { window.report.err = String(e); }
+</script>
+</body></html>
