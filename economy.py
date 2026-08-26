@@ -1,0 +1,188 @@
+"""Auction-house economy layer: AH price summaries (items + region commodities),
+WoW Token tracking, price watches with history, and the crafting profit engine.
+The commodity dump is huge (100MB+), so it streams via ijson to a {item: price} map."""
+import gzip, json, os, sys, threading, time, urllib.parse, urllib.request
+import staticdata
+import wowapi
+
+APPDIR = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__))
+SUMMARY = os.path.join(APPDIR, "ah_summary.json")
+WATCHES = os.path.join(APPDIR, "watches.json")
+PRICE_HIST = os.path.join(APPDIR, "price_history.jsonl")
+TOKEN_HIST = os.path.join(APPDIR, "token_history.jsonl")
+
+REFRESH = {"running": False, "step": "", "ts": None, "error": None}
+_LOCK = threading.Lock()
+
+# ---------- token ----------
+def token(region="eu"):
+    j = wowapi._get(region, "/data/wow/token/index", f"dynamic-{region}")
+    if j.get("_error"):
+        return None
+    row = {"ts": j.get("last_updated_timestamp"), "price": j.get("price")}
+    try:  # append to history once per Blizzard update
+        last = None
+        if os.path.exists(TOKEN_HIST):
+            with open(TOKEN_HIST, "rb") as f:
+                lines = f.readlines()
+                last = json.loads(lines[-1]) if lines else None
+        if not last or last.get("ts") != row["ts"]:
+            open(TOKEN_HIST, "a", encoding="utf-8").write(json.dumps(row) + "\n")
+    except (OSError, ValueError, IndexError):
+        pass
+    return row
+
+def token_history(limit=500):
+    try:
+        return [json.loads(x) for x in open(TOKEN_HIST, encoding="utf-8").readlines()[-limit:]]
+    except OSError:
+        return []
+
+# ---------- AH fetch ----------
+def _stream(url):
+    req = urllib.request.Request(url)
+    req.add_header("Authorization", "Bearer " + wowapi.token())
+    req.add_header("Accept-Encoding", "gzip")
+    r = urllib.request.urlopen(req, timeout=300)
+    if r.headers.get("Content-Encoding") == "gzip":
+        return gzip.GzipFile(fileobj=r)
+    return r
+
+def _min_prices_stream(stream, prices):
+    """Stream auctions[] and keep the lowest unit price per item id."""
+    import ijson
+    for a in ijson.items(stream, "auctions.item"):
+        iid = (a.get("item") or {}).get("id")
+        p = a.get("unit_price") or a.get("buyout")
+        q = a.get("quantity") or 1
+        if not iid or not p:
+            continue
+        if a.get("buyout") and not a.get("unit_price") and q > 1:
+            p = p // q
+        if iid not in prices or p < prices[iid]:
+            prices[iid] = p
+
+def connected_realm_id(region, realm_slug):
+    r = wowapi._get(region, f"/data/wow/realm/{realm_slug}", f"dynamic-{region}")
+    href = ((r.get("connected_realm") or {}).get("href") or "")
+    tail = href.rstrip("/").split("/")[-1].split("?")[0]
+    return tail if tail.isdigit() else None
+
+def refresh_ah(region="eu", realm_slug="draenor"):
+    """Pull realm auctions + region commodities into ah_summary.json. Minutes, run in a thread."""
+    with _LOCK:
+        if REFRESH["running"]:
+            return
+        REFRESH.update(running=True, error=None, step="starting")
+    try:
+        q = urllib.parse.urlencode({"namespace": f"dynamic-{region}"})
+        prices = {}
+        REFRESH["step"] = "realm auctions"
+        crid = connected_realm_id(region, realm_slug)
+        if crid:
+            _min_prices_stream(_stream(f"https://{region}.api.blizzard.com/data/wow/connected-realm/{crid}/auctions?{q}"), prices)
+        REFRESH["step"] = "commodities (large)"
+        _min_prices_stream(_stream(f"https://{region}.api.blizzard.com/data/wow/auctions/commodities?{q}"), prices)
+        ts = int(time.time())
+        json.dump({"ts": ts, "region": region, "realm": realm_slug,
+                   "prices": {str(k): v for k, v in prices.items()}},
+                  open(SUMMARY, "w", encoding="utf-8"))
+        _append_watch_history(ts, prices)
+        REFRESH.update(step="done", ts=ts)
+    except Exception as e:
+        REFRESH["error"] = str(e)
+    finally:
+        REFRESH["running"] = False
+
+def refresh_ah_async(region="eu", realm_slug="draenor"):
+    threading.Thread(target=refresh_ah, args=(region, realm_slug), daemon=True).start()
+
+def summary():
+    try:
+        return json.load(open(SUMMARY, encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+# ---------- watches ----------
+def watches():
+    try:
+        return json.load(open(WATCHES, encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+
+def add_watch(item_id, name):
+    w = watches()
+    if not any(x["id"] == item_id for x in w):
+        w.append({"id": item_id, "name": name})
+        json.dump(w, open(WATCHES, "w", encoding="utf-8"))
+    return w
+
+def remove_watch(item_id):
+    w = [x for x in watches() if x["id"] != item_id]
+    json.dump(w, open(WATCHES, "w", encoding="utf-8"))
+    return w
+
+def _append_watch_history(ts, prices):
+    ids = {x["id"] for x in watches()}
+    rec = staticdata.load("recipes") or {}
+    for r in rec.values():  # track crafted-item prices too, for the profit engine's history
+        for i in (r.get("crafted_ids") or ([r["crafted_id"]] if r.get("crafted_id") else [])):
+            ids.add(i)
+    rows = [{"ts": ts, "id": i, "p": prices[i]} for i in ids if i in prices]
+    if rows:
+        with open(PRICE_HIST, "a", encoding="utf-8") as f:
+            for r in rows:
+                f.write(json.dumps(r) + "\n")
+
+def price_history(item_id, limit=300):
+    out = []
+    try:
+        for line in open(PRICE_HIST, encoding="utf-8"):
+            r = json.loads(line)
+            if r["id"] == item_id:
+                out.append(r)
+    except OSError:
+        pass
+    return out[-limit:]
+
+def search_item(region, name):
+    q = urllib.parse.urlencode({"namespace": f"static-{region}", "name.en_US": name,
+                                "orderby": "id", "_page": 1})
+    j = wowapi._get(region, f"/data/wow/search/item?{q}", f"static-{region}")
+    out = []
+    for r in (j.get("results") or [])[:12]:
+        d = r.get("data") or {}
+        nm = (d.get("name") or {}).get("en_US") if isinstance(d.get("name"), dict) else d.get("name")
+        if nm:
+            out.append({"id": d.get("id"), "name": nm,
+                        "quality": ((d.get("quality") or {}).get("type") or "").title()})
+    return out
+
+# ---------- profit engine ----------
+def profit_for(known_recipe_ids, char_label):
+    """Join a character's known recipes against the recipe cache + AH prices."""
+    rec = staticdata.load("recipes") or {}
+    s = summary()
+    prices = {int(k): v for k, v in (s or {}).get("prices", {}).items()}
+    rows = []
+    for rid in known_recipe_ids:
+        r = rec.get(str(rid))
+        if not r:
+            continue
+        cids = r.get("crafted_ids") or ([r["crafted_id"]] if r.get("crafted_id") else [])
+        listed = [prices[i] for i in cids if i in prices]
+        if not listed:
+            continue  # nothing listed — can't price the craft
+        sale = min(listed)  # conservative: cheapest quality rank currently on the AH
+        cost, missing = 0, []
+        for g in r["reagents"]:
+            p = prices.get(g["id"])
+            if p is None:
+                missing.append(g["name"])
+            else:
+                cost += p * (g["qty"] or 1)
+        qty = r.get("qty") or 1
+        rows.append({"char": char_label, "prof": r["prof"], "recipe": r["name"],
+                     "crafted_id": cids[0], "sale": sale * qty, "cost": cost,
+                     "margin": sale * qty - cost, "missing": missing})
+    return rows

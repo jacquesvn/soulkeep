@@ -66,7 +66,8 @@ def token():
 
 def _get(region, path, namespace):
     q = urllib.parse.urlencode({"namespace": namespace, "locale": "en_US"})
-    req = urllib.request.Request(f"https://{region}.api.blizzard.com{path}?{q}")
+    sep = "&" if "?" in path else "?"
+    req = urllib.request.Request(f"https://{region}.api.blizzard.com{path}{sep}{q}")
     req.add_header("Authorization", "Bearer " + token())
     try:
         with urllib.request.urlopen(req, timeout=20) as r:
@@ -123,6 +124,62 @@ def get_account_chars(region, token):
             chars.append({"name": c.get("name"), "realm_slug": c.get("realm", {}).get("slug"),
                           "level": c.get("level"), "class": c.get("playable_class", {}).get("name")})
     return {"chars": chars}
+
+# ---------- feature endpoints (collections / reps / season M+ / recipes) ----------
+def _charbase(region, realm, name):
+    return f"/profile/wow/character/{urllib.parse.quote(realm.lower())}/{urllib.parse.quote(name.lower())}"
+
+def get_collection_ids(region, realm, name):
+    """Collected mount/pet-species/toy ids. Collections are account-wide — one awake char covers all."""
+    ns, base = f"profile-{region}", _charbase(region, realm, name)
+    m = _get(region, base + "/collections/mounts", ns)
+    p = _get(region, base + "/collections/pets", ns)
+    t = _get(region, base + "/collections/toys", ns)
+    return {"mounts": [x.get("mount", {}).get("id") for x in (m.get("mounts") or [])],
+            "pets": list({x.get("species", {}).get("id") for x in (p.get("pets") or [])}),
+            "toys": [x.get("toy", {}).get("id") for x in (t.get("toys") or [])]}
+
+def get_reputations(region, realm, name):
+    j = _get(region, _charbase(region, realm, name) + "/reputations", f"profile-{region}")
+    if j.get("_error"):
+        return []
+    out = []
+    for r in (j.get("reputations") or []):
+        st = r.get("standing") or {}
+        out.append({"faction": (r.get("faction") or {}).get("name"),
+                    "standing": st.get("name"), "tier": st.get("tier"),
+                    "value": st.get("value"), "max": st.get("max"),
+                    "renown": st.get("renown_level")})
+    return out
+
+def get_season_bests(region, realm, name, season_id):
+    """Per-dungeon best runs for the current M+ season."""
+    j = _get(region, _charbase(region, realm, name) + f"/mythic-keystone-profile/season/{season_id}",
+             f"profile-{region}")
+    if j.get("_error"):
+        return {"rating": None, "runs": []}
+    best = {}
+    for r in (j.get("best_runs") or []):
+        dun = (r.get("dungeon") or {}).get("name")
+        row = {"dungeon": dun, "level": r.get("keystone_level"),
+               "intime": bool(r.get("is_completed_within_time")),
+               "rating": round((r.get("mythic_rating") or {}).get("rating") or 0, 1)}
+        if dun and (dun not in best or row["rating"] > best[dun]["rating"]):
+            best[dun] = row
+    rating = (j.get("mythic_rating") or {}).get("rating")
+    return {"rating": round(rating, 1) if rating else None,
+            "runs": sorted(best.values(), key=lambda x: x["rating"])}
+
+def get_known_recipes(region, realm, name):
+    """Known recipe ids across EVERY tier of each primary profession."""
+    j = _get(region, _charbase(region, realm, name) + "/professions", f"profile-{region}")
+    if j.get("_error"):
+        return []
+    ids = []
+    for p in (j.get("primaries") or []):
+        for t in (p.get("tiers") or []):
+            ids += [r.get("id") for r in (t.get("known_recipes") or []) if r.get("id")]
+    return ids
 
 _REALMS = {}  # per-region cache; the realm list changes ~never within a session
 

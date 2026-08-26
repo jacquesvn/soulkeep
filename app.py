@@ -4,7 +4,9 @@ import json, os, secrets, shutil, socket, sys, threading, time
 from concurrent.futures import ThreadPoolExecutor
 import webview
 from flask import Flask, render_template, request, jsonify, redirect, send_file
+import economy
 import gamedata
+import staticdata
 import wowapi
 
 FROZEN = getattr(sys, "frozen", False)
@@ -56,7 +58,49 @@ def api_roster():
         json.dump({"chars": chars}, open(CACHE, "w", encoding="utf-8"))
     except OSError:
         pass
+    snapshot_history(chars)
     return jsonify({"chars": chars})
+
+# ---------- progress history (the Time Machine's ledger) ----------
+HISTORY = os.path.join(APPDIR, "history.jsonl")
+HIST_IDX = os.path.join(APPDIR, "history_index.json")
+
+def snapshot_history(chars):
+    """Append one compact row per awake character, at most every 6 hours."""
+    try:
+        idx = json.load(open(HIST_IDX, encoding="utf-8")) if os.path.exists(HIST_IDX) else {}
+    except (OSError, ValueError):
+        idx = {}
+    now = int(time.time())
+    gd = gamedata.read_export().get("chars", {})
+    rows = []
+    for c in chars:
+        if c.get("error") or not c.get("name"):
+            continue
+        k = f"{c['name']}-{c.get('realm')}"
+        if now - idx.get(k, 0) < 6 * 3600:
+            continue
+        g = gd.get(k) or {}
+        rows.append({"ts": now, "k": k, "ilvl": c.get("ilvl"), "mplus": c.get("mplus_rating"),
+                     "mounts": c.get("mounts"), "pets": c.get("pets"),
+                     "ach": c.get("achievement_points"), "gold": g.get("gold")})
+        idx[k] = now
+    if rows:
+        try:
+            with open(HISTORY, "a", encoding="utf-8") as f:
+                for r in rows:
+                    f.write(json.dumps(r) + "\n")
+            json.dump(idx, open(HIST_IDX, "w", encoding="utf-8"))
+        except OSError:
+            pass
+
+@app.route("/api/history")
+def api_history():
+    try:
+        rows = [json.loads(x) for x in open(HISTORY, encoding="utf-8")]
+    except OSError:
+        rows = []
+    return jsonify({"rows": rows[-5000:]})
 
 @app.route("/api/realms/<region>")
 def api_realms(region):
@@ -175,6 +219,108 @@ def api_addon_install():
     except OSError as e:
         return jsonify({"error": str(e)}), 500
     return jsonify({"ok": True, "installed_to": dst})
+
+# ---------- static game data ----------
+@app.route("/api/static/<name>")
+def api_static(name):
+    if name == "status":
+        return jsonify(staticdata.status())
+    if name not in ("mounts", "pets", "toys", "journal", "recipes", "season"):
+        return jsonify({"error": "unknown"}), 404
+    return jsonify({"data": staticdata.load(name)})
+
+@app.route("/api/static/build", methods=["POST"])
+def api_static_build():
+    staticdata.build_all_async()
+    return jsonify({"ok": True})
+
+# ---------- collections / reputations / M+ season ----------
+def first_awake():
+    for c in (json.load(open(CACHE, encoding="utf-8")).get("chars", []) if os.path.exists(CACHE) else []):
+        if not c.get("error"):
+            return c
+    return None
+
+@app.route("/api/collections")
+def api_collections():
+    c = first_awake()
+    if not c:
+        return jsonify({"error": "no awake character"}), 404
+    ids = wowapi.get_collection_ids(c["entry"]["region"], c["entry"]["realm"], c["entry"]["name"])
+    return jsonify(ids)
+
+@app.route("/api/reputations")
+def api_reputations():
+    roster = load_roster()
+    cached = json.load(open(CACHE, encoding="utf-8")).get("chars", []) if os.path.exists(CACHE) else []
+    awake = [c["entry"] for c in cached if not c.get("error")]
+    def one(e):
+        return {"char": e["name"].capitalize(), "realm": e["realm"],
+                "reps": wowapi.get_reputations(e["region"], e["realm"], e["name"])}
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        rows = list(pool.map(one, awake))
+    return jsonify({"chars": rows})
+
+@app.route("/api/mplus/<region>/<realm>/<name>")
+def api_mplus(region, realm, name):
+    season = (staticdata.load("season") or {}).get("season_id")
+    if not season:
+        return jsonify({"error": "season cache not built yet"}), 503
+    out = wowapi.get_season_bests(region, realm, name, season)
+    out["dungeons"] = (staticdata.load("season") or {}).get("dungeons", [])
+    return jsonify(out)
+
+# ---------- economy ----------
+@app.route("/api/economy/summary")
+def api_econ_summary():
+    s = economy.summary()
+    return jsonify({"token": economy.token(AUTH["region"]),
+                    "ah": {"ts": (s or {}).get("ts"), "count": len((s or {}).get("prices", {})),
+                           "refresh": economy.REFRESH},
+                    "watches": economy.watches()})
+
+@app.route("/api/economy/refresh", methods=["POST"])
+def api_econ_refresh():
+    d = request.get_json(force=True, silent=True) or {}
+    economy.refresh_ah_async(d.get("region", "eu"), d.get("realm", "draenor"))
+    return jsonify({"ok": True})
+
+@app.route("/api/economy/token_history")
+def api_token_history():
+    return jsonify({"rows": economy.token_history()})
+
+@app.route("/api/economy/search")
+def api_econ_search():
+    return jsonify({"results": economy.search_item(AUTH["region"], request.args.get("q", ""))})
+
+@app.route("/api/economy/watch", methods=["POST", "DELETE"])
+def api_econ_watch():
+    d = request.get_json(force=True)
+    if request.method == "DELETE":
+        return jsonify({"watches": economy.remove_watch(d["id"])})
+    return jsonify({"watches": economy.add_watch(d["id"], d.get("name", "?"))})
+
+@app.route("/api/economy/pricehistory")
+def api_price_history():
+    iid = int(request.args.get("id", 0))
+    s = economy.summary()
+    cur = {int(k): v for k, v in (s or {}).get("prices", {}).items()}.get(iid)
+    return jsonify({"rows": economy.price_history(iid), "current": cur})
+
+@app.route("/api/economy/profit")
+def api_econ_profit():
+    cached = json.load(open(CACHE, encoding="utf-8")).get("chars", []) if os.path.exists(CACHE) else []
+    crafters = [c for c in cached if not c.get("error") and c.get("professions")]
+    def one(c):
+        e = c["entry"]
+        ids = wowapi.get_known_recipes(e["region"], e["realm"], e["name"])
+        return economy.profit_for(ids, c["name"])
+    rows = []
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        for group in pool.map(one, crafters):
+            rows.extend(group)
+    rows.sort(key=lambda r: -r["margin"])
+    return jsonify({"rows": rows[:120], "have_ah": bool(economy.summary())})
 
 # ---------- PWA bits (full install needs https hosting; LAN browsing works today) ----------
 @app.route("/manifest.webmanifest")

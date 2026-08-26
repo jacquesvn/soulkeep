@@ -205,6 +205,49 @@ button{font-family:Barlow,system-ui,sans-serif}
 .prof-track i{display:block;height:100%;background:linear-gradient(90deg, var(--goldhi), var(--gold));}
 .prof-row .s{font:500 12px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;color:var(--muted);}
 
+/* ---------- shared view furniture (war board / collections / economy / progress) ---------- */
+.vhead{margin-bottom:22px;animation:pageIn .4s cubic-bezier(.25,.8,.3,1) both;}
+.vtitle{margin:0;font-family:Cinzel,serif;font-weight:600;font-size:34px;letter-spacing:.1em;line-height:1;background:linear-gradient(180deg, var(--ink), rgba(237,233,255,.6));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.app[data-theme="dawn"] .vtitle{background:linear-gradient(180deg, var(--ink), rgba(36,26,82,.6));-webkit-background-clip:text;background-clip:text;}
+.vtabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+.vtab{background:rgba(237,233,255,.05);border:1px solid rgba(237,233,255,.09);color:var(--muted);border-radius:999px;padding:7px 15px;font:500 12.5px Barlow,sans-serif;cursor:pointer;letter-spacing:.03em;transition:background .15s,color .15s;}
+.vtab:hover{color:var(--ink);background:rgba(177,92,255,.1)}
+.vtab.on{background:linear-gradient(135deg, var(--deep), var(--violet));color:#FBF6FF;border-color:rgba(199,125,255,.5);}
+.tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.tbl th{text-align:left;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:500;padding:6px 10px;border-bottom:1px solid var(--line);}
+.tbl td{padding:7px 10px;border-bottom:1px solid rgba(177,92,255,.07);vertical-align:middle;}
+.tbl tr:hover td{background:rgba(237,233,255,.035)}
+.tbl .num{text-align:right;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-variant-numeric:tabular-nums;}
+.tblwrap{overflow-x:auto;}
+.pbar{height:5px;border-radius:99px;background:var(--raised);overflow:hidden;min-width:70px;}
+.pbar i{display:block;height:100%;background:linear-gradient(90deg, var(--deep), var(--violet));}
+.pbar.gold i{background:linear-gradient(90deg, var(--goldhi), var(--gold));}
+.bigpct{font:600 34px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;}
+.cgroup{border:1px solid rgba(237,233,255,.07);border-radius:12px;margin-bottom:8px;overflow:hidden;}
+.cgroup summary{cursor:pointer;padding:10px 14px;font-size:12.5px;display:flex;align-items:center;gap:10px;list-style:none;background:rgba(237,233,255,.03);}
+.cgroup summary::-webkit-details-marker{display:none}
+.cgroup summary .ct{color:var(--muted);margin-left:auto;font-family:'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;}
+.cgroup .items{padding:8px 14px 12px;display:flex;flex-wrap:wrap;gap:6px;}
+.mchip{background:rgba(237,233,255,.05);border:1px solid rgba(237,233,255,.06);border-radius:999px;padding:3px 10px;font-size:11.5px;color:var(--muted);}
+.searchpill{display:flex;align-items:center;background:rgba(237,233,255,.04);border:1px solid rgba(237,233,255,.09);border-radius:999px;overflow:hidden;}
+.searchpill input{background:transparent;border:0;color:var(--ink);font:400 13px Barlow,sans-serif;padding:8px 14px;width:210px;outline-offset:-2px;}
+.chart{position:relative;}
+.chart svg{display:block;width:100%;height:auto}
+.chart .tip{position:absolute;pointer-events:none;background:rgba(11,10,24,.92);border:1px solid var(--line);border-radius:8px;padding:5px 9px;font:500 11.5px Barlow,sans-serif;color:var(--ink);display:none;white-space:nowrap;z-index:3;}
+.app[data-theme="dawn"] .chart .tip{background:rgba(251,247,236,.95)}
+.gline{stroke:var(--violet);stroke-width:2;fill:none;stroke-linejoin:round;stroke-linecap:round}
+.garea{fill:url(#gfill);opacity:.35}
+.ggrid{stroke:rgba(167,159,200,.14);stroke-width:1}
+.gaxis{font:500 9.5px 'Barlow Condensed',sans-serif;fill:var(--muted)}
+.gdot{fill:var(--violet)}
+.wrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.wname{font-family:Cinzel,serif;font-weight:600;font-size:16px;min-width:130px;}
+.wcell{display:flex;flex-direction:column;gap:4px;min-width:120px;}
+.wlabel{font-size:8.5px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;}
+.wval{font:600 14px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;}
+.good{color:var(--good)}.bad{color:#E0435B}.gold-t{color:var(--gold)}
+.hintline{font-size:12px;color:var(--muted);line-height:1.6;}
+
 /* ---------- settings drawer ---------- */
 .backdrop{position:fixed;inset:0;z-index:8;background:rgba(7,6,14,.55);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .32s ease;}
 .backdrop.open{opacity:1;pointer-events:auto;}
@@ -237,7 +280,7 @@ button{font-family:Barlow,system-ui,sans-serif}
 /* ---------- tab bar ---------- */
 .tabbar{display:none;position:fixed;left:0;right:0;bottom:0;z-index:5;background:rgba(11,10,24,.92);backdrop-filter:blur(10px);border-top:1px solid var(--line);justify-content:space-around;padding:8px 6px calc(8px + env(safe-area-inset-bottom));}
 .app[data-theme="dawn"] .tabbar{background:rgba(251,247,236,.92)}
-.tab{background:transparent;border:0;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;font:500 10px Barlow,sans-serif;letter-spacing:.08em;cursor:pointer;min-width:64px;padding:4px;}
+.tab{background:transparent;border:0;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;font:500 9.5px Barlow,sans-serif;letter-spacing:.05em;cursor:pointer;min-width:44px;padding:4px 2px;}
 .tab.active{color:var(--glow);}
 .tab .ic{font-size:17px;}
 .tab.inert{opacity:.6}
@@ -274,7 +317,10 @@ button{font-family:Barlow,system-ui,sans-serif}
     <nav class="nav">
       <button class="nav-item" id="nav-roster" title="Roster" onclick="goRoster()"><span class="ic">◈</span><span class="lbl">Roster</span></button>
       <button class="nav-item" id="nav-detail" title="Character" onclick="goDetail()"><span class="ic">☾</span><span class="lbl">Character</span></button>
-      <button class="nav-item inert" title="Collections" tabindex="-1"><span class="ic">✦</span><span class="lbl">Collections</span></button>
+      <button class="nav-item" id="nav-board" title="War Board" onclick="goView('board')"><span class="ic">⚑</span><span class="lbl">War Board</span></button>
+      <button class="nav-item" id="nav-collections" title="Collections" onclick="goView('collections')"><span class="ic">✦</span><span class="lbl">Collections</span></button>
+      <button class="nav-item" id="nav-economy" title="Economy" onclick="goView('economy')"><span class="ic">◎</span><span class="lbl">Economy</span></button>
+      <button class="nav-item" id="nav-progress" title="Progress" onclick="goView('progress')"><span class="ic">↗</span><span class="lbl">Progress</span></button>
       <button class="nav-item" id="nav-settings" title="Settings" onclick="openSettings()"><span class="ic">⛭</span><span class="lbl">Settings</span></button>
     </nav>
     <div class="sb-foot">
@@ -327,6 +373,48 @@ button{font-family:Barlow,system-ui,sans-serif}
       <button class="back-btn" onclick="goRoster()">← Roster</button>
       <div id="detail-body"></div>
       <div class="footline" style="margin-top:26px">Data: Blizzard Battle.net API · retail (Midnight)</div>
+    </section>
+
+    <section id="view-board" style="display:none">
+      <div class="vhead">
+        <div class="eyebrow">This Week · Across The Army</div>
+        <h1 class="vtitle">WAR BOARD</h1>
+      </div>
+      <div id="board-body"></div>
+    </section>
+
+    <section id="view-collections" style="display:none">
+      <div class="vhead">
+        <div class="eyebrow">Account-Wide · The Hunt</div>
+        <h1 class="vtitle">COLLECTIONS</h1>
+      </div>
+      <div class="vtabs" id="coll-tabs">
+        <button class="vtab on" data-t="mounts" onclick="collTab('mounts')">Mounts</button>
+        <button class="vtab" data-t="pets" onclick="collTab('pets')">Pets</button>
+        <button class="vtab" data-t="toys" onclick="collTab('toys')">Toys</button>
+        <div class="searchpill" style="margin-left:auto"><input id="coll-search" placeholder="Filter missing…" oninput="renderCollections()"></div>
+      </div>
+      <div id="coll-body"></div>
+    </section>
+
+    <section id="view-economy" style="display:none">
+      <div class="vhead">
+        <div class="eyebrow">Gold · Auction House · Draenor EU</div>
+        <h1 class="vtitle">ECONOMY</h1>
+      </div>
+      <div id="econ-body"></div>
+    </section>
+
+    <section id="view-progress" style="display:none">
+      <div class="vhead">
+        <div class="eyebrow">The Ledger, Charted</div>
+        <h1 class="vtitle">PROGRESS</h1>
+      </div>
+      <div class="vtabs" id="prog-tabs">
+        <button class="vtab on" data-t="charts" onclick="progTab('charts')">Charts</button>
+        <button class="vtab" data-t="reps" onclick="progTab('reps')">Reputations</button>
+      </div>
+      <div id="prog-body"></div>
     </section>
   </main>
 
@@ -392,6 +480,14 @@ button{font-family:Barlow,system-ui,sans-serif}
         <div class="set-d" id="gd-status" style="line-height:1.5">The addon exports gold, Great Vault, currencies and lockouts — things the API can't see.</div>
       </div>
       <div>
+        <div class="dr-sect">Static Game Data</div>
+        <div class="set-row">
+          <div><div class="set-l">Caches</div><div class="set-d" id="sd-status">…</div></div>
+          <button class="pill-btn" style="flex:0 0 auto" id="sd-build" onclick="sdBuild()">Rebuild</button>
+        </div>
+        <div class="set-d" id="sd-log" style="line-height:1.5"></div>
+      </div>
+      <div>
         <div class="dr-sect">Phone (same WiFi)</div>
         <div class="set-d" id="phone-url" style="line-height:1.6;user-select:text">—</div>
         <img id="phone-qr" alt="Scan to open on your phone" style="margin-top:10px;border-radius:10px;width:132px;display:none">
@@ -402,9 +498,12 @@ button{font-family:Barlow,system-ui,sans-serif}
 
   <nav class="tabbar">
     <button class="tab" id="tab-roster" onclick="goRoster()"><span class="ic">◈</span>ROSTER</button>
-    <button class="tab" id="tab-detail" onclick="goDetail()"><span class="ic">☾</span>CHARACTER</button>
-    <button class="tab inert" tabindex="-1"><span class="ic">✦</span>COLLECTIONS</button>
-    <button class="tab" onclick="openSettings()"><span class="ic">⛭</span>SETTINGS</button>
+    <button class="tab" id="tab-detail" onclick="goDetail()"><span class="ic">☾</span>CHAR</button>
+    <button class="tab" id="tab-board" onclick="goView('board')"><span class="ic">⚑</span>BOARD</button>
+    <button class="tab" id="tab-collections" onclick="goView('collections')"><span class="ic">✦</span>COLLECT</button>
+    <button class="tab" id="tab-economy" onclick="goView('economy')"><span class="ic">◎</span>ECON</button>
+    <button class="tab" id="tab-progress" onclick="goView('progress')"><span class="ic">↗</span>PROG</button>
+    <button class="tab" onclick="openSettings()"><span class="ic">⛭</span>MORE</button>
   </nav>
 </div>
 
@@ -646,15 +745,23 @@ async function removeChar(ev, k, btn) {
 }
 
 /* ---------- navigation ---------- */
+const VIEWS = ['roster', 'detail', 'board', 'collections', 'economy', 'progress'];
 function setView(v) {
   view = v;
-  $('view-roster').style.display = v === 'roster' ? '' : 'none';
-  $('view-detail').style.display = v === 'detail' ? '' : 'none';
-  $('nav-roster').classList.toggle('active', v === 'roster');
-  $('nav-detail').classList.toggle('active', v === 'detail');
-  $('tab-roster').classList.toggle('active', v === 'roster');
-  $('tab-detail').classList.toggle('active', v === 'detail');
+  for (const x of VIEWS) {
+    $('view-' + x).style.display = x === v ? '' : 'none';
+    const nav = $('nav-' + x), tab = $('tab-' + x);
+    if (nav) nav.classList.toggle('active', x === v);
+    if (tab) tab.classList.toggle('active', x === v);
+  }
   $('main').scrollTop = 0;
+}
+function goView(v) {
+  setView(v);
+  if (v === 'board') renderBoard();
+  if (v === 'collections') loadCollections();
+  if (v === 'economy') renderEconomy();
+  if (v === 'progress') renderProgress();
 }
 function goRoster() { setView('roster'); renderRoster(); }
 function goDetail() { if (!currentDetail()) return; sel = ekey(currentDetail().entry); renderDetail(); setView('detail'); }
@@ -673,7 +780,7 @@ function renderDetail() {
   if (!c) { body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">No character awake</div></div>'; return; }
   const e = c.entry, col = c.class_color, crest = crestHtml(c, 104);
   const g = gd(c);  // companion-addon data for this character, if exported
-  const VAULT_T = { 1: 'Mythic+', 3: 'Raid', 6: 'World' };
+  const VAULT_T = VAULT_LABEL;
   const thresholds = [1000, 1500, 2000, 2500, 3000, 3500];
   const pct = Math.min(100, (c.mplus_rating || 0) / 3500 * 100).toFixed(1);
   const gear = (c.gear || []).map(g => `
@@ -776,7 +883,66 @@ function renderDetail() {
           <div class="run"><span>${esc(cu.name)}</span><span class="s">${Number(cu.qty).toLocaleString('en-US')}</span></div>`).join('')}</div>
       </div>` : ''}
     </div>
+  </div>
+  <div class="dgrid" style="margin-top:18px">
+    <div class="panel"><div class="p-eyebrow" style="margin-bottom:12px">Upgrade Finder</div><div id="d-upgrades" class="hintline">reading the Dungeon Journal…</div></div>
+    <div class="panel"><div class="p-eyebrow" style="margin-bottom:12px">M+ Season</div><div id="d-season" class="hintline">consulting the keystone ledger…</div></div>
   </div>`;
+  loadDetailExtras(c);
+}
+
+/* ---------- detail extras: upgrade finder + M+ season ---------- */
+let journalData = null;
+const SLOT_MAP = { 'Shoulders': ['Shoulder'], 'Ring 1': ['Finger'], 'Ring 2': ['Finger'],
+  'Trinket 1': ['Trinket'], 'Trinket 2': ['Trinket'], 'Wrist': ['Wrist'],
+  'Main Hand': ['One-Hand', 'Two-Hand', 'Main Hand', 'Ranged'],
+  'Off Hand': ['Off Hand', 'Held In Off-hand', 'One-Hand', 'Shield'] };
+async function loadDetailExtras(c) {
+  // ----- upgrade finder: weakest slots vs journal loot -----
+  const up = $('d-upgrades');
+  try {
+    if (!journalData) journalData = (await (await fetch('/api/static/journal')).json()).data;
+    if (!journalData) { if (up) up.innerHTML = 'Journal cache not built yet — Settings → Static data → Rebuild.'; }
+    else if (up && currentDetail() === c) {
+      const weakest = (c.gear || []).filter(x => x.ilvl && !['Shirt', 'Tabard', 'Neck', 'Back'].includes(x.slot))
+        .sort((a, b) => a.ilvl - b.ilvl).slice(0, 3);
+      up.innerHTML = weakest.map(w => {
+        const wants = SLOT_MAP[w.slot] || [w.slot];
+        const drops = journalData.filter(j => wants.includes(j.slot));
+        const byInst = {};
+        drops.forEach(d => { (byInst[d.instance] = byInst[d.instance] || []).push(d); });
+        const top = Object.entries(byInst).slice(0, 3);
+        return `<div style="margin-bottom:12px">
+          <div style="font-size:12.5px;margin-bottom:5px"><span class="wlabel" style="margin-right:8px">${esc(w.slot)}</span>
+            <span style="color:var(--muted)">${esc(w.name)} · </span><span class="gold-t" style="font-family:'Barlow Condensed'">${w.ilvl}</span></div>
+          ${top.length ? top.map(([inst, ds]) => `<div class="run" style="font-size:12px"><span style="color:var(--muted)">${esc(inst)}</span>
+            <span class="s" title="${esc(ds.map(d => d.item + ' (' + d.boss + ')').join(', '))}">${ds.length} drop${ds.length > 1 ? 's' : ''} · e.g. ${esc(ds[0].item)}</span></div>`).join('')
+            : '<div class="hintline">no journal drops for this slot</div>'}
+        </div>`;
+      }).join('') || '<div class="hintline">No gear data.</div>';
+    }
+  } catch (e) { if (up) up.innerHTML = 'Journal unavailable.'; }
+  // ----- M+ season bests -----
+  const se = $('d-season');
+  try {
+    const e = c.entry;
+    const j = await (await fetch(`/api/mplus/${e.region}/${e.realm}/${e.name}`)).json();
+    if (se && currentDetail() === c) {
+      if (j.error) { se.innerHTML = esc(j.error); return; }
+      const ran = new Set((j.runs || []).map(r => r.dungeon));
+      // only surface un-run dungeons from the current rotation (journal "Current Season"), and only once they're running keys
+      const rotation = new Set((journalData || []).filter(x => x.kind === 'dungeon').map(x => x.instance));
+      const missing = (j.runs || []).length
+        ? (j.dungeons || []).filter(d => !ran.has(d.name) && (!rotation.size || rotation.has(d.name))).slice(0, 10)
+        : [];
+      se.innerHTML = (j.runs || []).length || missing.length ? `
+        ${j.rating ? `<div style="margin-bottom:10px"><span class="wlabel">Season rating </span><span class="wval good" style="font-size:20px">${j.rating}</span></div>` : ''}
+        ${(j.runs || []).map(r => `<div class="run"><span class="k">+${r.level}</span><span>${esc(r.dungeon)}${r.intime ? '' : ' <span style="color:var(--warn)" title="over time">◷</span>'}</span><span class="s">${r.rating}</span></div>`).join('')}
+        ${missing.map(d => `<div class="run" style="opacity:.55"><span class="k">—</span><span>${esc(d.name)}</span><span class="s">never run</span></div>`).join('')}
+        <div class="hintline" style="margin-top:8px">Sorted weakest-first — the top rows are where rating is cheapest to gain.</div>`
+        : '<div class="hintline">No season runs yet.</div>';
+    }
+  } catch (e2) { if (se) se.innerHTML = 'Season data unavailable.'; }
 }
 
 /* ---------- Battle.net account / game data / phone ---------- */
@@ -834,9 +1000,313 @@ async function installAddon() {
 }
 function gd(c) { return (gdata.chars || {})[c.name + '-' + c.realm]; }
 function goldStr(copper) { return Math.floor(copper / 10000).toLocaleString('en-US') + 'g'; }
+const VAULT_LABEL = { 1: 'Mythic+', 3: 'Raid', 5: 'Delves?', 6: 'World' };
+function agoStr(ts) {
+  if (!ts) return '—';
+  const m = Math.round((Date.now() / 1000 - ts) / 60);
+  if (m < 60) return m + 'm ago';
+  if (m < 1440) return Math.round(m / 60) + 'h ago';
+  return Math.round(m / 1440) + 'd ago';
+}
+
+/* ---------- WAR BOARD ---------- */
+function vaultSegs(acts) {
+  const byType = {};
+  (acts || []).forEach(a => { (byType[a.type] = byType[a.type] || []).push(a); });
+  return Object.entries(byType).map(([t, rows]) => {
+    rows.sort((a, b) => (a.index || 0) - (b.index || 0));
+    const top = rows[rows.length - 1];
+    const done = rows.filter(r => r.progress >= r.threshold).length;
+    return `<div class="wcell"><span class="wlabel">${VAULT_LABEL[t] || 'Tier ' + t} ${done}/${rows.length} slots</span>
+      <div class="segs" style="min-width:110px">${rows.map(r =>
+        `<div class="seg ${r.progress >= r.threshold ? 'm' : ''}" title="${r.progress}/${r.threshold}"></div>`).join('')}</div></div>`;
+  }).join('');
+}
+function renderBoard() {
+  const aw = chars.filter(awake);
+  const body = $('board-body');
+  if (!aw.length) { body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">No characters awake</div></div>'; return; }
+  body.innerHTML = aw.map((c, i) => {
+    const g = gd(c);
+    const weekRuns = (c.runs || []).length;
+    const bestKey = weekRuns ? Math.max(...c.runs.map(r => r.key)) : null;
+    return `<div class="panel" style="margin-bottom:12px;animation:pageIn .4s cubic-bezier(.25,.8,.3,1) ${i * 40}ms both">
+      <div class="wrow">
+        <div class="wname" style="color:${c.class_color}">${esc(c.name)}<div style="font:400 10.5px Barlow,sans-serif;color:var(--muted);letter-spacing:.04em">${esc(c.realm)} · ilvl ${c.ilvl ?? '—'}</div></div>
+        ${g ? vaultSegs(g.vault) : '<div class="wcell"><span class="wlabel">Vault</span><span class="hintline">no addon export yet — log them out once</span></div>'}
+        <div class="wcell"><span class="wlabel">Keys this week</span><span class="wval ${weekRuns ? 'good' : ''}">${weekRuns ? weekRuns + ' run' + (weekRuns > 1 ? 's' : '') + ' · best +' + bestKey : 'none'}</span></div>
+        <div class="wcell"><span class="wlabel">Lockouts</span><span class="wval">${g && g.lockouts && g.lockouts.length ? g.lockouts.map(l => esc(l.name) + ' ' + l.done + '/' + l.total).join(' · ') : '—'}</span></div>
+        <div class="wcell"><span class="wlabel">Gold</span><span class="wval gold-t">${g && g.gold != null ? goldStr(g.gold) : '—'}</span></div>
+        <div class="wcell"><span class="wlabel">Export</span><span class="wval" style="color:var(--muted)">${g ? agoStr(g.ts) : '—'}</span></div>
+      </div>
+    </div>`;
+  }).join('') + `<div class="hintline" style="margin-top:14px">Vault slots fill as you play; the board reads your addon exports + this week's runs from the API. Log an alt out to refresh their column.</div>`;
+}
+
+/* ---------- COLLECTIONS ---------- */
+let collIndex = {}, collMine = null, collKind = 'mounts';
+async function loadCollections() {
+  const body = $('coll-body');
+  if (!collMine) {
+    body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">Consulting the archives…</div></div>';
+    try {
+      const [mine, m, p, t] = await Promise.all([
+        fetch('/api/collections').then(r => r.json()),
+        fetch('/api/static/mounts').then(r => r.json()),
+        fetch('/api/static/pets').then(r => r.json()),
+        fetch('/api/static/toys').then(r => r.json()),
+      ]);
+      collMine = mine;
+      collIndex = { mounts: m.data || [], pets: p.data || [], toys: t.data || [] };
+    } catch (e) { body.innerHTML = '<div class="hintline">Could not load collections.</div>'; return; }
+  }
+  renderCollections();
+}
+function collTab(k) {
+  collKind = k;
+  document.querySelectorAll('#coll-tabs .vtab').forEach(b => b.classList.toggle('on', b.dataset.t === k));
+  renderCollections();
+}
+function renderCollections() {
+  const body = $('coll-body');
+  const index = collIndex[collKind] || [], mine = new Set((collMine || {})[collKind] || []);
+  if (!index.length) { body.innerHTML = '<div class="hintline">The game-data cache for this tab isn’t built yet — Settings → Static data → Rebuild.</div>'; return; }
+  const q = ($('coll-search').value || '').toLowerCase();
+  const have = index.filter(x => mine.has(x.id));
+  const missing = index.filter(x => !mine.has(x.id) && (!q || (x.name || '').toLowerCase().includes(q) || (x.src || '').toLowerCase().includes(q)));
+  const bySrc = {};
+  missing.forEach(x => { (bySrc[x.src || 'Unknown'] = bySrc[x.src || 'Unknown'] || []).push(x); });
+  const groups = Object.entries(bySrc).sort((a, b) => b[1].length - a[1].length);
+  const pct = index.length ? Math.round(have.length / index.length * 100) : 0;
+  body.innerHTML = `
+    <div class="panel" style="margin-bottom:16px">
+      <div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap">
+        <span class="bigpct c-gold">${have.length.toLocaleString('en-US')}</span>
+        <span style="color:var(--muted)">of ${index.length.toLocaleString('en-US')} ${collKind} · ${pct}%</span>
+      </div>
+      <div class="pbar gold" style="margin-top:10px"><i style="width:${pct}%"></i></div>
+    </div>
+    <div class="p-eyebrow" style="margin-bottom:10px">Missing · by source</div>
+    ${groups.map(([src, items], i) => `
+      <details class="cgroup" ${i < 2 && !q ? '' : q ? 'open' : ''}>
+        <summary>${esc(src)}<span class="ct">${items.length}</span></summary>
+        <div class="items">${items.slice(0, 160).map(x => `<span class="mchip" title="${esc(x.src)}">${esc(x.name)}</span>`).join('')}
+        ${items.length > 160 ? `<span class="mchip">… +${items.length - 160} more</span>` : ''}</div>
+      </details>`).join('')}`;
+}
+
+/* ---------- ECONOMY ---------- */
+let econ = null, profitRows = null;
+async function renderEconomy() {
+  const body = $('econ-body');
+  if (!econ) body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">Counting the coffers…</div></div>';
+  try { econ = await (await fetch('/api/economy/summary')).json(); } catch (e) { body.innerHTML = '<div class="hintline">Economy unreachable.</div>'; return; }
+  const t = econ.token, ah = econ.ah;
+  const refreshing = ah.refresh && ah.refresh.running;
+  body.innerHTML = `
+    <div class="summary" style="margin-bottom:18px">
+      <div class="glass stat-card"><div class="stat-label">WoW Token</div><div class="stat-val c-gold">${t ? goldStr(t.price) : '—'}</div></div>
+      <div class="glass stat-card"><div class="stat-label">AH prices known</div><div class="stat-val">${ah.count ? ah.count.toLocaleString('en-US') : '—'}</div></div>
+      <div class="glass stat-card"><div class="stat-label">AH refreshed</div><div class="stat-val" style="font-size:20px;line-height:34px">${ah.ts ? agoStr(ah.ts) : 'never'}</div></div>
+      <div class="glass stat-card" style="display:flex;flex-direction:column;justify-content:center">
+        <button class="pill-btn" onclick="econRefresh()" ${refreshing ? 'disabled' : ''}>${refreshing ? esc(ah.refresh.step) + '…' : '⟳ Refresh AH'}</button>
+      </div>
+    </div>
+    <div class="dgrid">
+      <div class="panel">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <div class="p-eyebrow">Crafting Profits</div>
+          <button class="pill-btn" style="margin-left:auto;flex:0 0 auto" onclick="econProfit()">Compute</button>
+        </div>
+        <div id="profit-body" class="tblwrap">${profitRows ? profitTable() : '<div class="hintline">' + (ah.ts ? 'Compute joins every recipe your alts know against live AH prices.' : 'Refresh the AH first — then compute.') + '</div>'}</div>
+      </div>
+      <div class="dcol">
+        <div class="panel">
+          <div class="p-eyebrow" style="margin-bottom:10px">Token Price</div>
+          <div id="token-chart" class="chart hintline">history builds as the app runs</div>
+        </div>
+        <div class="panel">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div class="p-eyebrow">Price Watch</div>
+            <div class="searchpill" style="margin-left:auto"><input id="watch-q" placeholder="Add item…" onkeydown="if(event.key==='Enter')watchSearch()"></div>
+          </div>
+          <div id="watch-results"></div>
+          <div id="watch-list">${(econ.watches || []).map(w => `
+            <div class="run"><span>${esc(w.name)}</span>
+              <span class="s" id="wp-${w.id}">…</span>
+              <button class="rm-btn" style="position:static;opacity:.6" onclick="watchRemove(${w.id})">✕</button></div>`).join('') || '<div class="hintline">Watch an item to track its price across AH refreshes.</div>'}</div>
+        </div>
+      </div>
+    </div>`;
+  tokenChart();
+  (econ.watches || []).forEach(async w => {
+    try {
+      const j = await (await fetch('/api/economy/pricehistory?id=' + w.id)).json();
+      const el = $('wp-' + w.id);
+      if (el) el.textContent = j.current ? goldStr(j.current) : 'not listed';
+    } catch (e) {}
+  });
+  if (refreshing) setTimeout(() => { if (view === 'economy') renderEconomy(); }, 4000);
+}
+function profitTable() {
+  if (!profitRows || !profitRows.length) return '<div class="hintline">No priceable recipes yet — refresh the AH, and make sure the recipe cache is built (Settings).</div>';
+  return `<table class="tbl"><tr><th>Crafter</th><th>Recipe</th><th class="num">Sale</th><th class="num">Cost</th><th class="num">Margin</th></tr>
+    ${profitRows.slice(0, 40).map(r => `<tr>
+      <td>${esc(r.char)}<span style="color:var(--muted)"> · ${esc(r.prof)}</span></td>
+      <td>${esc(r.recipe)}${r.missing.length ? ` <span title="No AH price for: ${esc(r.missing.join(', '))}" style="color:var(--warn)">*</span>` : ''}</td>
+      <td class="num gold-t">${goldStr(r.sale)}</td><td class="num">${goldStr(r.cost)}</td>
+      <td class="num ${r.margin >= 0 ? 'good' : 'bad'}">${r.margin >= 0 ? '+' : '−'}${goldStr(Math.abs(r.margin))}</td></tr>`).join('')}</table>
+    <div class="hintline" style="margin-top:8px">* some reagents had no AH listing — real cost is higher. Top 40 by margin shown.</div>`;
+}
+async function econRefresh() {
+  await fetch('/api/economy/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ region: 'eu', realm: 'draenor' }) });
+  renderEconomy();
+}
+async function econProfit() {
+  $('profit-body').innerHTML = '<div class="hintline">Consulting every crafter on the roster…</div>';
+  try { profitRows = (await (await fetch('/api/economy/profit')).json()).rows; } catch (e) { profitRows = []; }
+  $('profit-body').innerHTML = profitTable();
+}
+async function watchSearch() {
+  const q = $('watch-q').value.trim();
+  if (!q) return;
+  $('watch-results').innerHTML = '<div class="hintline">searching…</div>';
+  const j = await (await fetch('/api/economy/search?q=' + encodeURIComponent(q))).json();
+  $('watch-results').innerHTML = (j.results || []).slice(0, 6).map(r =>
+    `<button class="vtab" style="margin:0 6px 8px 0" onclick="watchAdd(${r.id},'${esc(r.name).replace(/'/g, "\\'")}')">${esc(r.name)}</button>`).join('') || '<div class="hintline">nothing found</div>';
+}
+async function watchAdd(id, name) {
+  await fetch('/api/economy/watch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, name }) });
+  econ = null; $('watch-q').value = ''; renderEconomy();
+}
+async function watchRemove(id) {
+  await fetch('/api/economy/watch', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+  econ = null; renderEconomy();
+}
+async function tokenChart() {
+  try {
+    const rows = (await (await fetch('/api/economy/token_history')).json()).rows;
+    if (rows && rows.length >= 2) drawChart($('token-chart'), rows.map(r => ({ x: r.ts, y: r.price / 10000 })), v => Math.round(v).toLocaleString('en-US') + 'g');
+    else if (rows && rows.length === 1) $('token-chart').innerHTML = '<div class="hintline">one sample so far (' + goldStr(rows[0].price) + ') — the line appears as history accrues</div>';
+  } catch (e) {}
+}
+
+/* ---------- PROGRESS (charts + reputations) ---------- */
+let progKind = 'charts', histRows = null, repRows = null, progChar = null, progMetric = 'ilvl';
+function progTab(k) {
+  progKind = k;
+  document.querySelectorAll('#prog-tabs .vtab').forEach(b => b.classList.toggle('on', b.dataset.t === k));
+  renderProgress();
+}
+async function renderProgress() {
+  const body = $('prog-body');
+  if (progKind === 'reps') return renderReps();
+  if (!histRows) {
+    body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">Opening the ledger…</div></div>';
+    try { histRows = (await (await fetch('/api/history')).json()).rows; } catch (e) { histRows = []; }
+  }
+  const keys = [...new Set(histRows.map(r => r.k))];
+  if (!keys.length) { body.innerHTML = '<div class="hintline">The ledger is empty — snapshots are taken automatically as the app refreshes (max one per 6h per character). Come back tomorrow and the lines begin.</div>'; return; }
+  if (!progChar || !keys.includes(progChar)) progChar = keys[0];
+  const METRICS = { ilvl: 'Item level', mplus: 'M+ rating', gold: 'Gold', mounts: 'Mounts', ach: 'Achievement pts' };
+  body.innerHTML = `
+    <div class="vtabs">${keys.map(k => `<button class="vtab ${k === progChar ? 'on' : ''}" onclick="progChar='${esc(k)}';renderProgress()">${esc(k.split('-')[0])}</button>`).join('')}</div>
+    <div class="vtabs">${Object.entries(METRICS).map(([m, l]) => `<button class="vtab ${m === progMetric ? 'on' : ''}" onclick="progMetric='${m}';renderProgress()">${l}</button>`).join('')}</div>
+    <div class="panel"><div class="p-eyebrow" style="margin-bottom:12px">${METRICS[progMetric]} · ${esc(progChar)}</div><div id="prog-chart" class="chart hintline">…</div></div>
+    <div class="hintline" style="margin-top:12px">One snapshot per refresh, at most every six hours. The longer the app lives, the richer the story.</div>`;
+  const pts = histRows.filter(r => r.k === progChar && r[progMetric] != null)
+                      .map(r => ({ x: r.ts, y: progMetric === 'gold' ? r.gold / 10000 : r[progMetric] }));
+  const fmt = progMetric === 'gold' ? (v => Math.round(v).toLocaleString('en-US') + 'g') : (v => Math.round(v).toLocaleString('en-US'));
+  if (pts.length >= 2) drawChart($('prog-chart'), pts, fmt);
+  else $('prog-chart').innerHTML = '<div class="hintline">' + (pts.length ? 'one point so far (' + fmt(pts[0].y) + ') — a line needs two; keep playing' : 'no data for this metric yet') + '</div>';
+}
+async function renderReps() {
+  const body = $('prog-body');
+  if (!repRows) {
+    body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">Surveying loyalties…</div></div>';
+    try { repRows = (await (await fetch('/api/reputations')).json()).chars; } catch (e) { repRows = []; }
+  }
+  const best = {};
+  (repRows || []).forEach(cr => (cr.reps || []).forEach(r => {
+    if (!r.faction || !r.max) return;
+    const pctv = (r.value || 0) / r.max;
+    if (!best[r.faction] || pctv > best[r.faction].pctv)
+      best[r.faction] = { ...r, char: cr.char, pctv };
+  }));
+  const rows = Object.values(best).sort((a, b) => b.pctv - a.pctv);
+  body.innerHTML = rows.length ? `<div class="panel tblwrap"><table class="tbl">
+    <tr><th>Faction</th><th>Best on</th><th>Standing</th><th style="width:30%">Progress</th><th class="num"></th></tr>
+    ${rows.map(r => `<tr><td>${esc(r.faction)}</td><td>${esc(r.char)}</td>
+      <td>${esc(r.standing || '')}${r.renown && !String(r.standing || '').includes('Renown') ? ' · Renown ' + r.renown : ''}</td>
+      <td><div class="pbar"><i style="width:${Math.round(r.pctv * 100)}%"></i></div></td>
+      <td class="num" style="color:var(--muted)">${(r.value || 0).toLocaleString('en-US')} / ${r.max.toLocaleString('en-US')}</td></tr>`).join('')}
+  </table></div>` : '<div class="hintline">No reputation data yet.</div>';
+}
+
+/* ---------- single-series line chart (SVG, crosshair tooltip) ---------- */
+function drawChart(el, pts, fmtY) {
+  const W = 560, H = 190, P = { l: 46, r: 12, t: 10, b: 22 };
+  const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  let y0 = Math.min(...ys), y1 = Math.max(...ys);
+  if (y0 === y1) { y0 -= 1; y1 += 1; }
+  const pad = (y1 - y0) * 0.12; y0 -= pad; y1 += pad;
+  const X = x => P.l + (x - x0) / (x1 - x0 || 1) * (W - P.l - P.r);
+  const Y = y => H - P.b - (y - y0) / (y1 - y0) * (H - P.t - P.b);
+  const line = pts.map((p, i) => (i ? 'L' : 'M') + X(p.x).toFixed(1) + ' ' + Y(p.y).toFixed(1)).join(' ');
+  const area = line + ` L${X(x1).toFixed(1)} ${H - P.b} L${X(x0).toFixed(1)} ${H - P.b} Z`;
+  const yticks = [y0 + pad, (y0 + y1) / 2, y1 - pad];
+  const dfmt = ts => { const d = new Date(ts * 1000); return (d.getMonth() + 1) + '/' + d.getDate(); };
+  el.classList.remove('hintline');
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img">
+    <defs><linearGradient id="gfill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="var(--violet)" stop-opacity=".5"/><stop offset="1" stop-color="var(--violet)" stop-opacity="0"/></linearGradient></defs>
+    ${yticks.map(t => `<line class="ggrid" x1="${P.l}" x2="${W - P.r}" y1="${Y(t).toFixed(1)}" y2="${Y(t).toFixed(1)}"/>
+      <text class="gaxis" x="${P.l - 6}" y="${(Y(t) + 3).toFixed(1)}" text-anchor="end">${fmtY(t)}</text>`).join('')}
+    <text class="gaxis" x="${P.l}" y="${H - 6}">${dfmt(x0)}</text>
+    <text class="gaxis" x="${W - P.r}" y="${H - 6}" text-anchor="end">${dfmt(x1)}</text>
+    <path class="garea" d="${area}"/><path class="gline" d="${line}"/>
+    <circle class="gdot" r="4" cx="${X(pts[pts.length - 1].x).toFixed(1)}" cy="${Y(pts[pts.length - 1].y).toFixed(1)}"/>
+    <line id="ch-x" class="ggrid" y1="${P.t}" y2="${H - P.b}" style="display:none;stroke:var(--glow);stroke-width:1"/>
+    <circle id="ch-dot" r="4" class="gdot" style="display:none"/>
+  </svg><div class="tip"></div>`;
+  const svg = el.querySelector('svg'), tip = el.querySelector('.tip');
+  const chx = el.querySelector('#ch-x'), chd = el.querySelector('#ch-dot');
+  svg.addEventListener('mousemove', ev => {
+    const r = svg.getBoundingClientRect();
+    const mx = (ev.clientX - r.left) / r.width * W;
+    let best = pts[0], bd = 1e18;
+    for (const p of pts) { const d = Math.abs(X(p.x) - mx); if (d < bd) { bd = d; best = p; } }
+    chx.style.display = chd.style.display = '';
+    chx.setAttribute('x1', X(best.x)); chx.setAttribute('x2', X(best.x));
+    chd.setAttribute('cx', X(best.x)); chd.setAttribute('cy', Y(best.y));
+    tip.style.display = 'block';
+    tip.textContent = dfmt(best.x) + ' · ' + fmtY(best.y);
+    tip.style.left = Math.min(X(best.x) / W * r.width + 10, r.width - 110) + 'px';
+    tip.style.top = (Y(best.y) / H * r.height - 30) + 'px';
+  });
+  svg.addEventListener('mouseleave', () => { tip.style.display = 'none'; chx.style.display = chd.style.display = 'none'; });
+}
+
+/* ---------- static data status ---------- */
+async function loadStatic() {
+  try {
+    const s = await (await fetch('/api/static/status')).json();
+    const have = Object.entries(s.have).filter(([k, v]) => v).map(([k]) => k);
+    $('sd-status').textContent = s.running ? `building: ${s.step} (${s.done}/${s.total})`
+      : have.length ? 'built: ' + have.join(', ') : 'not built yet';
+    $('sd-build').disabled = !!s.running;
+    if (s.running) setTimeout(loadStatic, 3000);
+  } catch (e) {}
+}
+async function sdBuild() {
+  await fetch('/api/static/build', { method: 'POST' });
+  $('sd-status').textContent = 'building…';
+  setTimeout(loadStatic, 1500);
+}
 
 /* ---------- settings drawer ---------- */
-function openSettings() { $('drawer').classList.add('open'); $('backdrop').classList.add('open'); $('nav-settings').classList.add('active'); loadAccount(); loadGamedata(); }
+function openSettings() { $('drawer').classList.add('open'); $('backdrop').classList.add('open'); $('nav-settings').classList.add('active'); loadAccount(); loadGamedata(); loadStatic(); }
 function closeSettings() { $('drawer').classList.remove('open'); $('backdrop').classList.remove('open'); $('nav-settings').classList.remove('active'); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSettings(); });
 
