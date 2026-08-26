@@ -54,6 +54,14 @@ WCL has an open GraphQL v2 API (free; client-credentials OAuth, same pattern as 
   points, best performances — a "Performance" panel on the character detail; maybe raid-night
   parse summaries on the War Board. The axis Blizzard's API can't see: not WHAT you killed, but HOW WELL.
 
+## Phase 6 — THE DRESSING ROOM (next great work; feasibility CONFIRMED)
+Dress a full 3D character model in any appearance set — the in-app fitting room.
+- All hard infrastructure EXISTS from v1.3-1.5: zam proxy (/zam), isolated /mv viewer iframe,
+  the transmog atlas, and appearance detail exposes item_display_info_id (the viewer's currency).
+- Method: probe ZamModelViewer character mode in /mv (it requests meta/charactercustomization2/...
+  — OUR PROXY LOGS reveal the exact expected paths/format); bare mannequin first, then the items
+  array [[slot, displayId], ...], then a Fit-on-a-model button in every set lightbox.
+
 ## Later ideas
 Alt gear/upgrade comparison; profession recipe/reagent planning; transmog/mount collection tracking;
 "what should I play this week" suggestions; reputation/renown tracking.
