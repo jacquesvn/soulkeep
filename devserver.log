@@ -1,0 +1,21 @@
+ * Serving Flask app 'app'
+ * Debug mode: off
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5178
+Press CTRL+C to quit
+127.0.0.1 - - [26/Aug/2026 23:11:13] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:11:19] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:11:19] "GET /api/account HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:11:19] "GET /api/roster?fast=1 HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:11:19] "GET /api/gamedata HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:11:19] "GET /favicon.ico HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:11:19] "GET /api/qr.png HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:11:21] "GET /api/realms/eu HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:11:21] "GET /api/realms/eu HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:11:26] "GET /api/roster HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:11:33] "GET /api/static/mounts HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:11:33] "GET /api/static/pets HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:11:33] "GET /api/static/toys HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:11:35] "GET /api/collections HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:11:50] "GET /api/open?url=https://evil.example.com/x HTTP/1.1" 400 -
+127.0.0.1 - - [26/Aug/2026 23:11:50] "GET /api/open?url=https://www.wowhead.com/search?q%3DBrown%2520Horse HTTP/1.1" 200 -

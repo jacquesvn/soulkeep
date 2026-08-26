@@ -38,17 +38,13 @@ button{font-family:Barlow,system-ui,sans-serif}
   background-size:600px 600px;animation:drift 160s linear infinite;}
 .nebula{position:absolute;inset:0;pointer-events:none;opacity:var(--starop);
   background:radial-gradient(720px 460px at 78% -8%, rgba(177,92,255,.32), transparent 62%),radial-gradient(520px 400px at 12% 32%, rgba(122,47,214,.26), transparent 65%),radial-gradient(620px 420px at 96% 62%, rgba(243,199,102,.10), transparent 65%),radial-gradient(640px 460px at 30% 108%, rgba(36,26,82,.85), transparent 70%);}
-.wisps{position:absolute;inset:0;pointer-events:none;opacity:calc(var(--starop) * .8);
-  background-image:radial-gradient(2.4px 3.4px at 12% 86%, rgba(111,224,192,.5), transparent 55%),radial-gradient(1.8px 2.8px at 34% 64%, rgba(111,224,192,.35), transparent 55%),radial-gradient(2.8px 4px at 58% 90%, rgba(111,224,192,.42), transparent 55%),radial-gradient(1.6px 2.4px at 76% 70%, rgba(140,232,205,.3), transparent 55%),radial-gradient(2.2px 3.2px at 91% 82%, rgba(111,224,192,.38), transparent 55%),radial-gradient(1.4px 2.2px at 45% 78%, rgba(111,224,192,.28), transparent 55%);
-  background-size:640px 760px;animation:wispsrise 210s linear infinite;}
-@keyframes wispsrise{from{background-position:0 0}to{background-position:60px -1520px}}
+.wisps{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:calc(var(--starop) * .9);}
 .disc{position:relative;}
 .disc::after{content:"";position:absolute;left:22%;top:34%;width:52%;height:52%;border-radius:50%;
   background:radial-gradient(circle at 50% 60%, rgba(111,224,192,.75), rgba(111,224,192,.18) 55%, transparent 75%);
   filter:blur(1px);animation:soulpulse 4.5s ease-in-out infinite;}
 @keyframes soulpulse{0%,100%{opacity:.55;transform:scale(.92)}50%{opacity:.95;transform:scale(1.06)}}
 .app.no-motion .stars{animation:none}
-.app.no-motion .wisps{animation:none}
 .app.no-motion .disc{animation:none}
 .app.no-motion .disc::after{animation:none}
 
@@ -320,7 +316,7 @@ button{font-family:Barlow,system-ui,sans-serif}
 <div class="app" id="app">
   <div class="stars" aria-hidden="true"></div>
   <div class="nebula" aria-hidden="true"></div>
-  <div class="wisps" aria-hidden="true"></div>
+  <canvas class="wisps" id="wisps" aria-hidden="true"></canvas>
 
   <aside class="sidebar">
     <div class="crest-row">
@@ -554,6 +550,7 @@ function applySettings() {
   app.dataset.theme = S.theme === 'dawn' ? 'dawn' : '';
   if (S.theme === 'dawn') app.setAttribute('data-theme', 'dawn'); else app.removeAttribute('data-theme');
   app.classList.toggle('no-motion', !S.motion);
+  if (typeof wispEngine !== 'undefined') { (S.motion && S.theme !== 'dawn') ? wispEngine.start() : wispEngine.stop(); }
   $('theme-btn2').textContent = S.theme === 'midnight' ? '☾ Midnight' : '☀ Dawn';
   const hover = S.sbMode === 'hover';
   app.classList.toggle('sb-hover', hover);
@@ -1341,6 +1338,62 @@ async function sdBuild() {
 function openSettings() { $('drawer').classList.add('open'); $('backdrop').classList.add('open'); $('nav-settings').classList.add('active'); loadAccount(); loadGamedata(); loadStatic(); }
 function closeSettings() { $('drawer').classList.remove('open'); $('backdrop').classList.remove('open'); $('nav-settings').classList.remove('active'); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSettings(); });
+
+/* ---------- the souls: canvas wisps rising through the keep ---------- */
+const wispEngine = (() => {
+  const c = $('wisps'), ctx = c.getContext('2d');
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  let raf = null, wisps = [], last = 0;
+  function size() { c.width = c.clientWidth * dpr; c.height = c.clientHeight * dpr; }
+  size(); window.addEventListener('resize', size);
+  const TEAL = [[111, 224, 192], [111, 224, 192], [140, 232, 205], [177, 92, 255]];
+  function spawn(initial) {
+    const near = Math.random() < .38;
+    return {
+      x: Math.random(), y: initial ? Math.random() : 1.08,
+      r: near ? 4.5 + Math.random() * 6.5 : 2 + Math.random() * 3,
+      v: (near ? .016 : .009) + Math.random() * .009,
+      sway: .006 + Math.random() * .018, phase: Math.random() * 6.28, sf: .3 + Math.random() * .5,
+      col: Math.random() < .06 ? [243, 199, 102] : TEAL[Math.random() * TEAL.length | 0],
+      flick: Math.random() * 6.28, base: near ? .8 : .5
+    };
+  }
+  wisps = Array.from({ length: 17 }, () => spawn(true));
+  function frame(t) {
+    const dt = Math.min(.05, (t - last) / 1000 || 0); last = t;
+    ctx.clearRect(0, 0, c.width, c.height);
+    for (let i = 0; i < wisps.length; i++) {
+      const w = wisps[i];
+      w.y -= w.v * dt; w.phase += w.sf * dt; w.flick += 2.2 * dt;
+      if (w.y < -.1) { wisps[i] = spawn(false); continue; }
+      const x = (w.x + Math.sin(w.phase) * w.sway) * c.width, y = w.y * c.height, R = w.r * dpr;
+      const fade = Math.min(1, (1.05 - w.y) * 3, w.y * 4 + .15);
+      const a = w.base * fade * (.7 + .3 * Math.sin(w.flick));
+      const [r, g, b] = w.col;
+      for (let k = 1; k <= 3; k++) {  // the trailing soul-tail
+        const ty = y + R * k * 1.15, tr = R * (1.9 - k * .35);
+        const gt = ctx.createRadialGradient(x, ty, 0, x, ty, tr);
+        gt.addColorStop(0, `rgba(${r},${g},${b},${a * .14 / k})`); gt.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = gt; ctx.beginPath(); ctx.arc(x, ty, tr, 0, 7); ctx.fill();
+      }
+      const gl = ctx.createRadialGradient(x, y, 0, x, y, R * 3);  // the glow
+      gl.addColorStop(0, `rgba(${r},${g},${b},${a})`);
+      gl.addColorStop(.35, `rgba(${r},${g},${b},${a * .32})`);
+      gl.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(x, y, R * 3, 0, 7); ctx.fill();
+      ctx.fillStyle = `rgba(238,255,250,${a * .8})`;  // the bright soul-core
+      ctx.beginPath(); ctx.arc(x, y, R * .5, 0, 7); ctx.fill();
+    }
+    raf = requestAnimationFrame(frame);
+  }
+  return {
+    start() {
+      if (raf || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      last = 0; raf = requestAnimationFrame(frame);
+    },
+    stop() { cancelAnimationFrame(raf); raf = null; ctx.clearRect(0, 0, c.width, c.height); }
+  };
+})();
 
 /* ---------- boot ---------- */
 const sbEl = document.querySelector('.sidebar');
