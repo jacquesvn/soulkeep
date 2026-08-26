@@ -411,8 +411,9 @@ button{font-family:Barlow,system-ui,sans-serif}
 <script>
 "use strict";
 const FACTION = { Alliance: '#4A7FD6', Horde: '#C4232B' };
-const S = Object.assign({ theme: 'midnight', showSlumber: true, motion: true, autoRefresh: true, collapsed: false, sbMode: 'hover', sort: 'added' },
+const S = Object.assign({ theme: 'midnight', showSlumber: false, motion: true, autoRefresh: true, collapsed: false, sbMode: 'hover', sort: 'added' },
   (() => { try { return JSON.parse(localStorage.getItem('wr-settings') || '{}'); } catch (e) { return {}; } })());
+if (!S.v2) { S.showSlumber = false; S.v2 = true; }  // one-time: slumbering hidden by default
 let view = 'roster', sel = null, leaving = false, chars = [], loading = true, lastSync = null, fetchOk = false;
 let armTimer = null, refreshTimer = null;
 
@@ -421,7 +422,7 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp
 const num = n => (n == null ? '—' : Number(n).toLocaleString('en-US'));
 const ekey = e => `${e.region}/${e.realm}/${e.name}`;
 
-function saveSettings() { try { localStorage.setItem('wr-settings', JSON.stringify({ theme: S.theme, showSlumber: S.showSlumber, motion: S.motion, autoRefresh: S.autoRefresh, collapsed: S.collapsed, sbMode: S.sbMode, sort: S.sort })); } catch (e) {} }
+function saveSettings() { try { localStorage.setItem('wr-settings', JSON.stringify({ theme: S.theme, showSlumber: S.showSlumber, motion: S.motion, autoRefresh: S.autoRefresh, collapsed: S.collapsed, sbMode: S.sbMode, sort: S.sort, v2: S.v2 })); } catch (e) {} }
 
 function sbSetCollapsed(vis) {  // purely visual — S.collapsed only changes in static mode
   $('app').classList.toggle('sb-collapsed', vis);
