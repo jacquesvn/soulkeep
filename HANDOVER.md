@@ -68,9 +68,30 @@ Neltharion realm went to sleep. **This project is separate from Neltharion.**
   http://192.168.0.103:5177 + a QR. "Add to Home screen" works; full PWA install needs https later.
 - Exe REBUILT with addon+icons bundled (new build cmd in README).
 
+## Done — THE GRAND BUILD (2026-08-26, deep night): "build them all"
+He connected Battle.net (34 chars imported across 9 realms), slumbering chars now hidden by
+default, and then commissioned EVERYTHING from the feature menu. Shipped, all in the Midnight design:
+- **War Board** (own view): per-alt weekly table — vault slots by category (from the addon),
+  keys this week + best key (API current period), lockouts, gold, export age.
+- **Collections** (nav finally live): account-wide owned vs the FULL game index — 816/1,669 mounts
+  (49%) verified — missing grouped by source, searchable. Tabs: mounts/pets/toys.
+- **Economy** (own view): WoW Token (371,754g at build time) + history chart; AH refresh — realm
+  auctions + streamed EU commodities via ijson (28,668 prices in the first pull); crafting-profit
+  table (every alt's known recipes × reagent costs × live prices); price watches w/ history.
+- **Progress** (own view): SVG line charts (ilvl/M+/gold/mounts/achievements per char, crosshair
+  tooltip) fed by 6h roster snapshots (history.jsonl); Reputations tab = best-progress-per-faction
+  ladder across all alts.
+- **Character detail**: Upgrade Finder (weakest 3 slots × Dungeon Journal drops) + M+ Season panel
+  (per-dungeon season bests, weakest-first; un-run rotation dungeons listed once keys began).
+- **staticdata.py** caches (data/): 1,669 mounts, 2,179 pets, toys, journal loot map, M+ season,
+  ALL-tier recipes (crafted items resolved by exact-name item search — modern recipe API dropped
+  crafted_item). Settings → Static Game Data shows status/rebuild.
+- Fixed: wowapi._get double-'?' bug (search URLs 400'd); renown dup in rep ladder; sub-1g prices.
+
 ## In flight / NEXT
-- Highlord: portal redirect URL (above) → Connect Battle.net → whole account imports.
-- Highlord: log characters in (wakes them in the API) and out (exports addon data).
-- Later: https hosting for a true installable PWA; vault-on-card chip; currency picks.
+- All-tier recipe rebuild running at handoff (~8k recipes; profit engine covers old expansions —
+  Oblivionn's Shadowlands Alchemy / Classic Enchanting — once it lands + augment resolves names).
+- Rebuild exe with `--add-data "data;data"` (+ existing flags) after the recipe build.
+- Later: https hosting for true PWA; vault-on-card chip; label vault type 5 once identified.
 
 See `project_wow_roster` memory + ROADMAP.md + TODO.md.

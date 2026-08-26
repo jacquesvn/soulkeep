@@ -999,7 +999,12 @@ async function installAddon() {
   setTimeout(loadGamedata, 1200);
 }
 function gd(c) { return (gdata.chars || {})[c.name + '-' + c.realm]; }
-function goldStr(copper) { return Math.floor(copper / 10000).toLocaleString('en-US') + 'g'; }
+function goldStr(copper) {
+  if (copper == null) return '—';
+  if (copper < 100) return copper + 'c';
+  if (copper < 10000) return Math.floor(copper / 100) + 's';
+  return Math.floor(copper / 10000).toLocaleString('en-US') + 'g';
+}
 const VAULT_LABEL = { 1: 'Mythic+', 3: 'Raid', 5: 'Delves?', 6: 'World' };
 function agoStr(ts) {
   if (!ts) return '—';

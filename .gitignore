@@ -9,3 +9,13 @@ dist/
 roster_cache.json
 bnet_user.json
 wowdir.json
+history.jsonl
+history_index.json
+watches.json
+price_history.jsonl
+token_history.jsonl
+ah_summary.json
+staticbuild.log
+petsbuild.log
+recipesfull.log
+devserver.log
