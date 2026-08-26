@@ -169,8 +169,7 @@ button{font-family:Barlow,system-ui,sans-serif}
 .hs .stat-label{margin-bottom:4px}
 .hs .v{font:600 32px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;}
 .dgrid{display:grid;grid-template-columns:1.25fr 1fr;gap:18px;align-items:start;animation:pageIn .45s cubic-bezier(.25,.8,.3,1) .07s both;}
-.dmason{columns:2 340px;column-gap:18px;animation:pageIn .45s cubic-bezier(.25,.8,.3,1) .07s both;}
-.dmason > *{break-inside:avoid;-webkit-column-break-inside:avoid;margin:0 0 18px;width:100%;}
+
 .panel{border-radius:18px;padding:22px 24px;box-shadow:0 10px 30px -20px rgba(0,0,0,.55);background:linear-gradient(180deg, rgba(237,233,255,.035), transparent 50%), color-mix(in srgb, var(--panel) 40%, transparent);backdrop-filter:blur(14px) saturate(1.15);-webkit-backdrop-filter:blur(14px) saturate(1.15);border:1px solid rgba(237,233,255,.08);}
 .p-eyebrow{font-size:10px;letter-spacing:.28em;color:var(--violet);text-transform:uppercase;}
 .dcol{display:flex;flex-direction:column;gap:18px;}
@@ -861,21 +860,12 @@ function renderDetail() {
       ${g && g.gold != null ? `<div class="hs"><div class="stat-label">Gold</div><div class="v c-gold">${goldStr(g.gold)}</div></div>` : ''}
     </div>
   </div>
-  <div class="dmason">
-    <div class="panel">
-      <div class="p-eyebrow" style="margin-bottom:14px">Gear</div>
-      ${gear ? `<div class="gear-grid">${gear}</div>` : '<div class="empty-s" style="color:var(--muted)">No equipment data.</div>'}
-    </div>
-      ${c.mplus_rating ? `
+  <div class="dgrid">
+    <div class="dcol">
       <div class="panel">
-        <div class="mp-head"><div class="p-eyebrow">Mythic+</div><div class="mp-rating">${c.mplus_rating}</div></div>
-        <div class="mp-track">
-          <div class="mp-line"></div>
-          <div class="mp-fill" style="width:${pct}%"></div>
-          <div class="mp-nodes">${nodes}</div>
-        </div>
-        ${runs ? `<div class="runs">${runs}</div>` : ''}
-      </div>` : ''}
+        <div class="p-eyebrow" style="margin-bottom:14px">Gear</div>
+        ${gear ? `<div class="gear-grid">${gear}</div>` : '<div class="empty-s" style="color:var(--muted)">No equipment data.</div>'}
+      </div>
       ${(c.raid_rows || []).length ? `
       <div class="panel">
         <div class="p-eyebrow" style="margin-bottom:4px">Raid</div>
@@ -887,10 +877,23 @@ function renderDetail() {
         <div class="glass coll"><div class="p-eyebrow" style="margin-bottom:8px">Mounts</div><div class="v">${num(c.mounts)}</div></div>
         <div class="glass coll"><div class="p-eyebrow" style="margin-bottom:8px">Pets</div><div class="v">${num(c.pets)}</div></div>
       </div>` : ''}
-      ${profs ? `
+      ${g && (g.currencies || []).length ? `
       <div class="panel">
-        <div class="p-eyebrow" style="margin-bottom:12px">Professions</div>
-        <div class="prof-rows">${profs}</div>
+        <div class="p-eyebrow" style="margin-bottom:12px">Currencies</div>
+        <div class="runs">${g.currencies.slice(0, 8).map(cu => `
+          <div class="run"><span>${esc(cu.name)}</span><span class="s">${Number(cu.qty).toLocaleString('en-US')}</span></div>`).join('')}</div>
+      </div>` : ''}
+    </div>
+    <div class="dcol">
+      ${c.mplus_rating ? `
+      <div class="panel">
+        <div class="mp-head"><div class="p-eyebrow">Mythic+</div><div class="mp-rating">${c.mplus_rating}</div></div>
+        <div class="mp-track">
+          <div class="mp-line"></div>
+          <div class="mp-fill" style="width:${pct}%"></div>
+          <div class="mp-nodes">${nodes}</div>
+        </div>
+        ${runs ? `<div class="runs">${runs}</div>` : ''}
       </div>` : ''}
       ${g && (g.vault || []).length ? `
       <div class="panel">
@@ -901,20 +904,20 @@ function renderDetail() {
             <div class="segs">${Array.from({ length: v.threshold }, (_, i) => `<div class="seg ${i < v.progress ? 'm' : ''}"></div>`).join('')}</div>
           </div>`).join('')}</div>
       </div>` : ''}
+      <div class="panel"><div class="p-eyebrow" style="margin-bottom:12px">M+ Season</div><div id="d-season" class="hintline">consulting the keystone ledger…</div></div>
+      <div class="panel"><div class="p-eyebrow" style="margin-bottom:12px">Upgrade Finder</div><div id="d-upgrades" class="hintline">reading the Dungeon Journal…</div></div>
       ${g && (g.lockouts || []).length ? `
       <div class="panel">
         <div class="p-eyebrow" style="margin-bottom:12px">Lockouts</div>
         <div class="runs">${g.lockouts.map(l => `
           <div class="run"><span>${esc(l.name)}</span><span class="s">${esc(l.diff || '')} · ${l.done}/${l.total}</span></div>`).join('')}</div>
       </div>` : ''}
-      ${g && (g.currencies || []).length ? `
+      ${profs ? `
       <div class="panel">
-        <div class="p-eyebrow" style="margin-bottom:12px">Currencies</div>
-        <div class="runs">${g.currencies.slice(0, 8).map(cu => `
-          <div class="run"><span>${esc(cu.name)}</span><span class="s">${Number(cu.qty).toLocaleString('en-US')}</span></div>`).join('')}</div>
+        <div class="p-eyebrow" style="margin-bottom:12px">Professions</div>
+        <div class="prof-rows">${profs}</div>
       </div>` : ''}
-    <div class="panel"><div class="p-eyebrow" style="margin-bottom:12px">M+ Season</div><div id="d-season" class="hintline">consulting the keystone ledger…</div></div>
-    <div class="panel"><div class="p-eyebrow" style="margin-bottom:12px">Upgrade Finder</div><div id="d-upgrades" class="hintline">reading the Dungeon Journal…</div></div>
+    </div>
   </div>`;
   loadDetailExtras(c);
 }
