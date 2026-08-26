@@ -74,6 +74,21 @@ def _get(region, path, namespace):
     except urllib.error.HTTPError as e:
         return {"_error": e.code}
 
+_REALMS = {}  # per-region cache; the realm list changes ~never within a session
+
+def get_realms(region):
+    """All realms for a region as [{name, slug}], sorted by name."""
+    region = region.lower()
+    if region in _REALMS:
+        return _REALMS[region]
+    j = _get(region, "/data/wow/realm/index", f"dynamic-{region}")
+    if j.get("_error"):
+        return []
+    realms = sorted(({"name": r.get("name"), "slug": r.get("slug")} for r in (j.get("realms") or [])),
+                    key=lambda r: r["name"] or "")
+    _REALMS[region] = realms
+    return realms
+
 def get_character(region, realm, name):
     """Return a normalized character dict (card + detail data), or an error/slumbering stub."""
     region, realm, name = region.lower(), realm.lower(), name.lower()

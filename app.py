@@ -42,6 +42,10 @@ def api_roster():
         c["entry"] = e  # the region/realm/name key the client sends back for /api/remove
     return jsonify({"chars": chars})
 
+@app.route("/api/realms/<region>")
+def api_realms(region):
+    return jsonify({"realms": wowapi.get_realms(region)})
+
 @app.route("/api/add", methods=["POST"])
 def api_add():
     d = request.get_json(force=True)

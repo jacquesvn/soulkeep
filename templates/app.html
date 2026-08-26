@@ -294,11 +294,14 @@ button{font-family:Barlow,system-ui,sans-serif}
         </div>
         <div class="qa-wrap">
           <div class="qa">
-            <select class="qa-region" id="qa-region" aria-label="Region">
+            <select class="qa-region" id="qa-region" aria-label="Region" onchange="loadRealms(this.value)">
               <option value="eu">EU</option><option value="us">US</option>
               <option value="kr">KR</option><option value="tw">TW</option>
             </select>
-            <input class="qa-input" id="qa-input" placeholder="Realm / Name" onkeydown="if(event.key==='Enter')addChar()">
+            <input class="qa-input" id="qa-realm" list="realm-list" placeholder="Realm" autocomplete="off"
+                   style="width:130px;border-right:1px solid var(--line)" onkeydown="if(event.key==='Enter')addChar()">
+            <datalist id="realm-list"></datalist>
+            <input class="qa-input" id="qa-name" placeholder="Character" style="width:118px" onkeydown="if(event.key==='Enter')addChar()">
           </div>
           <button class="add-btn" id="add-btn" onclick="addChar()">+ Add Character</button>
           <div class="qa-err" id="qa-err"></div>
@@ -463,7 +466,7 @@ function renderChrome() {
   $('acct-t').textContent = `Battle.net · ${reg ? reg.toUpperCase() : '—'}`;
   $('acct-s').textContent = realm ? `${realm} · ${fetchOk ? 'connected' : 'offline'}` : (fetchOk ? 'connected' : 'offline');
   $('presence').classList.toggle('off', !fetchOk);
-  if (reg) $('qa-region').value = reg;
+  if (reg) { $('qa-region').value = reg; loadRealms(reg); }
 }
 setInterval(() => {
   if (!lastSync) return;
@@ -553,21 +556,34 @@ function renderRoster() {
 }
 
 /* ---------- add / remove ---------- */
+const realmCache = {};  // region -> [{name, slug}]
+async function loadRealms(region) {
+  if (!realmCache[region]) {
+    try {
+      const r = await fetch('/api/realms/' + region);
+      realmCache[region] = (await r.json()).realms || [];
+    } catch (e) { realmCache[region] = []; }
+  }
+  $('realm-list').innerHTML = realmCache[region].map(x => `<option value="${esc(x.name)}">`).join('');
+}
+function realmSlug(region, typed) {
+  const t = typed.trim().toLowerCase();
+  const m = (realmCache[region] || []).find(x => x.name.toLowerCase() === t || x.slug === t);
+  return m ? m.slug : t.replace(/'/g, '').replace(/\s+/g, '-');
+}
 async function addChar() {
-  const raw = $('qa-input').value.trim();
+  const realmTyped = $('qa-realm').value.trim(), name = $('qa-name').value.trim();
   const err = $('qa-err'); err.textContent = '';
-  if (!raw) return;
-  let realm, name;
-  if (raw.includes('/')) { const p = raw.split('/'); realm = p[0].trim(); name = p.slice(1).join('/').trim(); }
-  else { const p = raw.split(/\s+/); name = p.pop(); realm = p.join(' '); }
-  if (!realm || !name) { err.textContent = 'Use "realm / name" (e.g. draenor / oblivz)'; return; }
+  if (!realmTyped && !name) return;
+  if (!realmTyped || !name) { err.textContent = 'Pick a realm and type a character name.'; return; }
+  const region = $('qa-region').value;
   const btn = $('add-btn'); btn.disabled = true; btn.textContent = 'Summoning…';
   try {
     const r = await fetch('/api/add', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ region: $('qa-region').value, realm, name }) });
+      body: JSON.stringify({ region, realm: realmSlug(region, realmTyped), name }) });
     const j = await r.json();
     if (!r.ok) { err.textContent = j.error || 'Could not add.'; }
-    else { chars.push(j.char); $('qa-input').value = ''; renderRoster(); renderChrome(); }
+    else { chars.push(j.char); $('qa-name').value = ''; renderRoster(); renderChrome(); }
   } catch (e) { err.textContent = 'Network error.'; }
   btn.disabled = false; btn.textContent = '+ Add Character';
 }
@@ -708,6 +724,7 @@ sbEl.addEventListener('mouseenter', () => { sbHovering = true; if (S.sbMode === 
 sbEl.addEventListener('mouseleave', () => { sbHovering = false; if (S.sbMode === 'hover') sbSetCollapsed(true); });
 applySettings();
 setView('roster');
+loadRealms($('qa-region').value);
 loadRoster(true);
 </script>
 </body>
