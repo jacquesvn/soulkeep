@@ -12,6 +12,7 @@ APPDIR = os.path.dirname(sys.executable) if FROZEN else os.path.dirname(os.path.
 # bundled read-only assets (templates) are unpacked to _MEIPASS by PyInstaller onefile
 BUNDLE = getattr(sys, "_MEIPASS", APPDIR)
 ROSTER = os.path.join(APPDIR, "roster.json")
+CACHE = os.path.join(APPDIR, "roster_cache.json")
 app = Flask(__name__, template_folder=os.path.join(BUNDLE, "templates"))
 app.config["TEMPLATES_AUTO_RELOAD"] = not FROZEN
 
@@ -37,9 +38,23 @@ def index():
 @app.route("/api/roster")
 def api_roster():
     roster = load_roster()
+    if request.args.get("fast"):  # instant paint from the last good fetch, if we have one
+        if os.path.exists(CACHE):
+            try:
+                cached = json.load(open(CACHE, encoding="utf-8"))
+                keys = {key(c["entry"]) for c in cached.get("chars", []) if c.get("entry")}
+                if keys == {key(e) for e in roster}:  # cache still matches the roster
+                    return jsonify({"chars": cached["chars"], "cached": True})
+            except (ValueError, KeyError):
+                pass
+        return jsonify({"chars": None, "cached": False})  # no usable cache — client waits for live
     chars = fetch_all(roster)
     for e, c in zip(roster, chars):
         c["entry"] = e  # the region/realm/name key the client sends back for /api/remove
+    try:
+        json.dump({"chars": chars}, open(CACHE, "w", encoding="utf-8"))
+    except OSError:
+        pass
     return jsonify({"chars": chars})
 
 @app.route("/api/realms/<region>")
