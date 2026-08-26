@@ -19,7 +19,7 @@ M+ rating, raid progression, last-played — from Blizzard's free REST API. Week
 
 ## Build the exe (portable)
     pip install pyinstaller pillow qrcode   # one-time
-    python -m PyInstaller --noconfirm --onefile --noconsole --name WoWRoster --icon icon.ico --add-data "templates;templates" --add-data "addon;addon" --add-data "icon-192.png;." --add-data "icon-512.png;." --add-data "icon.ico;." --hidden-import qrcode app.py
+    python -m PyInstaller --noconfirm --onefile --noconsole --name WoWRoster --icon icon.ico --add-data "templates;templates" --add-data "addon;addon" --add-data "icon-192.png;." --add-data "icon-512.png;." --add-data "icon.ico;." --add-data "data;data" --hidden-import qrcode --hidden-import ijson app.py
 
 `dist/WoWRoster.exe` is portable: it reads `bnet.env` and `roster.json` from the folder it sits in,
 so copy those two files next to the exe. (dist/ is gitignored — the exe carries your API creds' folder.)
