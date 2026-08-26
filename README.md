@@ -17,6 +17,13 @@ M+ rating, raid progression, last-played — from Blizzard's free REST API. Week
     pip install flask pywebview      # one-time
     python app.py                    # opens the WoW Roster desktop window
 
+## Build the exe (portable)
+    pip install pyinstaller pillow   # one-time
+    python -m PyInstaller --noconfirm --onefile --noconsole --name WoWRoster --icon icon.ico --add-data "templates;templates" app.py
+
+`dist/WoWRoster.exe` is portable: it reads `bnet.env` and `roster.json` from the folder it sits in,
+so copy those two files next to the exe. (dist/ is gitignored — the exe carries your API creds' folder.)
+
 Add characters with the region/realm/name form in the header; remove with the ✕ on a card.
 The roster is stored locally in `roster.json`. Only recently-active characters return data
 (an unsubbed account's characters "slumber" and show a greyed card until you resub + log in once).

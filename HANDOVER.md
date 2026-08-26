@@ -40,9 +40,17 @@ Neltharion realm went to sleep. **This project is separate from Neltharion.**
   last_seen/state). **app.py** now serves JSON: `/api/roster`, `/api/add`, `/api/remove`.
 - All verified live in the Browser pane against real API data (Loonwhy/Oblivz/Oblivionn) + mobile.
 
+## Done — EXE BUILT & WINDOW CONFIRMED (2026-08-26, later)
+- Sidebar: collapsible (68px icon rail) + **Settings → Sidebar** mode: Static (« button) or
+  **Open on hover** (default) — rail flies open OVER the content, no layout shift.
+- **WoWRoster.exe** (PyInstaller onefile, ~19MB, --noconsole, eclipse icon.ico): PORTABLE — reads
+  `bnet.env` + `roster.json` from the exe's own folder. app.py is frozen-aware (APPDIR vs _MEIPASS
+  for templates), picks port 5177 or an ephemeral fallback, waits for Flask before opening the window.
+- Smoke-tested the actual exe: window opened, loaded the SPA, fetched the live roster (3 chars).
+  **The pywebview window is CONFIRMED working** — the old caveat is closed.
+- Build cmd in README. dist/ + build/ + *.spec gitignored (dist holds bnet.env!).
+
 ## In flight / NEXT
-- Highlord's first `python app.py` = confirmation the pywebview window opens clean (only headless-
-  browser verification was possible here).
 - Polish: sort options; disk cache for instant first paint. Then Phase 2 (Battle.net login) /
   Phase 4 (Android PWA — design is already fully responsive, a big head start).
 

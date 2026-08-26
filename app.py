@@ -1,15 +1,19 @@
 """WoW Roster — desktop app (Flask + pywebview). Serves the "Midnight" SPA (templates/app.html),
-which pulls live character data from /api/roster. Run:  python app.py"""
-import json, os, threading
+which pulls live character data from /api/roster. Run:  python app.py  (or the packaged exe)."""
+import json, os, socket, sys, threading, time
 from concurrent.futures import ThreadPoolExecutor
 import webview
 from flask import Flask, render_template, request, jsonify
 import wowapi
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-ROSTER = os.path.join(HERE, "roster.json")
-app = Flask(__name__)
-app.config["TEMPLATES_AUTO_RELOAD"] = True
+FROZEN = getattr(sys, "frozen", False)
+# user data (roster.json, bnet.env) lives next to the exe when packaged — the app is portable
+APPDIR = os.path.dirname(sys.executable) if FROZEN else os.path.dirname(os.path.abspath(__file__))
+# bundled read-only assets (templates) are unpacked to _MEIPASS by PyInstaller onefile
+BUNDLE = getattr(sys, "_MEIPASS", APPDIR)
+ROSTER = os.path.join(APPDIR, "roster.json")
+app = Flask(__name__, template_folder=os.path.join(BUNDLE, "templates"))
+app.config["TEMPLATES_AUTO_RELOAD"] = not FROZEN
 
 def load_roster():
     return json.load(open(ROSTER, encoding="utf-8")) if os.path.exists(ROSTER) else []
@@ -62,10 +66,27 @@ def api_remove():
     save_roster([c for c in load_roster() if key(c) != key(e)])
     return jsonify({"ok": True})
 
-def run_flask():
-    app.run(host="127.0.0.1", port=5177, threaded=True)
+def pick_port():
+    """Prefer 5177 (dev convenience); fall back to an ephemeral port if it's taken."""
+    for want in (5177, 0):
+        try:
+            s = socket.socket()
+            s.bind(("127.0.0.1", want))
+            port = s.getsockname()[1]
+            s.close()
+            return port
+        except OSError:
+            continue
+    return 0
 
 if __name__ == "__main__":
-    threading.Thread(target=run_flask, daemon=True).start()
-    webview.create_window("WoW Roster", "http://127.0.0.1:5177", width=1280, height=880)
+    port = pick_port()
+    threading.Thread(target=lambda: app.run(host="127.0.0.1", port=port, threaded=True), daemon=True).start()
+    for _ in range(100):  # wait for Flask to come up so the window never opens on a dead page
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=0.1):
+                break
+        except OSError:
+            time.sleep(0.05)
+    webview.create_window("WoW Roster", f"http://127.0.0.1:{port}", width=1280, height=880)
     webview.start()

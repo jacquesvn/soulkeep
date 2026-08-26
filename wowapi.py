@@ -33,9 +33,15 @@ def _ago(ts_ms):
     if days < 60:        return f"{weeks} weeks ago"
     return f"{days // 30} months ago"
 
+def _appdir():
+    """Next to the exe when frozen (portable app); next to this file when run from source."""
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
+
 def _creds():
     cid, sec = os.environ.get("BNET_CLIENT_ID"), os.environ.get("BNET_CLIENT_SECRET")
-    envf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bnet.env")
+    envf = os.path.join(_appdir(), "bnet.env")
     if (not cid or not sec) and os.path.exists(envf):
         for line in open(envf, encoding="utf-8"):
             if "=" in line and not line.strip().startswith("#"):

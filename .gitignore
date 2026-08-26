@@ -3,3 +3,6 @@ last_profile.json
 __pycache__/
 *.pyc
 docs/*.zip
+build/
+dist/
+*.spec
