@@ -46,6 +46,14 @@ and serve it from a hosted Flask instance → installable on Android, no app sto
   not type region/realm/name. Do Phase 2 first, then mobile rides on it.
 - Alternative (heavier, probably skip): native wrapper (BeeWare/Kivy) or Termux-hosted Flask.
 
+## Phase 5 — Warcraft Logs integration (PLANNED)
+WCL has an open GraphQL v2 API (free; client-credentials OAuth, same pattern as Blizzard).
+- One-time step for the Highlord: register a client at warcraftlogs.com/api/clients, hand over
+  ID+secret (gitignored env file, like bnet.env).
+- Unlocks: per-boss parse percentiles in the classic bracket colours (grey->pink), all-star
+  points, best performances — a "Performance" panel on the character detail; maybe raid-night
+  parse summaries on the War Board. The axis Blizzard's API can't see: not WHAT you killed, but HOW WELL.
+
 ## Later ideas
 Alt gear/upgrade comparison; profession recipe/reagent planning; transmog/mount collection tracking;
 "what should I play this week" suggestions; reputation/renown tracking.

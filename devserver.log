@@ -27,3 +27,11 @@ Press CTRL+C to quit
 127.0.0.1 - - [26/Aug/2026 23:51:55] "GET /api/economy/token_history HTTP/1.1" 200 -
 127.0.0.1 - - [26/Aug/2026 23:51:55] "GET /api/economy/movers HTTP/1.1" 200 -
 127.0.0.1 - - [26/Aug/2026 23:51:56] "GET /api/economy/profit HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:52:38] "GET /api/static/toys HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:52:38] "GET /api/static/pets HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:52:38] "GET /api/static/mounts HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:52:40] "GET /api/collections HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:55:03] "GET /api/static/mounts HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:55:03] "GET /api/static/pets HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:55:03] "GET /api/static/toys HTTP/1.1" 200 -
+127.0.0.1 - - [26/Aug/2026 23:55:06] "GET /api/collections HTTP/1.1" 200 -

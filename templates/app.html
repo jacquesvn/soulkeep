@@ -291,6 +291,30 @@ button{font-family:Barlow,system-ui,sans-serif}
 .tile.kept{border-color:rgba(111,224,192,.28);}
 .tile .tn{font-size:10.5px;padding:6px 8px 7px;line-height:1.25;color:var(--muted);max-height:3em;overflow:hidden;}
 
+/* ---------- trophy lightbox ---------- */
+.lb-back{position:fixed;inset:0;z-index:10;background:rgba(7,6,14,.78);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:24px;}
+.lb-back.open{display:flex;}
+.lb{position:relative;width:min(600px,94vw);max-height:92vh;overflow-y:auto;border-radius:22px;
+  background:linear-gradient(180deg, color-mix(in srgb, var(--raised) 88%, transparent), color-mix(in srgb, var(--panel) 82%, transparent));
+  border:1px solid rgba(199,125,255,.35);box-shadow:0 30px 90px -30px rgba(0,0,0,.85), 0 0 80px -20px rgba(177,92,255,.4);
+  animation:pageIn .3s cubic-bezier(.25,.8,.3,1) both;}
+.lb-hero{position:relative;background:radial-gradient(120% 130% at 50% 0%, rgba(177,92,255,.18), transparent 65%), #0B0A18;display:grid;place-items:center;min-height:180px;border-bottom:1px solid var(--line);}
+.lb-hero img.big{width:100%;display:block;}
+.lb-hero img.iconic{width:148px;height:148px;border-radius:24px;margin:34px 0;box-shadow:0 0 60px -10px rgba(177,92,255,.6);image-rendering:auto;}
+.lb-hero .ph{font:700 64px Cinzel,serif;color:var(--violet);padding:50px 0;}
+.lb-body{padding:18px 24px 22px;}
+.lb-name{font-family:Cinzel,serif;font-weight:600;font-size:23px;letter-spacing:.03em;line-height:1.2;}
+.lb-chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 14px;}
+.lb-actions{display:flex;gap:10px;align-items:center;}
+.lb-x{position:absolute;top:10px;right:10px;z-index:2;width:32px;height:32px;border-radius:999px;background:rgba(7,6,14,.55);border:1px solid rgba(237,233,255,.14);color:var(--ink);font-size:14px;cursor:pointer;}
+.lb-x:hover{background:rgba(177,92,255,.3);}
+.lb-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:38px;height:38px;border-radius:999px;background:rgba(7,6,14,.55);border:1px solid rgba(237,233,255,.14);color:var(--ink);font-size:17px;cursor:pointer;transition:background .15s;}
+.lb-nav:hover{background:rgba(177,92,255,.35);}
+.lb-nav.prev{left:10px;}.lb-nav.next{right:10px;}
+.lb-count{font-size:10.5px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-left:auto;}
+.kept-chip{background:rgba(111,224,192,.14);border:1px solid rgba(111,224,192,.4);color:var(--good);}
+.miss-chip{background:rgba(243,199,102,.1);border:1px solid rgba(243,199,102,.35);color:var(--gold);}
+
 /* ---------- update banner ---------- */
 .updbar{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:7;display:flex;align-items:center;gap:12px;
   padding:8px 10px 8px 16px;border-radius:999px;font-size:13px;color:var(--ink);
@@ -388,6 +412,22 @@ button{font-family:Barlow,system-ui,sans-serif}
     </div>
   </aside>
 
+  <div class="lb-back" id="lb-back" onclick="if(event.target===this)lbClose()">
+    <div class="lb" role="dialog" aria-label="Collection item">
+      <button class="lb-x" onclick="lbClose()" aria-label="Close">✕</button>
+      <button class="lb-nav prev" onclick="lbNav(-1)" aria-label="Previous">‹</button>
+      <button class="lb-nav next" onclick="lbNav(1)" aria-label="Next">›</button>
+      <div class="lb-hero" id="lb-hero"></div>
+      <div class="lb-body">
+        <div class="lb-name" id="lb-name"></div>
+        <div class="lb-chips" id="lb-chips"></div>
+        <div class="lb-actions">
+          <button class="add-btn" id="lb-guide">Open the guide ↗</button>
+          <span class="lb-count" id="lb-count"></span>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="updbar" id="updbar" hidden>
     <span class="ic">✦</span><span id="upd-text">A new build of Soulkeep awaits</span>
     <button class="pill-btn" style="flex:0 0 auto" onclick="openUpdate()">Get it ↗</button>
@@ -1115,7 +1155,7 @@ function renderBoard() {
 }
 
 /* ---------- COLLECTIONS: The Hunt ---------- */
-let collIndex = {}, collMine = null, collKind = 'mounts', collFilter = null, collShowOwned = false;
+let collIndex = {}, collMine = null, collKind = 'mounts', collFilter = null, collShowOwned = false, lastPoolIds = [];
 const LIMITED = new Set(['In-Game Shop', 'Promotion', 'Trading Card Game']);
 const EASY_SRC = new Set(['Vendor', 'Quest', 'Profession', 'Pet Battle', 'Discovery']);
 async function loadCollections() {
@@ -1178,7 +1218,7 @@ function renderEasy() {
   $('easy-marks').innerHTML = picks.length ? `
     <div class="p-eyebrow" style="margin-bottom:10px">Easy Marks · gettable this week — today's picks</div>
     <div class="easyrow">${picks.map(x => `
-      <div class="easycard glass" role="button" tabindex="0" title="Open the Wowhead guide" onclick="openGuide('${esc(x.name).replace(/'/g, "\\'")}')">
+      <div class="easycard glass" role="button" tabindex="0" title="A closer look" onclick="lbOpenId(${x.id}, [${picks.map(y => y.id).join(',')}])">
         ${x.img ? `<img src="${esc(x.img)}" alt="" loading="lazy">` : `<div class="ph">${esc((x.name || '?')[0])}</div>`}
         <div class="en">${esc(x.name)}</div>
         <div class="es">${esc(x.src)}</div>
@@ -1213,16 +1253,57 @@ function renderCollGrid() {
   const q = ($('coll-search').value || '').toLowerCase();
   if (q) pool = pool.filter(x => (x.name || '').toLowerCase().includes(q) || (x.src || '').toLowerCase().includes(q));
   const CAP = 240;
+  lastPoolIds = pool.slice(0, CAP).map(x => x.id);
   body.innerHTML = pool.length ? `
     <div class="tilegrid">${pool.slice(0, CAP).map(x => `
-      <div class="tile ${collShowOwned ? 'kept' : 'miss'}" role="button" tabindex="0" title="${esc(x.src)}${x.faction ? ' · ' + esc(x.faction) : ''}${x.type ? ' · ' + esc(x.type) : ''} — open the guide"
-           onclick="openGuide('${esc(x.name).replace(/'/g, "\\'")}')">
+      <div class="tile ${collShowOwned ? 'kept' : 'miss'}" role="button" tabindex="0" title="${esc(x.src)}${x.faction ? ' · ' + esc(x.faction) : ''}${x.type ? ' · ' + esc(x.type) : ''}"
+           onclick="lbOpenId(${x.id}, lastPoolIds)">
         ${x.img ? `<img src="${esc(x.img)}" alt="" loading="lazy">` : `<div class="ph">${esc((x.name || '?')[0])}</div>`}
         <div class="tn">${esc(x.name)}</div>
       </div>`).join('')}</div>
     ${pool.length > CAP ? `<div class="hintline" style="margin-top:12px">Showing ${CAP} of ${pool.length.toLocaleString('en-US')} — narrow with a source pill or the search.</div>` : ''}`
     : '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">Nothing here</div><div class="empty-s">' + (collShowOwned ? 'Nothing kept under this filter yet — the hunt awaits.' : 'Nothing missing here — this ground is fully claimed!') + '</div></div>';
 }
+/* ---------- trophy lightbox ---------- */
+let lbPool = [], lbIdx = 0;
+function lbOpenId(id, poolIds) {
+  const index = collIndex[collKind] || [];
+  const byId = new Map(index.map(x => [x.id, x]));
+  lbPool = (poolIds || []).map(i => byId.get(i)).filter(Boolean);
+  if (!lbPool.length) { const one = byId.get(id); if (!one) return; lbPool = [one]; }
+  lbIdx = Math.max(0, lbPool.findIndex(x => x.id === id));
+  lbRender();
+  $('lb-back').classList.add('open');
+}
+function lbRender() {
+  const x = lbPool[lbIdx];
+  if (!x) return;
+  const kept = new Set((collMine || {})[collKind] || []).has(x.id);
+  const hero = $('lb-hero');
+  if (x.img && collKind === 'mounts') hero.innerHTML = `<img class="big" src="${esc(x.img)}" alt="">`;
+  else if (x.img) hero.innerHTML = `<img class="iconic" src="${esc(x.img)}" alt="">`;
+  else hero.innerHTML = `<div class="ph">${esc((x.name || '?')[0])}</div>`;
+  $('lb-name').textContent = x.name || '';
+  $('lb-chips').innerHTML = [
+    `<span class="chip"><span class="v">${esc(x.src || 'Unknown')}</span></span>`,
+    x.faction ? `<span class="chip"><span class="v">${esc(x.faction)}</span></span>` : '',
+    x.type ? `<span class="chip"><span class="v">${esc(x.type)}</span></span>` : '',
+    kept ? `<span class="chip kept-chip"><span class="v">✓ Kept</span></span>`
+         : `<span class="chip miss-chip"><span class="v">☾ The hunt continues</span></span>`,
+  ].join('');
+  $('lb-guide').onclick = () => openGuide(x.name);
+  $('lb-count').textContent = lbPool.length > 1 ? `${lbIdx + 1} / ${lbPool.length}` : '';
+  document.querySelectorAll('.lb-nav').forEach(b => b.style.display = lbPool.length > 1 ? '' : 'none');
+}
+function lbNav(d) { if (!lbPool.length) return; lbIdx = (lbIdx + d + lbPool.length) % lbPool.length; lbRender(); }
+function lbClose() { $('lb-back').classList.remove('open'); }
+document.addEventListener('keydown', e => {
+  if (!$('lb-back').classList.contains('open')) return;
+  if (e.key === 'Escape') lbClose();
+  if (e.key === 'ArrowRight') lbNav(1);
+  if (e.key === 'ArrowLeft') lbNav(-1);
+});
+
 async function openGuide(name) {
   try { await fetch('/api/open?url=' + encodeURIComponent('https://www.wowhead.com/search?q=' + name)); } catch (e) {}
 }
@@ -1316,7 +1397,7 @@ async function loadMovers() {
     el.innerHTML = (j.rows || []).length ? j.rows.slice(0, 8).map(m => `
       <div class="run"><img class="iic" src="/api/icon/${m.id}" alt="" loading="lazy" onerror="this.style.display='none'"><span>${esc(m.name)}</span>
         <span class="s"><span class="${m.pct >= 0 ? 'good' : 'bad'}">${m.pct >= 0 ? '▲' : '▼'}${Math.abs(m.pct)}%</span> · ${goldStr(m.cur)}</span></div>`).join('')
-      : '<div class="hintline">Movers appear once two AH refreshes exist to compare.</div>';
+      : '<div class="hintline">Appears when prices actually move between two AH refreshes.</div>';
   } catch (e) {}
 }
 function profitTable() {
@@ -1586,6 +1667,7 @@ if (qsBoot.has('imported')) {
 loadAccount();
 loadGamedata();
 checkUpdate();
+setInterval(checkUpdate, 6 * 3600 * 1000);  // long-running keeps still hear the horn
 loadRoster(true);
 </script>
 </body>

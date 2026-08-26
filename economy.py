@@ -194,7 +194,8 @@ def movers(limit=12):
     names = {x["id"]: x["name"] for x in watches()}
     rec = staticdata.load("recipes") or {}
     for r in rec.values():
-        for i in (r.get("crafted_ids") or []):
+        ids = r.get("crafted_ids") or ([r["crafted_id"]] if r.get("crafted_id") else [])
+        for i in ids:
             names.setdefault(i, r.get("name"))
     out = []
     for iid, rows in hist.items():
@@ -205,8 +206,11 @@ def movers(limit=12):
         prev, cur = by.get(ts[-2]), by.get(ts[-1])
         if not prev or cur is None:
             continue
-        out.append({"id": iid, "name": names.get(iid, f"item {iid}"),
-                    "prev": prev, "cur": cur, "pct": round((cur - prev) / prev * 100, 1)})
+        pct = round((cur - prev) / prev * 100, 1)
+        if abs(pct) < 0.5:  # a mover has to actually move
+            continue
+        out.append({"id": iid, "name": names.get(iid) or f"item {iid}",
+                    "prev": prev, "cur": cur, "pct": pct})
     out.sort(key=lambda x: -abs(x["pct"]))
     return out[:limit]
 
