@@ -1,7 +1,10 @@
 """Soulkeep — desktop app (Flask + pywebview). Serves the "Midnight" SPA (templates/app.html),
 which pulls live character data from /api/roster. Run:  python app.py  (or the packaged exe)."""
-import json, os, secrets, shutil, socket, sys, threading, time
+import json, os, secrets, shutil, socket, sys, threading, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
+
+VERSION = "1.1.0"
+REPO = "jacquesvn/soulkeep"  # update banner watches this repo's latest release
 import webview
 from flask import Flask, render_template, request, jsonify, redirect, send_file
 import economy
@@ -51,7 +54,10 @@ def api_roster():
             except (ValueError, KeyError):
                 pass
         return jsonify({"chars": None, "cached": False})  # no usable cache — client waits for live
-    chars = fetch_all(roster)
+    try:
+        chars = fetch_all(roster)
+    except RuntimeError:  # bnet.env missing — a fresh install someone was gifted
+        return jsonify({"chars": [], "noauth": True})
     for e, c in zip(roster, chars):
         c["entry"] = e  # the region/realm/name key the client sends back for /api/remove
     try:
@@ -325,13 +331,40 @@ def api_econ_profit():
 # ---------- PWA bits (full install needs https hosting; LAN browsing works today) ----------
 @app.route("/api/open")
 def api_open():
-    """Open a guide in the user's real browser (Wowhead only — never arbitrary URLs)."""
+    """Open a page in the user's real browser (whitelisted hosts only)."""
     import webbrowser
     url = request.args.get("url", "")
-    if not url.startswith("https://www.wowhead.com/"):
+    allowed = ("https://www.wowhead.com/", f"https://github.com/{REPO}/releases")
+    if not url.startswith(allowed):
         return jsonify({"error": "blocked"}), 400
     webbrowser.open(url)
     return jsonify({"ok": True})
+
+# ---------- update check (GitHub Releases) ----------
+_VER = {"ts": 0, "latest": None, "url": None}
+
+@app.route("/api/version")
+def api_version():
+    now = time.time()
+    if now - _VER["ts"] > 6 * 3600:
+        _VER["ts"] = now  # even on failure, don't hammer GitHub
+        try:
+            req = urllib.request.Request(f"https://api.github.com/repos/{REPO}/releases/latest",
+                                         headers={"User-Agent": "Soulkeep"})
+            with urllib.request.urlopen(req, timeout=10) as r:
+                j = json.load(r)
+            _VER["latest"] = (j.get("tag_name") or "").lstrip("v")
+            _VER["url"] = j.get("html_url")
+        except Exception:
+            pass
+    def tup(v):
+        return tuple(int(x) for x in v.split(".") if x.isdigit())
+    update = False
+    try:
+        update = bool(_VER["latest"]) and tup(_VER["latest"]) > tup(VERSION)
+    except ValueError:
+        pass
+    return jsonify({"current": VERSION, "latest": _VER["latest"], "update": update, "url": _VER["url"]})
 
 @app.route("/manifest.webmanifest")
 def manifest():

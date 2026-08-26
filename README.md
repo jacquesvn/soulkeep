@@ -15,6 +15,16 @@ M+ rating, raid progression, last-played — from Blizzard's free REST API. Week
    (only needed later for the user-login/roster feature). Intended use: personal project.
 4. Copy the **Client ID** and **Client Secret**.
 
+## For friends of the keep (Highlady, Mckoy — this is your section)
+1. Download **Soulkeep.exe** from the latest release: https://github.com/jacquesvn/soulkeep/releases
+2. Put it in its own folder anywhere (e.g. `C:\Soulkeep\`).
+3. Ask the Highlord for the **bnet.env** key file and drop it in the same folder.
+4. Double-click Soulkeep.exe. Windows may show "Windows protected your PC" (the exe is unsigned) —
+   click **More info → Run anyway**.
+5. In the app: Settings → Connect Battle.net to import your own characters, and install the
+   in-game addon from the same drawer for gold/vault data.
+When a new build ships, a banner appears at the top of the app — one click takes you to the download.
+
 ## Run the desktop app
     cp bnet.env.example bnet.env    # then paste your Client ID + Secret into bnet.env
     pip install flask pywebview      # one-time

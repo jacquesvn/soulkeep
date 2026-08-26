@@ -260,6 +260,16 @@ button{font-family:Barlow,system-ui,sans-serif}
 .good{color:var(--good)}.bad{color:#E0435B}.gold-t{color:var(--gold)}
 .hintline{font-size:12px;color:var(--muted);line-height:1.6;}
 
+/* ---------- update banner ---------- */
+.updbar{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:7;display:flex;align-items:center;gap:12px;
+  padding:8px 10px 8px 16px;border-radius:999px;font-size:13px;color:var(--ink);
+  background:linear-gradient(180deg, color-mix(in srgb, var(--raised) 80%, transparent), color-mix(in srgb, var(--panel) 70%, transparent));
+  backdrop-filter:blur(16px) saturate(1.2);-webkit-backdrop-filter:blur(16px) saturate(1.2);
+  border:1px solid rgba(199,125,255,.45);box-shadow:0 10px 34px -12px rgba(177,92,255,.55), 0 0 42px -8px rgba(177,92,255,.35);
+  animation:pageIn .5s cubic-bezier(.25,.8,.3,1) both;max-width:92vw;}
+.updbar .ic{color:var(--gold);}
+.updbar[hidden]{display:none;}
+
 /* ---------- settings drawer ---------- */
 .backdrop{position:fixed;inset:0;z-index:8;background:rgba(7,6,14,.55);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .32s ease;}
 .backdrop.open{opacity:1;pointer-events:auto;}
@@ -347,6 +357,11 @@ button{font-family:Barlow,system-ui,sans-serif}
     </div>
   </aside>
 
+  <div class="updbar" id="updbar" hidden>
+    <span class="ic">✦</span><span id="upd-text">A new build of Soulkeep awaits</span>
+    <button class="pill-btn" style="flex:0 0 auto" onclick="openUpdate()">Get it ↗</button>
+    <button class="rm-btn" style="position:static;opacity:.7;flex:0 0 auto" title="Dismiss" onclick="dismissUpdate()">✕</button>
+  </div>
   <main class="main" id="main">
     <section id="view-roster">
       <div class="header">
@@ -588,6 +603,7 @@ async function loadRoster(initial) {
     const r = await fetch('/api/roster');
     const j = await r.json();
     chars = j.chars || [];
+    if (j.noauth) { $('qa-err').textContent = 'API key missing — place bnet.env next to Soulkeep.exe (ask the Highlord).'; }
     fetchOk = true; lastSync = Date.now();
   } catch (e) { fetchOk = false; }
   loading = false;
@@ -1339,6 +1355,22 @@ function openSettings() { $('drawer').classList.add('open'); $('backdrop').class
 function closeSettings() { $('drawer').classList.remove('open'); $('backdrop').classList.remove('open'); $('nav-settings').classList.remove('active'); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSettings(); });
 
+/* ---------- update banner ---------- */
+let updInfo = null;
+async function checkUpdate() {
+  try { updInfo = await (await fetch('/api/version')).json(); } catch (e) { return; }
+  const foot = document.querySelector('.dr-foot');
+  if (foot && updInfo.current) foot.textContent = `Soulkeep · Midnight · v${updInfo.current}`;
+  let dismissed = null;
+  try { dismissed = localStorage.getItem('wr-dismiss-ver'); } catch (e) {}
+  if (updInfo.update && dismissed !== updInfo.latest) {
+    $('upd-text').textContent = `A new build of Soulkeep awaits — v${updInfo.latest}`;
+    $('updbar').hidden = false;
+  }
+}
+function dismissUpdate() { try { localStorage.setItem('wr-dismiss-ver', updInfo.latest); } catch (e) {} $('updbar').hidden = true; }
+async function openUpdate() { if (updInfo && updInfo.url) try { await fetch('/api/open?url=' + encodeURIComponent(updInfo.url)); } catch (e) {} }
+
 /* ---------- the souls: canvas wisps rising through the keep ---------- */
 const wispEngine = (() => {
   const c = $('wisps'), ctx = c.getContext('2d');
@@ -1416,6 +1448,7 @@ if (qsBoot.has('imported')) {
 }
 loadAccount();
 loadGamedata();
+checkUpdate();
 loadRoster(true);
 </script>
 </body>
