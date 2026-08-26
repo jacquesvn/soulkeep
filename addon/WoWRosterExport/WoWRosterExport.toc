@@ -1,4 +1,4 @@
-## Interface: 120000, 120001, 120002
+## Interface: 120007, 120100
 ## Title: WoW Roster Export
 ## Notes: Exports gold, Great Vault, currencies and lockouts for the WoW Roster desktop app.
 ## Author: Oblivion & Ser Claude
