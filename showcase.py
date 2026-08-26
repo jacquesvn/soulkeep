@@ -13,26 +13,36 @@ def main():
     cid, sec = spike.load_creds(); tok = spike.get_token(cid, sec)
 
     period = spike.api_get(region, '/data/wow/mythic-keystone/period/index', tok, dyn)['current_period']['id']
-    dungeons = spike.api_get(region, '/data/wow/mythic-keystone/dungeon/index', tok, dyn)['dungeons']
-    crs = spike.api_get(region, '/data/wow/connected-realm/index', tok, dyn)['connected_realms']
-    print(f'[find] region={region} period={period}, scanning leaderboards for a top character...')
+    BIG = {'eu': ['draenor', 'silvermoon', 'kazzak', 'twisting-nether', 'ravencrest', 'tarren-mill'],
+           'us': ['illidan', 'area-52', 'stormrage', 'tichondrius', 'sargeras', 'frostmourne']}
+    realms = BIG.get(region, ['draenor'])
+    print(f'[find] region={region} period={period}, scanning big-realm current leaderboards...')
+
+    def resolve_cr(slug):
+        r = spike.api_get(region, f'/data/wow/realm/{slug}', tok, dyn)
+        return rid(r['connected_realm']['href']) if not r.get('_error') else None
 
     top = None
-    for c in crs[:25]:
-        crid = rid(c['href'])
-        for d in dungeons[:3]:
-            lb = spike.api_get(region, f'/data/wow/connected-realm/{crid}/mythic-leaderboard/{d["id"]}/period/{period}', tok, dyn)
-            groups = lb.get('leading_groups') or []
-            if groups and groups[0].get('members'):
-                m = groups[0]['members'][0]['profile']
-                top = (m['realm']['slug'], m['name'], lb.get('map',{}).get('name'), groups[0].get('mythic_rating',{}).get('rating'), groups[0].get('keystone_level'))
-                break
+    for ptry in [period, period - 1, period - 2]:          # current period, then recent fallbacks
+        for slug in realms:
+            crid = resolve_cr(slug)
+            if not crid:
+                continue
+            idx = spike.api_get(region, f'/data/wow/connected-realm/{crid}/mythic-leaderboard/index', tok, dyn)
+            for lbd in (idx.get('current_leaderboards') or []):   # the realm's CURRENT dungeons only
+                lb = spike.api_get(region, f'/data/wow/connected-realm/{crid}/mythic-leaderboard/{lbd["id"]}/period/{ptry}', tok, dyn)
+                groups = lb.get('leading_groups') or []
+                if groups and groups[0].get('members'):
+                    m = groups[0]['members'][0]['profile']
+                    top = (m['realm']['slug'], m['name'], lbd.get('name'), groups[0].get('keystone_level'), ptry)
+                    break
+            if top: break
         if top: break
     if not top:
-        sys.exit('No populated leaderboard found (off-season?). Try a different region.')
+        sys.exit('No populated leaderboard found across scanned realms/periods — M+ season may be off.')
 
-    realm, name, dun, rat, klvl = top
-    print(f'[find] -> {name} @ {realm} (led a +{klvl} {dun})\n')
+    realm, name, dun, klvl, used_period = top
+    print(f'[find] -> {name} @ {realm} (led a +{klvl} {dun}, period {used_period})\n')
     base = f'/profile/wow/character/{urllib.parse.quote(realm)}/{urllib.parse.quote(name.lower())}'
     g = lambda p: spike.api_get(region, base + p, tok, pns)
     prof, eq, mpl = g(''), g('/equipment'), g('/mythic-keystone-profile')
