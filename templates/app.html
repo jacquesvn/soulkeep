@@ -52,6 +52,11 @@ button{font-family:Barlow,system-ui,sans-serif}
 .app.sb-collapsed .nav-item .lbl{display:none;}
 .app.sb-collapsed .sb-foot{padding:16px 10px 20px;}
 .app.sb-collapsed .sb-btns{flex-direction:column;}
+/* hover mode: the rail overlays the content when it flies out, so the page never shifts */
+.app.sb-hover .sidebar{position:absolute;left:0;top:0;bottom:0;z-index:6;}
+.app.sb-hover .main{margin-left:68px;}
+.app.sb-hover .sidebar:hover{box-shadow:24px 0 60px -30px rgba(0,0,0,.7);}
+.app.sb-hover #collapse-btn{display:none;}
 .crest-row{display:flex;align-items:center;gap:11px;padding:22px 18px 18px;}
 .disc{border-radius:50%;background:radial-gradient(circle at 42% 40%, #0B0A18 55%, #241A52);border:1px solid rgba(177,92,255,.5);animation:corona 6s ease-in-out infinite;}
 .disc-26{width:26px;height:26px}
@@ -238,6 +243,7 @@ button{font-family:Barlow,system-ui,sans-serif}
   .sidebar{display:none}
   .tabbar{display:flex}
   .main{padding:20px 16px 100px}
+  .app.sb-hover .main{margin-left:0}
   .hero{flex-wrap:wrap}
 }
 @media (max-width:680px){
@@ -339,6 +345,10 @@ button{font-family:Barlow,system-ui,sans-serif}
           <button class="pill-btn" id="theme-btn2" style="flex:0 0 auto" onclick="toggleTheme()">☾ Midnight</button>
         </div>
         <div class="set-row">
+          <div><div class="set-l">Sidebar</div><div class="set-d" id="sb-mode-d">Static — collapse with the « button</div></div>
+          <button class="pill-btn" id="sb-mode-btn" style="flex:0 0 auto" onclick="toggleSbMode()">Static</button>
+        </div>
+        <div class="set-row">
           <div><div class="set-l">Show slumbering characters</div><div class="set-d">Keep sleeping alts on the roster</div></div>
           <button class="sw" id="sw-slumber" role="switch" aria-checked="true" aria-label="Show slumbering characters" onclick="toggle('showSlumber',this)"><i></i></button>
         </div>
@@ -370,7 +380,7 @@ button{font-family:Barlow,system-ui,sans-serif}
 <script>
 "use strict";
 const FACTION = { Alliance: '#4A7FD6', Horde: '#C4232B' };
-const S = Object.assign({ theme: 'midnight', showSlumber: true, motion: true, autoRefresh: true, collapsed: false },
+const S = Object.assign({ theme: 'midnight', showSlumber: true, motion: true, autoRefresh: true, collapsed: false, sbMode: 'static' },
   (() => { try { return JSON.parse(localStorage.getItem('wr-settings') || '{}'); } catch (e) { return {}; } })());
 let view = 'roster', sel = null, leaving = false, chars = [], loading = true, lastSync = null, fetchOk = false;
 let armTimer = null, refreshTimer = null;
@@ -380,20 +390,28 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp
 const num = n => (n == null ? '—' : Number(n).toLocaleString('en-US'));
 const ekey = e => `${e.region}/${e.realm}/${e.name}`;
 
-function saveSettings() { try { localStorage.setItem('wr-settings', JSON.stringify({ theme: S.theme, showSlumber: S.showSlumber, motion: S.motion, autoRefresh: S.autoRefresh, collapsed: S.collapsed })); } catch (e) {} }
+function saveSettings() { try { localStorage.setItem('wr-settings', JSON.stringify({ theme: S.theme, showSlumber: S.showSlumber, motion: S.motion, autoRefresh: S.autoRefresh, collapsed: S.collapsed, sbMode: S.sbMode })); } catch (e) {} }
+
+function sbSetCollapsed(vis) {  // purely visual — S.collapsed only changes in static mode
+  $('app').classList.toggle('sb-collapsed', vis);
+  const lbl = S.theme === 'midnight' ? '☾ Midnight' : '☀ Dawn';
+  $('theme-btn').textContent = vis ? lbl.split(' ')[0] : lbl;
+  const cb = $('collapse-btn');
+  cb.textContent = vis ? '»' : '«';
+  cb.title = cb.ariaLabel = vis ? 'Expand sidebar' : 'Collapse sidebar';
+}
 
 function applySettings() {
   const app = $('app');
   app.dataset.theme = S.theme === 'dawn' ? 'dawn' : '';
   if (S.theme === 'dawn') app.setAttribute('data-theme', 'dawn'); else app.removeAttribute('data-theme');
   app.classList.toggle('no-motion', !S.motion);
-  const lbl = S.theme === 'midnight' ? '☾ Midnight' : '☀ Dawn';
-  $('theme-btn').textContent = S.collapsed ? lbl.split(' ')[0] : lbl;
-  $('theme-btn2').textContent = lbl;
-  app.classList.toggle('sb-collapsed', S.collapsed);
-  const cb = $('collapse-btn');
-  cb.textContent = S.collapsed ? '»' : '«';
-  cb.title = cb.ariaLabel = S.collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+  $('theme-btn2').textContent = S.theme === 'midnight' ? '☾ Midnight' : '☀ Dawn';
+  const hover = S.sbMode === 'hover';
+  app.classList.toggle('sb-hover', hover);
+  sbSetCollapsed(hover ? !sbHovering : S.collapsed);
+  $('sb-mode-btn').textContent = hover ? 'Open on hover' : 'Static';
+  $('sb-mode-d').textContent = hover ? 'Rail flies open while hovered' : 'Static — collapse with the « button';
   $('sw-slumber').setAttribute('aria-checked', String(S.showSlumber));
   $('sw-motion').setAttribute('aria-checked', String(S.motion));
   $('sw-refresh').setAttribute('aria-checked', String(S.autoRefresh));
@@ -403,6 +421,8 @@ function applySettings() {
 
 function toggleTheme() { S.theme = S.theme === 'midnight' ? 'dawn' : 'midnight'; saveSettings(); applySettings(); }
 function toggleCollapse() { S.collapsed = !S.collapsed; saveSettings(); applySettings(); }
+function toggleSbMode() { S.sbMode = S.sbMode === 'hover' ? 'static' : 'hover'; saveSettings(); applySettings(); }
+let sbHovering = false;
 function toggle(key, el) {
   S[key] = !S[key]; saveSettings(); applySettings();
   if (key === 'showSlumber') renderRoster();
@@ -683,6 +703,9 @@ function closeSettings() { $('drawer').classList.remove('open'); $('backdrop').c
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSettings(); });
 
 /* ---------- boot ---------- */
+const sbEl = document.querySelector('.sidebar');
+sbEl.addEventListener('mouseenter', () => { sbHovering = true; if (S.sbMode === 'hover') sbSetCollapsed(false); });
+sbEl.addEventListener('mouseleave', () => { sbHovering = false; if (S.sbMode === 'hover') sbSetCollapsed(true); });
 applySettings();
 setView('roster');
 loadRoster(true);
