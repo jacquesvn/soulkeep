@@ -27,7 +27,7 @@ def main():
     print(f"smoke vs {BASE}\n")
 
     check("GET / (SPA shell)", lambda: (lambda s, b: [
-        1 / (s == 200), 1 / (b"WoW ROSTER" in b), 1 / (b"WAR BOARD" in b.upper())])(*req("GET", "/", raw=True)))
+        1 / (s == 200), 1 / (b"SOULKEEP" in b), 1 / (b"WAR BOARD" in b.upper())])(*req("GET", "/", raw=True)))
     check("roster fast (cache)", lambda: (lambda s, j: [1 / (s == 200), 1 / ("cached" in j)])(*req("GET", "/api/roster?fast=1")))
     check("roster live", lambda: (lambda s, j: [
         1 / (s == 200), 1 / (len(j["chars"]) >= 2),
@@ -79,7 +79,7 @@ def main():
         assert not any(w["id"] == 2880 for w in j3["watches"])
     check("watch add/price/remove", watch_cycle)
 
-    for path, ctype in (("/manifest.webmanifest", b"WoW Roster"), ("/icon-192.png", b"PNG"),
+    for path, ctype in (("/manifest.webmanifest", b"Soulkeep"), ("/icon-192.png", b"PNG"),
                         ("/icon-512.png", b"PNG"), ("/favicon.ico", b""), ("/api/qr.png", b"PNG")):
         check(f"asset {path}", lambda p=path, c=ctype: (lambda s, b: [
             1 / (s == 200), 1 / (c in b[:2000] if c else len(b) > 500)])(*req("GET", p, raw=True)))

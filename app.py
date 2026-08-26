@@ -1,4 +1,4 @@
-"""WoW Roster — desktop app (Flask + pywebview). Serves the "Midnight" SPA (templates/app.html),
+"""Soulkeep — desktop app (Flask + pywebview). Serves the "Midnight" SPA (templates/app.html),
 which pulls live character data from /api/roster. Run:  python app.py  (or the packaged exe)."""
 import json, os, secrets, shutil, socket, sys, threading, time
 from concurrent.futures import ThreadPoolExecutor
@@ -323,9 +323,19 @@ def api_econ_profit():
     return jsonify({"rows": rows[:120], "have_ah": bool(economy.summary())})
 
 # ---------- PWA bits (full install needs https hosting; LAN browsing works today) ----------
+@app.route("/api/open")
+def api_open():
+    """Open a guide in the user's real browser (Wowhead only — never arbitrary URLs)."""
+    import webbrowser
+    url = request.args.get("url", "")
+    if not url.startswith("https://www.wowhead.com/"):
+        return jsonify({"error": "blocked"}), 400
+    webbrowser.open(url)
+    return jsonify({"ok": True})
+
 @app.route("/manifest.webmanifest")
 def manifest():
-    return jsonify({"name": "WoW Roster", "short_name": "WoW Roster", "start_url": "/",
+    return jsonify({"name": "Soulkeep", "short_name": "Soulkeep", "start_url": "/",
                     "display": "standalone", "background_color": "#07060E", "theme_color": "#07060E",
                     "icons": [{"src": "/icon-192.png", "sizes": "192x192", "type": "image/png"},
                               {"src": "/icon-512.png", "sizes": "512x512", "type": "image/png"}]})
@@ -379,5 +389,5 @@ if __name__ == "__main__":
                 break
         except OSError:
             time.sleep(0.05)
-    webview.create_window("WoW Roster", f"http://127.0.0.1:{port}", width=1280, height=880)
+    webview.create_window("Soulkeep", f"http://127.0.0.1:{port}", width=1280, height=880)
     webview.start()

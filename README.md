@@ -1,4 +1,7 @@
-# WoW Roster (working title) — retail character management app
+# Soulkeep — every soul, kept
+
+A retail WoW character-management desktop app: your whole warband — gear, M+, raids,
+vault, gold, collections, economy — watched from one Midnight-dark keep.
 
 ## v1 scope
 API-only roster dashboard (no in-game addon): all your alts, ilvl, gear, spec, professions,
@@ -19,9 +22,9 @@ M+ rating, raid progression, last-played — from Blizzard's free REST API. Week
 
 ## Build the exe (portable)
     pip install pyinstaller pillow qrcode   # one-time
-    python -m PyInstaller --noconfirm --onefile --noconsole --name WoWRoster --icon icon.ico --add-data "templates;templates" --add-data "addon;addon" --add-data "icon-192.png;." --add-data "icon-512.png;." --add-data "icon.ico;." --add-data "data;data" --hidden-import qrcode --hidden-import ijson app.py
+    python -m PyInstaller --noconfirm --onefile --noconsole --name Soulkeep --icon icon.ico --add-data "templates;templates" --add-data "addon;addon" --add-data "icon-192.png;." --add-data "icon-512.png;." --add-data "icon.ico;." --add-data "data;data" --hidden-import qrcode --hidden-import ijson app.py
 
-`dist/WoWRoster.exe` is portable: it reads `bnet.env` and `roster.json` from the folder it sits in,
+`dist/Soulkeep.exe` is portable: it reads `bnet.env` and `roster.json` from the folder it sits in,
 so copy those two files next to the exe. (dist/ is gitignored — the exe carries your API creds' folder.)
 
 Add characters with the region/realm/name form in the header; remove with the ✕ on a card.

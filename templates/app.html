@@ -7,7 +7,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/favicon.ico">
 <link rel="apple-touch-icon" href="/icon-192.png">
-<title>WoW Roster</title>
+<title>Soulkeep</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
 <style>
@@ -38,8 +38,19 @@ button{font-family:Barlow,system-ui,sans-serif}
   background-size:600px 600px;animation:drift 160s linear infinite;}
 .nebula{position:absolute;inset:0;pointer-events:none;opacity:var(--starop);
   background:radial-gradient(720px 460px at 78% -8%, rgba(177,92,255,.32), transparent 62%),radial-gradient(520px 400px at 12% 32%, rgba(122,47,214,.26), transparent 65%),radial-gradient(620px 420px at 96% 62%, rgba(243,199,102,.10), transparent 65%),radial-gradient(640px 460px at 30% 108%, rgba(36,26,82,.85), transparent 70%);}
+.wisps{position:absolute;inset:0;pointer-events:none;opacity:calc(var(--starop) * .8);
+  background-image:radial-gradient(2.4px 3.4px at 12% 86%, rgba(111,224,192,.5), transparent 55%),radial-gradient(1.8px 2.8px at 34% 64%, rgba(111,224,192,.35), transparent 55%),radial-gradient(2.8px 4px at 58% 90%, rgba(111,224,192,.42), transparent 55%),radial-gradient(1.6px 2.4px at 76% 70%, rgba(140,232,205,.3), transparent 55%),radial-gradient(2.2px 3.2px at 91% 82%, rgba(111,224,192,.38), transparent 55%),radial-gradient(1.4px 2.2px at 45% 78%, rgba(111,224,192,.28), transparent 55%);
+  background-size:640px 760px;animation:wispsrise 210s linear infinite;}
+@keyframes wispsrise{from{background-position:0 0}to{background-position:60px -1520px}}
+.disc{position:relative;}
+.disc::after{content:"";position:absolute;left:22%;top:34%;width:52%;height:52%;border-radius:50%;
+  background:radial-gradient(circle at 50% 60%, rgba(111,224,192,.75), rgba(111,224,192,.18) 55%, transparent 75%);
+  filter:blur(1px);animation:soulpulse 4.5s ease-in-out infinite;}
+@keyframes soulpulse{0%,100%{opacity:.55;transform:scale(.92)}50%{opacity:.95;transform:scale(1.06)}}
 .app.no-motion .stars{animation:none}
+.app.no-motion .wisps{animation:none}
 .app.no-motion .disc{animation:none}
+.app.no-motion .disc::after{animation:none}
 
 /* ---------- sidebar ---------- */
 .sidebar{position:relative;z-index:2;width:228px;flex:0 0 228px;display:flex;flex-direction:column;border-right:1px solid var(--line);
@@ -228,6 +239,11 @@ button{font-family:Barlow,system-ui,sans-serif}
 .cgroup summary::-webkit-details-marker{display:none}
 .cgroup summary .ct{color:var(--muted);margin-left:auto;font-family:'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;}
 .cgroup .items{padding:8px 14px 12px;display:flex;flex-wrap:wrap;gap:6px;}
+.cgroup .hunt{padding:6px 10px 10px;display:flex;flex-direction:column;}
+.huntrow{cursor:pointer;font-size:12.5px;gap:8px;}
+.huntrow .guide{color:var(--glow);opacity:0;transition:opacity .15s;}
+.huntrow:hover .guide{opacity:1;}
+.huntrow:hover{background:rgba(177,92,255,.07);}
 .mchip{background:rgba(237,233,255,.05);border:1px solid rgba(237,233,255,.06);border-radius:999px;padding:3px 10px;font-size:11.5px;color:var(--muted);}
 .searchpill{display:flex;align-items:center;background:rgba(237,233,255,.04);border:1px solid rgba(237,233,255,.09);border-radius:999px;overflow:hidden;}
 .searchpill input{background:transparent;border:0;color:var(--ink);font:400 13px Barlow,sans-serif;padding:8px 14px;width:210px;outline-offset:-2px;}
@@ -304,13 +320,14 @@ button{font-family:Barlow,system-ui,sans-serif}
 <div class="app" id="app">
   <div class="stars" aria-hidden="true"></div>
   <div class="nebula" aria-hidden="true"></div>
+  <div class="wisps" aria-hidden="true"></div>
 
   <aside class="sidebar">
     <div class="crest-row">
       <div class="disc disc-26"></div>
       <div>
-        <div class="wordmark">WoW ROSTER</div>
-        <div class="wordsub">Midnight</div>
+        <div class="wordmark">SOULKEEP</div>
+        <div class="wordsub">Every Soul, Kept</div>
       </div>
     </div>
     <div class="hairline sb-hair"></div>
@@ -338,7 +355,7 @@ button{font-family:Barlow,system-ui,sans-serif}
     <section id="view-roster">
       <div class="header">
         <div>
-          <div class="eyebrow">Your Characters · Midnight</div>
+          <div class="eyebrow">Souls of the Keep · Midnight</div>
           <h1 class="rtitle">ROSTER</h1>
         </div>
         <div class="qa-wrap">
@@ -360,19 +377,19 @@ button{font-family:Barlow,system-ui,sans-serif}
             <datalist id="realm-list"></datalist>
             <input class="qa-input" id="qa-name" placeholder="Character" style="width:118px" onkeydown="if(event.key==='Enter')addChar()">
           </div>
-          <button class="add-btn" id="add-btn" onclick="addChar()">+ Add Character</button>
+          <button class="add-btn" id="add-btn" onclick="addChar()">+ Add Soul</button>
           <div class="qa-err" id="qa-err"></div>
         </div>
       </div>
       <div class="summary" id="summary"></div>
       <div id="grid-wrap"></div>
-      <div class="footline">Data: Blizzard Battle.net API · retail (Midnight)</div>
+      <div class="footline">Soulkeep · Blizzard Battle.net API · retail (Midnight)</div>
     </section>
 
     <section id="view-detail" style="display:none">
       <button class="back-btn" onclick="goRoster()">← Roster</button>
       <div id="detail-body"></div>
-      <div class="footline" style="margin-top:26px">Data: Blizzard Battle.net API · retail (Midnight)</div>
+      <div class="footline" style="margin-top:26px">Soulkeep · Blizzard Battle.net API · retail (Midnight)</div>
     </section>
 
     <section id="view-board" style="display:none">
@@ -493,7 +510,7 @@ button{font-family:Barlow,system-ui,sans-serif}
         <img id="phone-qr" alt="Scan to open on your phone" style="margin-top:10px;border-radius:10px;width:132px;display:none">
       </div>
     </div>
-    <div class="dr-foot">WoW Roster · Midnight · v0.3</div>
+    <div class="dr-foot">Soulkeep · Midnight · v1.0</div>
   </aside>
 
   <nav class="tabbar">
@@ -685,12 +702,12 @@ function renderRoster() {
   const wrap = $('grid-wrap');
   if (loading) {
     wrap.innerHTML = `<div class="empty"><div class="disc disc-110"></div>
-      <div class="empty-t">Waking the roster…</div>
-      <div class="empty-s">Consulting the Battle.net API for your characters.</div></div>`;
+      <div class="empty-t">Waking the souls…</div>
+      <div class="empty-s">Calling the roster home from the Battle.net API.</div></div>`;
   } else if (!list.length) {
     wrap.innerHTML = `<div class="empty"><div class="disc disc-110"></div>
-      <div class="empty-t">No characters yet</div>
-      <div class="empty-s">Add one above. Only recently-active characters return data.</div></div>`;
+      <div class="empty-t">The keep stands empty</div>
+      <div class="empty-s">Bind a soul above. Only recently-active characters answer the call.</div></div>`;
   } else {
     wrap.innerHTML = `<div class="grid">${list.map((c, i) => cardHtml(c, i)).join('')}</div>`;
   }
@@ -718,7 +735,7 @@ async function addChar() {
   if (!realmTyped && !name) return;
   if (!realmTyped || !name) { err.textContent = 'Pick a realm and type a character name.'; return; }
   const region = $('qa-region').value;
-  const btn = $('add-btn'); btn.disabled = true; btn.textContent = 'Summoning…';
+  const btn = $('add-btn'); btn.disabled = true; btn.textContent = 'Binding…';
   try {
     const r = await fetch('/api/add', { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ region, realm: realmSlug(region, realmTyped), name }) });
@@ -726,7 +743,7 @@ async function addChar() {
     if (!r.ok) { err.textContent = j.error || 'Could not add.'; }
     else { chars.push(j.char); $('qa-name').value = ''; renderRoster(); renderChrome(); }
   } catch (e) { err.textContent = 'Network error.'; }
-  btn.disabled = false; btn.textContent = '+ Add Character';
+  btn.disabled = false; btn.textContent = '+ Add Soul';
 }
 async function removeChar(ev, k, btn) {
   ev.stopPropagation();
@@ -777,7 +794,7 @@ function openChar(k) {
 function renderDetail() {
   const c = currentDetail();
   const body = $('detail-body');
-  if (!c) { body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">No character awake</div></div>'; return; }
+  if (!c) { body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">No soul awake</div></div>'; return; }
   const e = c.entry, col = c.class_color, crest = crestHtml(c, 104);
   const g = gd(c);  // companion-addon data for this character, if exported
   const VAULT_T = VAULT_LABEL;
@@ -1030,7 +1047,7 @@ function vaultSegs(acts) {
 function renderBoard() {
   const aw = chars.filter(awake);
   const body = $('board-body');
-  if (!aw.length) { body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">No characters awake</div></div>'; return; }
+  if (!aw.length) { body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">No souls awake</div></div>'; return; }
   body.innerHTML = aw.map((c, i) => {
     const g = gd(c);
     const weekRuns = (c.runs || []).length;
@@ -1053,7 +1070,7 @@ let collIndex = {}, collMine = null, collKind = 'mounts';
 async function loadCollections() {
   const body = $('coll-body');
   if (!collMine) {
-    body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">Consulting the archives…</div></div>';
+    body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">Opening the soul ledger…</div></div>';
     try {
       const [mine, m, p, t] = await Promise.all([
         fetch('/api/collections').then(r => r.json()),
@@ -1087,17 +1104,27 @@ function renderCollections() {
     <div class="panel" style="margin-bottom:16px">
       <div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap">
         <span class="bigpct c-gold">${have.length.toLocaleString('en-US')}</span>
-        <span style="color:var(--muted)">of ${index.length.toLocaleString('en-US')} ${collKind} · ${pct}%</span>
+        <span style="color:var(--muted)">of ${index.length.toLocaleString('en-US')} ${collKind} kept · ${pct}%</span>
       </div>
       <div class="pbar gold" style="margin-top:10px"><i style="width:${pct}%"></i></div>
     </div>
-    <div class="p-eyebrow" style="margin-bottom:10px">Missing · by source</div>
+    <div class="p-eyebrow" style="margin-bottom:10px">The Hunt · ${missing.length.toLocaleString('en-US')} missing — every row opens its guide</div>
     ${groups.map(([src, items], i) => `
-      <details class="cgroup" ${i < 2 && !q ? '' : q ? 'open' : ''}>
+      <details class="cgroup" ${(i < 2 && !q) || q ? 'open' : ''}>
         <summary>${esc(src)}<span class="ct">${items.length}</span></summary>
-        <div class="items">${items.slice(0, 160).map(x => `<span class="mchip" title="${esc(x.src)}">${esc(x.name)}</span>`).join('')}
-        ${items.length > 160 ? `<span class="mchip">… +${items.length - 160} more</span>` : ''}</div>
+        <div class="hunt">${items.slice(0, 80).map(x => `
+          <div class="run huntrow" role="button" tabindex="0" title="Open the Wowhead guide in your browser"
+               onclick="openGuide('${esc(x.name).replace(/'/g, "\\'")}')" onkeydown="if(event.key==='Enter')openGuide('${esc(x.name).replace(/'/g, "\\'")}')">
+            <span>${esc(x.name)}</span>
+            ${x.type ? `<span class="mchip" style="padding:1px 8px">${esc(x.type)}</span>` : ''}
+            ${x.faction ? `<span class="mchip" style="padding:1px 8px">${esc(x.faction)}</span>` : ''}
+            <span class="s guide">Guide ↗</span>
+          </div>`).join('')}
+        ${items.length > 80 ? `<div class="hintline" style="padding:6px 6px 2px">… +${items.length - 80} more in this source — narrow with the filter above</div>` : ''}</div>
       </details>`).join('')}`;
+}
+async function openGuide(name) {
+  try { await fetch('/api/open?url=' + encodeURIComponent('https://www.wowhead.com/search?q=' + name)); } catch (e) {}
 }
 
 /* ---------- ECONOMY ---------- */
