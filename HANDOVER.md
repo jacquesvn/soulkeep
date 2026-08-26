@@ -50,8 +50,27 @@ Neltharion realm went to sleep. **This project is separate from Neltharion.**
   **The pywebview window is CONFIRMED working** — the old caveat is closed.
 - Build cmd in README. dist/ + build/ + *.spec gitignored (dist holds bnet.env!).
 
+## Done — THE RESUB SPRINT (2026-08-26, night): Phases 2+3+4 landed in one push
+**HE RESUBBED.** Oblivionn woke immediately (L70 Blood Elf Holy Paladin, ilvl 82).
+- **Realm dropdown**: quick-add now has a searchable realm datalist fed by /api/realms/<region>
+  (362 EU realms), mapped to exact API slugs.
+- **Polish**: disk cache (roster_cache.json → /api/roster?fast=1) = instant first paint (~0.4s vs 5-8s);
+  sort pill (added / ilvl / M+ / class), persisted.
+- **Phase 2 — Battle.net login**: /auth/login → Blizzard → /auth/callback → token (bnet_user.json,
+  24h, gitignored) → AUTO-IMPORTS every L10+ character on the account. Re-import button in Settings.
+  **ONE-TIME STEP FOR THE HIGHLORD: add `http://localhost:5177/auth/callback` as a Redirect URL on
+  the client at develop.battle.net** (shown in Settings too), then click Connect Battle.net.
+- **Phase 3 — companion addon**: `addon/WoWRosterExport/` (gold, Great Vault, currencies, lockouts →
+  SavedVariables). gamedata.py autodetects `D:\Games\World of Warcraft\_retail_` + parses the Lua
+  (unit-tested). **ALREADY INSTALLED into his AddOns folder.** Data appears after a logout//reload;
+  renders on the detail view (Vault segments, gold hero stat, currencies, lockouts panels).
+- **Phase 4 (pragmatic) — phone on LAN**: server binds 0.0.0.0; Settings → Phone shows
+  http://192.168.0.103:5177 + a QR. "Add to Home screen" works; full PWA install needs https later.
+- Exe REBUILT with addon+icons bundled (new build cmd in README).
+
 ## In flight / NEXT
-- Polish: sort options; disk cache for instant first paint. Then Phase 2 (Battle.net login) /
-  Phase 4 (Android PWA — design is already fully responsive, a big head start).
+- Highlord: portal redirect URL (above) → Connect Battle.net → whole account imports.
+- Highlord: log characters in (wakes them in the API) and out (exports addon data).
+- Later: https hosting for a true installable PWA; vault-on-card chip; currency picks.
 
 See `project_wow_roster` memory + ROADMAP.md + TODO.md.
