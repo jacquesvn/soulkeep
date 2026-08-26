@@ -95,3 +95,9 @@ default, and then commissioned EVERYTHING from the feature menu. Shipped, all in
 - Later: https hosting for true PWA; vault-on-card chip; label vault type 5 once identified.
 
 See `project_wow_roster` memory + ROADMAP.md + TODO.md.
+
+## THE SKELETON KEY NIGHT (2026-08-27, overnight) — v1.6.0
+Mandate executed while the Highlord slept: **THE DRESSING ROOM SHIPPED** — every transmog set can
+be fitted onto a turnable 3D character (male/female mannequins) from the set lightbox. Audit pass:
+roster cards + character hero now wear full-body character renders. Six releases this night
+(v1.1.0 through v1.6.0), all smoke-tested. Recipe details in project memory. Veni vidi vici.
