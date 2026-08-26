@@ -193,6 +193,8 @@ def get_appearance(region, aid):
     if a.get("_error"):
         return None
     return {"slot": (a.get("slot") or {}).get("name"),
+            "slot_type": (a.get("slot") or {}).get("type"),
+            "disp": a.get("item_display_info_id"),
             "items": [{"id": i.get("id"), "name": i.get("name")} for i in (a.get("items") or [])[:4]]}
 
 def get_known_recipes(region, realm, name):

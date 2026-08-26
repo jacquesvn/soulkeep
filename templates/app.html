@@ -120,7 +120,12 @@ button{font-family:Barlow,system-ui,sans-serif}
 .card:not(.asleep):hover{transform:translateY(-3px);border-color:color-mix(in srgb, var(--cc) 32%, transparent);box-shadow:0 0 0 1px color-mix(in srgb, var(--cc) 22%, transparent), 0 18px 44px -18px color-mix(in srgb, var(--cc) 48%, transparent), 0 0 52px 2px color-mix(in srgb, var(--cc) 22%, transparent), 0 0 110px 16px color-mix(in srgb, var(--cc) 12%, transparent);}
 .card:not(.asleep):hover .cglow{opacity:1;}
 .card.asleep{cursor:default;filter:saturate(.25) brightness(.78);animation:breathe 5.5s ease-in-out infinite;}
-.band{position:relative;height:112px;display:grid;place-items:center;}
+.band{position:relative;height:112px;display:grid;place-items:center;overflow:hidden;}
+.brender{position:absolute;right:2px;bottom:-26%;height:158%;opacity:.92;pointer-events:none;
+  filter:drop-shadow(0 8px 18px rgba(0,0,0,.65));}
+.hrender{position:absolute;right:230px;top:-42%;height:205%;opacity:.55;pointer-events:none;
+  -webkit-mask-image:linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent);
+  mask-image:linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent);}
 .crest{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;font-family:Cinzel,serif;font-weight:700;font-size:26px;overflow:hidden;}
 .crest img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
 .lvl-pill{position:absolute;top:10px;left:12px;font:600 11px 'Barlow Condensed',sans-serif;letter-spacing:.1em;color:var(--muted);background:rgba(7,6,14,.45);border:1px solid var(--line);border-radius:999px;padding:2px 8px;}
@@ -810,6 +815,7 @@ function cardHtml(c, i) {
        ${isA ? '' : `role="button" tabindex="0" onclick="openChar('${esc(k)}')" onkeydown="if(event.key==='Enter')openChar('${esc(k)}')"`} data-k="${esc(k)}">
     <div class="cglow" aria-hidden="true"></div>
     <div class="band" style="background:radial-gradient(140% 120% at 50% -10%, ${crest.tint}, transparent 62%),radial-gradient(1.2px 1.2px at 24% 40%, rgba(237,233,255,.45), transparent 45%),radial-gradient(1px 1px at 74% 26%, rgba(237,233,255,.4), transparent 45%),radial-gradient(1.3px 1.3px at 58% 68%, rgba(199,125,255,.35), transparent 45%)">
+      ${!isA && c.render ? `<img class="brender" src="${esc(c.render)}" alt="" loading="lazy" onerror="this.remove()">` : ''}
       <div class="crest" style="border:1px solid ${crest.ring};background:radial-gradient(circle at 50% 42%, ${crest.tint}, transparent 75%)">${crest.html}</div>
       ${isA ? '' : `<div class="lvl-pill">LVL ${c.level}</div>`}
       ${isA ? '<div class="moonmark" title="Slumbering">☾</div>' : ''}
@@ -973,6 +979,7 @@ function renderDetail() {
   body.innerHTML = `
   <div class="hero">
     <div class="hero-bg" aria-hidden="true" style="background:radial-gradient(60% 120% at 85% 0%, ${crest.tint}, transparent 60%),radial-gradient(1.2px 1.2px at 18% 34%, rgba(237,233,255,.4), transparent 45%),radial-gradient(1px 1px at 64% 18%, rgba(237,233,255,.35), transparent 45%),radial-gradient(1.4px 1.4px at 88% 70%, rgba(199,125,255,.35), transparent 45%)"></div>
+    ${c.render ? `<img class="hrender" src="${esc(c.render)}" alt="" loading="lazy" onerror="this.remove()">` : ''}
     <div class="hero-crest" style="border:1px solid ${crest.ring};background:radial-gradient(circle at 50% 42%, ${crest.tint}, transparent 75%);box-shadow:0 0 46px -8px ${col}66, inset 0 0 26px -10px ${col}44">${crest.html}</div>
     <div class="hero-mid">
       <div class="d-eyebrow">Character · ${esc(c.realm)} · ${e.region.toUpperCase()}</div>
@@ -1444,6 +1451,19 @@ function renderTmogGrid() {
     ${pager(rows.length, PAGE, tmogPage, 'tmogPage', 'renderTmogGrid')}`
     : '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">No sets here</div></div>';
 }
+const TMOG_SLOT = { HEAD: 1, SHOULDER: 3, BODY: 4, CHEST: 5, ROBE: 5, WAIST: 6, LEGS: 7,
+  FEET: 8, WRIST: 9, HAND: 10, HANDS: 10, CLOAK: 16, BACK: 16, TABARD: 19,
+  MAIN_HAND: 21, OFF_HAND: 22, ONE_HAND: 21, TWO_HAND: 21, RANGED: 26 };
+let tmogPieces = [];
+function lbFit(chrId) {
+  const items = tmogPieces
+    .filter(x => x.disp && TMOG_SLOT[x.slot_type])
+    .map(x => TMOG_SLOT[x.slot_type] + ':' + x.disp).join(',');
+  if (!items) return;
+  $('lb-hero').innerHTML = `<iframe class="lb3d" style="height:400px" src="/mv?d=${chrId}&t=16&items=${items}" title="Dressing room - drag to turn, scroll to zoom"></iframe>`;
+  $('lb-extra').innerHTML = `<span class="hintline">drag to turn · scroll to zoom</span>
+    <button class="pill-btn" style="flex:0 0 auto;padding:6px 11px" onclick="lbFit(${chrId === 1 ? 2 : 1})">${chrId === 1 ? '♀ her' : '♂ him'}</button>`;
+}
 async function tmogLb(setId) {
   const r = tmogSetState().find(x => x.id === setId);
   if (!r) return;
@@ -1467,6 +1487,10 @@ async function tmogLb(setId) {
     catch (e) { return { a, d: null }; }
   }));
   if (!$('lb-back').classList.contains('open')) return;
+  tmogPieces = pieces.filter(x => x.d).map(x => ({ slot_type: x.d.slot_type, disp: x.d.disp }));
+  if (tmogPieces.some(x => x.disp && TMOG_SLOT[x.slot_type])) {
+    $('lb-extra').innerHTML = `<button class="lb3d-btn" style="position:static;transform:none;animation:btnpulse 2.6s ease-in-out infinite" onclick="lbFit(1)">⚜ Fit on a model</button>`;
+  }
   dEl.innerHTML = pieces.map(({ a, d }) => {
     const it = d && (d.items || [])[0];
     return `<div class="piece">

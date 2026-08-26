@@ -3,7 +3,7 @@ which pulls live character data from /api/roster. Run:  python app.py  (or the p
 import json, os, secrets, shutil, socket, sys, threading, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-VERSION = "1.5.0"
+VERSION = "1.6.0"
 REPO = "jacquesvn/soulkeep"  # update banner watches this repo's latest release
 import webview
 from flask import Flask, render_template, request, jsonify, redirect, send_file
@@ -296,7 +296,7 @@ def api_tmog_appearance(aid):
         except (OSError, ValueError):
             _TMOG_APPS = {}
     k = str(aid)
-    if k not in _TMOG_APPS:
+    if k not in _TMOG_APPS or "disp" not in (_TMOG_APPS.get(k) or {}):
         got = wowapi.get_appearance(AUTH["region"], aid)
         if got is None:
             return jsonify({"error": "not found"}), 404

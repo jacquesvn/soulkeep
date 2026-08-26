@@ -9,17 +9,25 @@
 </head><body>
 <div id="mv"></div>
 <script>
+  // ?d=<modelId>&t=<modelType: 8 npc/creature, 16 character>&items=slot:displayId,slot:displayId
   const q = new URLSearchParams(location.search);
   const id = parseInt(q.get('d') || '0', 10);
+  const mt = parseInt(q.get('t') || '8', 10);
+  const items = (q.get('items') || '').split(',').filter(Boolean).map(p => {
+    const parts = p.split(':').map(Number);
+    return [parts[0], parts[1]];
+  });
   window.report = { made: false };
   try {
-    // proven recipe: viewer type 2, models.type 8 = NPC/creature display
-    window.viewer = new ZamModelViewer({
+    const opts = {
       container: jQuery('#mv'), type: 2, contentPath: window.CONTENT_PATH,
       aspect: window.innerWidth / Math.max(1, window.innerHeight), hd: true,
-      models: { type: 8, id: id }
-    });
+      models: { type: mt, id: id }
+    };
+    if (items.length) opts.items = items;
+    window.viewer = new ZamModelViewer(opts);
     window.report.made = true;
+    window.report.items = items.length;
   } catch (e) { window.report.err = String(e); }
 </script>
 </body></html>
