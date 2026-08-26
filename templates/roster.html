@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WoW Roster</title>
+<style>
+  :root{
+    --bg:#0f1216; --panel:#191d25; --panel2:#20252f; --line:#2b3240;
+    --ink:#e8e4d8; --muted:#9aa3b2; --gold:#c8a24c; --gold-dim:#8a7233;
+    --good:#5fb85f; --warn:#d6a740;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:
+      radial-gradient(1200px 500px at 50% -200px, #1b2230 0%, var(--bg) 70%);
+    color:var(--ink);font:14px/1.45 system-ui,'Segoe UI',Roboto,sans-serif;min-height:100vh}
+  header{position:sticky;top:0;z-index:5;backdrop-filter:blur(6px);
+    background:linear-gradient(180deg,rgba(15,18,22,.96),rgba(15,18,22,.82));
+    border-bottom:1px solid var(--line);padding:14px 22px;
+    display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+  h1{margin:0;font-size:19px;letter-spacing:.14em;text-transform:uppercase;
+    font-weight:800;color:var(--gold);text-shadow:0 1px 0 #000}
+  h1 span{color:var(--muted);font-weight:600}
+  form.add{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+  form.add input,form.add select{background:var(--panel2);border:1px solid var(--line);
+    color:var(--ink);border-radius:7px;padding:7px 9px;font-size:13px}
+  form.add input{width:118px}
+  .btn{background:var(--gold);color:#1a1206;border:none;border-radius:7px;
+    padding:7px 14px;font-weight:700;cursor:pointer;font-size:13px}
+  .btn:hover{background:#dcb85e}
+  main{padding:22px;max-width:1400px;margin:0 auto}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+  .card{background:linear-gradient(180deg,var(--panel),#141821);border:1px solid var(--line);
+    border-radius:12px;overflow:hidden;display:flex;position:relative;
+    box-shadow:0 6px 18px rgba(0,0,0,.35)}
+  .card .rm{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.45);color:#c9ccd2;
+    border:1px solid var(--line);width:24px;height:24px;border-radius:6px;cursor:pointer;
+    line-height:1;font-size:14px;opacity:.5}
+  .card .rm:hover{opacity:1;color:#ff8a8a}
+  .portrait{width:118px;min-width:118px;background:#0b0e12 center top/cover no-repeat;
+    border-right:1px solid var(--line)}
+  .body{padding:13px 15px;flex:1;min-width:0}
+  .name{font-size:18px;font-weight:800;letter-spacing:.01em;line-height:1.1}
+  .title{font-size:11.5px;color:var(--gold);font-style:italic;margin-top:2px}
+  .sub{color:var(--muted);font-size:12.5px;margin-top:5px}
+  .sub b{color:var(--ink);font-weight:600}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+  .chip{background:var(--panel2);border:1px solid var(--line);border-radius:999px;
+    padding:3px 9px;font-size:11.5px;display:flex;gap:5px;align-items:center}
+  .chip .k{color:var(--muted)}
+  .chip .v{font-weight:700;font-variant-numeric:tabular-nums}
+  .ilvl .v{color:var(--gold)}
+  .mplus .v{color:#8be0e0}
+  .raid .v{color:var(--good)}
+  .guild{margin-top:9px;font-size:11.5px;color:var(--muted)}
+  .err{padding:15px 16px;flex:1}
+  .err .name{color:#c9ccd2}
+  .err .why{color:var(--warn);font-size:12px;margin-top:4px}
+  .empty{color:var(--muted);text-align:center;padding:60px 20px}
+  footer{color:var(--muted);text-align:center;font-size:11.5px;padding:18px}
+</style>
+</head>
+<body>
+<header>
+  <h1>WoW Roster <span>· live</span></h1>
+  <form class="add" method="post" action="/add">
+    <select name="region" title="region">
+      <option value="eu">EU</option><option value="us">US</option>
+      <option value="kr">KR</option><option value="tw">TW</option>
+    </select>
+    <input name="realm" placeholder="realm (e.g. draenor)" required>
+    <input name="name" placeholder="character" required>
+    <button class="btn" type="submit">+ Add</button>
+  </form>
+</header>
+<main>
+  {% if items %}
+  <div class="grid">
+    {% for it in items %}
+      {% set c = it.char %}
+      <div class="card">
+        <form class="rmf" method="post" action="/remove">
+          <input type="hidden" name="region" value="{{ it.entry.region }}">
+          <input type="hidden" name="realm" value="{{ it.entry.realm }}">
+          <input type="hidden" name="name" value="{{ it.entry.name }}">
+          <button class="rm" title="Remove" type="submit">✕</button>
+        </form>
+        {% if c.error %}
+          <div class="err">
+            <div class="name">{{ it.entry.name|capitalize }}</div>
+            <div class="sub">{{ it.entry.realm|capitalize }} · {{ it.entry.region|upper }}</div>
+            <div class="why">⚠ {{ c.hint }}{% if c.error != 404 %} ({{ c.error }}){% endif %}</div>
+          </div>
+        {% else %}
+          <div class="portrait" {% if c.render %}style="background-image:url('{{ c.render }}')"{% endif %}></div>
+          <div class="body">
+            <div class="name" style="color:{{ c.class_color }}">{{ c.name }}</div>
+            {% if c.title %}<div class="title">{{ c.title }}</div>{% endif %}
+            <div class="sub">
+              <b>{{ c.realm }}</b> · {{ c.region|upper }} &nbsp;·&nbsp;
+              Lvl <b>{{ c.level }}</b> {{ c.race }} {% if c.spec %}<b>{{ c.spec }}</b> {% endif %}{{ c.class }}
+            </div>
+            <div class="chips">
+              <div class="chip ilvl"><span class="k">ilvl</span><span class="v">{{ c.ilvl or '—' }}</span></div>
+              <div class="chip mplus"><span class="k">M+</span><span class="v">{{ c.mplus_rating or '—' }}</span></div>
+              <div class="chip raid"><span class="k">raid</span><span class="v">{{ c.raid }}</span></div>
+              {% for p in c.professions %}<div class="chip"><span class="v">{{ p }}</span></div>{% endfor %}
+            </div>
+            {% if c.guild %}<div class="guild">&lt;{{ c.guild }}&gt;{% if c.faction %} · {{ c.faction }}{% endif %}</div>{% endif %}
+          </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    <div class="empty">No characters yet — add one above.<br>Only recently-active characters return data.</div>
+  {% endif %}
+</main>
+<footer>Data: Blizzard Battle.net API · retail (Midnight) · roster stored locally in roster.json</footer>
+</body>
+</html>

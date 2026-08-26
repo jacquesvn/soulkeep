@@ -12,10 +12,17 @@ M+ rating, raid progression, last-played — from Blizzard's free REST API. Week
    (only needed later for the user-login/roster feature). Intended use: personal project.
 4. Copy the **Client ID** and **Client Secret**.
 
-## Run the spike
+## Run the desktop app
     cp bnet.env.example bnet.env    # then paste your Client ID + Secret into bnet.env
-    python spike.py <region> <realm-slug> <character-name>
-    # e.g.  python spike.py us area-52 mycharacter
-    #   region = us | eu | kr | tw ;  realm-slug = lowercase, hyphenated (e.g. "area-52")
+    pip install flask pywebview      # one-time
+    python app.py                    # opens the WoW Roster desktop window
 
-Prints the character summary/gear/M+/professions and dumps raw JSON to last_profile.json.
+Add characters with the region/realm/name form in the header; remove with the ✕ on a card.
+The roster is stored locally in `roster.json`. Only recently-active characters return data
+(an unsubbed account's characters "slumber" and show a greyed card until you resub + log in once).
+
+## Dev scripts
+    python spike.py <region> <realm-slug> <character>    # raw pull -> last_profile.json
+    python showcase.py [region]                          # find a top char -> showcase_profile.json
+    python wowapi.py <region> <realm> <character>         # print the normalized character dict
+    #   region = us | eu | kr | tw ;  realm-slug = lowercase, hyphenated (e.g. "area-52")

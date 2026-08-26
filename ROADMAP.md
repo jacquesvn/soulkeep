@@ -4,12 +4,15 @@
 Dev app registered; client-credentials token + live calls working; `spike.py` pulls a real character
 (88KB JSON). Confirmed data surface + gaps (see CLAUDE.md / memory).
 
-## Phase 1 — v1 Roster Dashboard (API-only)  ← NEXT
-- Fetch layer: token cache + typed calls for profile/equipment/mplus/professions/collections/raids.
-- Data model from real JSON (start from `last_profile.json` / `showcase_profile.json`).
-- UI: a roster grid — per character: name, ilvl, spec, M+ rating, raid progress, professions, last-played.
-- Add characters by region/realm/name (manual) to start.
-- Platform decision: desktop (Flask + local, like the Oblivion/Manager pattern) vs web.
+## Phase 1 — v1 Roster Dashboard (API-only)  ✅ BUILT
+- [x] Fetch + normalize layer (`wowapi.py`): token cache + `get_character()` → clean UI dict; 404→slumbering.
+- [x] Data model from real JSON (Loonwhy → `showcase_profile.json`); expansion=Midnight, cap 90.
+- [x] UI (`templates/roster.html`): dark WoW-flavoured grid — name (class-coloured), portrait, ilvl,
+      M+ rating, raid progress, professions, title, guild/faction. Slumbering chars show a greyed card.
+- [x] Add / remove characters by region/realm/name (manual), stored in `roster.json`.
+- [x] Platform: **DESKTOP** — Flask + pywebview window (`app.py`); concurrent per-char fetch.
+- Verified end-to-end against Loonwhy (rich), Oblivz (awake/bare), Oblivionn (slumbering card).
+- Polish TODO: loading state on first paint; character detail view (gear/collections); refresh button.
 
 ## Phase 2 — Battle.net login → auto-roster
 - OAuth authorization-code flow (`wow.profile`), redirect `https://localhost`.
