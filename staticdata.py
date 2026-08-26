@@ -286,6 +286,66 @@ def augment_recipes(region="eu"):
     n = sum(1 for r in rec.values() if r.get("crafted_ids"))
     _log(f"recipes with crafted item resolved: {n}/{len(rec)}")
 
+def augment_toys_use(region="eu"):
+    """What does the toy DO? Pull each toy item's 'Use:' spell text."""
+    ns = f"static-{region}"
+    toys = load("toys") or []
+    BUILD["step"] = "toy effects"
+    def one(t):
+        if t.get("use"):
+            return None
+        d = wowapi._get(region, f"/data/wow/toy/{t['id']}", ns)
+        iid = (d.get("item") or {}).get("id")
+        if not iid:
+            return None
+        it = wowapi._get(region, f"/data/wow/item/{iid}", ns)
+        spells = ((it.get("preview_item") or {}).get("spells") or [])
+        use = next((s.get("description") for s in spells if (s.get("description") or "").startswith("Use:")),
+                   next((s.get("description") for s in spells if s.get("description")), None))
+        return (t["id"], (use or "")[:400]) if use else None
+    got = dict(x for x in _many(toys, one, workers=10) if x)
+    for t in toys:
+        if t["id"] in got:
+            t["use"] = got[t["id"]]
+    _save("toys", toys)
+    _log(f"toy effects: {len(got)}/{len(toys)}")
+
+def build_tmog(region="eu"):
+    """The wardrobe atlas: every appearance set (with its appearance ids + a representative
+    icon item), and the total appearance count per equipment slot."""
+    ns = f"static-{region}"
+    idx = wowapi._get(region, "/data/wow/item-appearance/set/index", ns)
+    sets = idx.get("appearance_sets") or []
+    BUILD["step"] = "transmog sets"
+    def one(s):
+        d = wowapi._get(region, f"/data/wow/item-appearance/set/{s['id']}", ns)
+        if d.get("_error"):
+            return None
+        apps = [a.get("id") for a in (d.get("appearances") or []) if a.get("id")]
+        return (s["id"], {"id": s["id"], "name": d.get("set_name") or s.get("name"), "apps": apps})
+    rows = dict(_many(sets, one))
+    BUILD["step"] = "set icons"
+    def icon_one(pair):
+        sid, rec = pair
+        if not rec["apps"]:
+            return None
+        a = wowapi._get(region, f"/data/wow/item-appearance/{rec['apps'][0]}", ns)
+        its = a.get("items") or []
+        return (sid, its[0]["id"]) if its else None
+    for got in _many(list(rows.items()), icon_one):
+        sid, iid = got
+        rows[sid]["icon_item"] = iid
+    BUILD["step"] = "slot totals"
+    si = wowapi._get(region, "/data/wow/item-appearance/slot/index", ns)
+    def slot_one(ref):
+        href = (ref.get("key") or {}).get("href") or ""
+        stype = href.rstrip("/").split("/")[-1].split("?")[0]
+        d = wowapi._get(region, f"/data/wow/item-appearance/slot/{stype}", ns)
+        return (stype, len(d.get("appearances") or []))
+    totals = dict(_many(si.get("slots") or [], slot_one, workers=6))
+    _save("tmog", {"sets": list(rows.values()), "slot_totals": totals})
+    _log(f"tmog: {len(rows)} sets | slot totals: {sum(totals.values())} appearances across {len(totals)} slots")
+
 def build_season(region="eu"):
     BUILD["step"] = "season"
     dyn = f"dynamic-{region}"
@@ -301,7 +361,7 @@ def build_all(region="eu"):
         return
     BUILD.update(running=True, log=[])
     try:
-        for fn in (build_season, build_mounts, build_toys, build_journal, build_recipes, augment_recipes, build_pets, augment_media, augment_pets_3d):
+        for fn in (build_season, build_mounts, build_toys, build_journal, build_recipes, augment_recipes, build_pets, augment_media, augment_pets_3d, build_tmog, augment_toys_use):
             try:
                 fn(region)
             except Exception as e:

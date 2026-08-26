@@ -3,7 +3,7 @@ which pulls live character data from /api/roster. Run:  python app.py  (or the p
 import json, os, secrets, shutil, socket, sys, threading, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-VERSION = "1.4.0"
+VERSION = "1.5.0"
 REPO = "jacquesvn/soulkeep"  # update banner watches this repo's latest release
 import webview
 from flask import Flask, render_template, request, jsonify, redirect, send_file
@@ -231,7 +231,7 @@ def api_addon_install():
 def api_static(name):
     if name == "status":
         return jsonify(staticdata.status())
-    if name not in ("mounts", "pets", "toys", "journal", "recipes", "season"):
+    if name not in ("mounts", "pets", "toys", "journal", "recipes", "season", "tmog"):
         return jsonify({"error": "unknown"}), 404
     return jsonify({"data": staticdata.load(name)})
 
@@ -275,6 +275,37 @@ def api_mplus(region, realm, name):
     out = wowapi.get_season_bests(region, realm, name, season)
     out["dungeons"] = (staticdata.load("season") or {}).get("dungeons", [])
     return jsonify(out)
+
+# ---------- transmog ----------
+TMOG_APPS = os.path.join(APPDIR, "tmog_apps.json")
+_TMOG_APPS = None
+
+@app.route("/api/transmog")
+def api_transmog():
+    c = first_awake()
+    if not c:
+        return jsonify({"error": "no awake character"}), 404
+    return jsonify(wowapi.get_transmogs(c["entry"]["region"], c["entry"]["realm"], c["entry"]["name"]))
+
+@app.route("/api/tmog/appearance/<int:aid>")
+def api_tmog_appearance(aid):
+    global _TMOG_APPS
+    if _TMOG_APPS is None:
+        try:
+            _TMOG_APPS = json.load(open(TMOG_APPS, encoding="utf-8"))
+        except (OSError, ValueError):
+            _TMOG_APPS = {}
+    k = str(aid)
+    if k not in _TMOG_APPS:
+        got = wowapi.get_appearance(AUTH["region"], aid)
+        if got is None:
+            return jsonify({"error": "not found"}), 404
+        _TMOG_APPS[k] = got
+        try:
+            json.dump(_TMOG_APPS, open(TMOG_APPS, "w", encoding="utf-8"))
+        except OSError:
+            pass
+    return jsonify(_TMOG_APPS[k])
 
 # ---------- economy ----------
 @app.route("/api/economy/summary")

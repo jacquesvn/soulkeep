@@ -291,6 +291,29 @@ button{font-family:Barlow,system-ui,sans-serif}
 .tile.kept{border-color:rgba(111,224,192,.28);}
 .tile .tn{font-size:10.5px;padding:6px 8px 7px;line-height:1.25;color:var(--muted);max-height:3em;overflow:hidden;}
 
+/* ---------- the wardrobe ---------- */
+.tmog-hero{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center;border-radius:20px;padding:20px 24px;margin-bottom:18px;animation:pageIn .4s cubic-bezier(.25,.8,.3,1) both;}
+.slotbars{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:7px 20px;}
+.slotbar{display:flex;align-items:center;gap:9px;font-size:11px;}
+.slotbar .sn{flex:0 0 76px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-size:9px;}
+.slotbar .pbar{flex:1;}
+.slotbar .sv{font:600 11px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;color:var(--muted);flex:0 0 auto;}
+.setgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;}
+.setcard{display:flex;align-items:center;gap:12px;border-radius:14px;padding:10px 13px;cursor:pointer;border:1px solid rgba(237,233,255,.07);transition:transform .15s, border-color .15s;}
+.setcard:hover{transform:translateY(-2px);border-color:rgba(199,125,255,.45);}
+.setcard img{width:40px;height:40px;border-radius:9px;border:1px solid rgba(199,125,255,.3);flex:0 0 auto;background:var(--raised);}
+.setcard .sm{flex:1;min-width:0;}
+.setcard .sn{font-size:12.5px;line-height:1.25;max-height:2.5em;overflow:hidden;}
+.setcard .sc{display:flex;align-items:center;gap:8px;margin-top:5px;}
+.setcard .sc .pbar{flex:1;height:4px;}
+.setcard .sc .sv{font:600 11px 'Barlow Condensed',sans-serif;color:var(--muted);}
+.setcard.done{border-color:rgba(111,224,192,.3);}
+.setcard.done .sv{color:var(--good);}
+.piece{display:flex;align-items:center;gap:10px;padding:5px 6px;margin:0 -6px;border-radius:8px;font-size:12.5px;border-bottom:1px solid rgba(177,92,255,.07);}
+.piece img{width:26px;height:26px;border-radius:6px;background:var(--raised);}
+.piece .pslot{flex:0 0 64px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+.piece .have{margin-left:auto;font-size:12px;}
+
 /* ---------- trophy lightbox ---------- */
 .lb-back{position:fixed;inset:0;z-index:10;background:rgba(7,6,14,.78);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:24px;}
 .lb-back.open{display:flex;}
@@ -414,6 +437,7 @@ button{font-family:Barlow,system-ui,sans-serif}
       <button class="nav-item" id="nav-detail" title="Character" onclick="goDetail()"><span class="ic">☾</span><span class="lbl">Character</span></button>
       <button class="nav-item" id="nav-board" title="War Board" onclick="goView('board')"><span class="ic">⚑</span><span class="lbl">War Board</span></button>
       <button class="nav-item" id="nav-collections" title="Collections" onclick="goView('collections')"><span class="ic">✦</span><span class="lbl">Collections</span></button>
+      <button class="nav-item" id="nav-transmog" title="Transmog" onclick="goView('transmog')"><span class="ic">⚜</span><span class="lbl">Transmog</span></button>
       <button class="nav-item" id="nav-economy" title="Economy" onclick="goView('economy')"><span class="ic">◎</span><span class="lbl">Economy</span></button>
       <button class="nav-item" id="nav-progress" title="Progress" onclick="goView('progress')"><span class="ic">↗</span><span class="lbl">Progress</span></button>
       <button class="nav-item" id="nav-settings" title="Settings" onclick="openSettings()"><span class="ic">⛭</span><span class="lbl">Settings</span></button>
@@ -510,7 +534,7 @@ button{font-family:Barlow,system-ui,sans-serif}
       <div id="easy-marks"></div>
       <div id="coll-controls" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
         <div class="vtabs" id="coll-filters" style="margin:0"></div>
-        <div class="searchpill" style="margin-left:auto"><input id="coll-search" placeholder="Search the hunt…" oninput="renderCollGrid()"></div>
+        <div class="searchpill" style="margin-left:auto"><input id="coll-search" placeholder="Search the hunt…" oninput="collPage=0;renderCollGrid()"></div>
       </div>
       <div id="coll-body"></div>
       <svg width="0" height="0" style="position:absolute"><defs>
@@ -518,6 +542,19 @@ button{font-family:Barlow,system-ui,sans-serif}
           <stop offset="0" stop-color="#7A2FD6"/><stop offset="1" stop-color="#6FE0C0"/>
         </linearGradient>
       </defs></svg>
+    </section>
+
+    <section id="view-transmog" style="display:none">
+      <div class="vhead">
+        <div class="eyebrow">The Wardrobe · Every Look, Kept</div>
+        <h1 class="vtitle">TRANSMOG</h1>
+      </div>
+      <div id="tmog-hero"></div>
+      <div id="tmog-controls" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+        <div class="vtabs" id="tmog-filters" style="margin:0"></div>
+        <div class="searchpill" style="margin-left:auto"><input id="tmog-search" placeholder="Search sets…" oninput="tmogPage=0;renderTmogGrid()"></div>
+      </div>
+      <div id="tmog-body"></div>
     </section>
 
     <section id="view-economy" style="display:none">
@@ -624,6 +661,7 @@ button{font-family:Barlow,system-ui,sans-serif}
     <button class="tab" id="tab-detail" onclick="goDetail()"><span class="ic">☾</span>CHAR</button>
     <button class="tab" id="tab-board" onclick="goView('board')"><span class="ic">⚑</span>BOARD</button>
     <button class="tab" id="tab-collections" onclick="goView('collections')"><span class="ic">✦</span>COLLECT</button>
+    <button class="tab" id="tab-transmog" onclick="goView('transmog')"><span class="ic">⚜</span>TMOG</button>
     <button class="tab" id="tab-economy" onclick="goView('economy')"><span class="ic">◎</span>ECON</button>
     <button class="tab" id="tab-progress" onclick="goView('progress')"><span class="ic">↗</span>PROG</button>
     <button class="tab" onclick="openSettings()"><span class="ic">⛭</span>MORE</button>
@@ -870,7 +908,7 @@ async function removeChar(ev, k, btn) {
 }
 
 /* ---------- navigation ---------- */
-const VIEWS = ['roster', 'detail', 'board', 'collections', 'economy', 'progress'];
+const VIEWS = ['roster', 'detail', 'board', 'collections', 'transmog', 'economy', 'progress'];
 function setView(v) {
   view = v;
   for (const x of VIEWS) {
@@ -885,6 +923,7 @@ function goView(v) {
   setView(v);
   if (v === 'board') renderBoard();
   if (v === 'collections') loadCollections();
+  if (v === 'transmog') loadTransmog();
   if (v === 'economy') renderEconomy();
   if (v === 'progress') renderProgress();
 }
@@ -1174,7 +1213,7 @@ function renderBoard() {
 }
 
 /* ---------- COLLECTIONS: The Hunt ---------- */
-let collIndex = {}, collMine = null, collKind = 'mounts', collFilter = null, collShowOwned = false, lastPoolIds = [], petType = null;
+let collIndex = {}, collMine = null, collKind = 'mounts', collFilter = null, collShowOwned = false, lastPoolIds = [], petType = null, collPage = 0;
 const LIMITED = new Set(['In-Game Shop', 'Promotion', 'Trading Card Game']);
 const EASY_SRC = new Set(['Vendor', 'Quest', 'Profession', 'Pet Battle', 'Discovery']);
 async function loadCollections() {
@@ -1204,7 +1243,7 @@ function collStats(k) {
     missObt: obt.filter(x => !mine.has(x.id)),
     missLim: lim.filter(x => !mine.has(x.id)) };
 }
-function collSetKind(k) { collKind = k; collFilter = null; petType = null; renderColl(); }
+function collSetKind(k) { collKind = k; collFilter = null; petType = null; collPage = 0; renderColl(); }
 function renderColl() { renderRings(); renderEasy(); renderFilters(); renderCollGrid(); }
 
 function renderRings() {
@@ -1253,10 +1292,10 @@ function renderFilters() {
   const tops = Object.entries(bySrc).sort((a, b) => b[1] - a[1]).slice(0, 7);
   const limN = (collShowOwned ? st.lim.filter(x => st.mine.has(x.id)) : st.missLim).length;
   $('coll-filters').innerHTML = [
-    `<button class="vtab ${collFilter === null ? 'on' : ''}" onclick="collFilter=null;renderFilters();renderCollGrid()">All · ${pool.length.toLocaleString('en-US')}</button>`,
-    ...tops.map(([src, n]) => `<button class="vtab ${collFilter === src ? 'on' : ''}" onclick="collFilter='${esc(src).replace(/'/g, "\\'")}';renderFilters();renderCollGrid()">${esc(src)} · ${n}</button>`),
-    limN ? `<button class="vtab ${collFilter === '__limited' ? 'on' : ''}" onclick="collFilter='__limited';renderFilters();renderCollGrid()">⏳ Limited · ${limN}</button>` : '',
-    `<button class="vtab" style="margin-left:8px" onclick="collShowOwned=!collShowOwned;collFilter=null;renderFilters();renderCollGrid()">${collShowOwned ? 'Showing kept — see missing' : 'Showing missing — see kept'}</button>`,
+    `<button class="vtab ${collFilter === null ? 'on' : ''}" onclick="collFilter=null;collPage=0;renderFilters();renderCollGrid()">All · ${pool.length.toLocaleString('en-US')}</button>`,
+    ...tops.map(([src, n]) => `<button class="vtab ${collFilter === src ? 'on' : ''}" onclick="collFilter='${esc(src).replace(/'/g, "\\'")}';collPage=0;renderFilters();renderCollGrid()">${esc(src)} · ${n}</button>`),
+    limN ? `<button class="vtab ${collFilter === '__limited' ? 'on' : ''}" onclick="collFilter='__limited';collPage=0;renderFilters();renderCollGrid()">⏳ Limited · ${limN}</button>` : '',
+    `<button class="vtab" style="margin-left:8px" onclick="collShowOwned=!collShowOwned;collFilter=null;collPage=0;renderFilters();renderCollGrid()">${collShowOwned ? 'Showing kept — see missing' : 'Showing missing — see kept'}</button>`,
   ].join('');
   if (collKind === 'pets') {
     const types = {};
@@ -1290,19 +1329,155 @@ function renderCollGrid() {
   if (collKind === 'pets' && petType) pool = pool.filter(x => x.type === petType);
   const q = ($('coll-search').value || '').toLowerCase();
   if (q) pool = pool.filter(x => (x.name || '').toLowerCase().includes(q) || (x.src || '').toLowerCase().includes(q));
-  const CAP = 240;
-  lastPoolIds = pool.slice(0, CAP).map(x => x.id);
+  const PAGE = 120;
+  const pages = Math.max(1, Math.ceil(pool.length / PAGE));
+  if (collPage >= pages) collPage = pages - 1;
+  const pageItems = pool.slice(collPage * PAGE, (collPage + 1) * PAGE);
+  lastPoolIds = pageItems.map(x => x.id);
   body.innerHTML = pool.length ? `
-    <div class="tilegrid">${pool.slice(0, CAP).map(x => `
+    <div class="tilegrid">${pageItems.map(x => `
       <div class="tile ${collShowOwned ? 'kept' : 'miss'}" role="button" tabindex="0" title="${esc(x.src)}${x.faction ? ' · ' + esc(x.faction) : ''}${x.type ? ' · ' + esc(x.type) : ''}"
            onclick="lbOpenId(${x.id}, lastPoolIds)">
         ${tileArt(x)}
         ${(collKind === 'mounts' && x.img) || x.disp ? '<span class="t3d">3D</span>' : ''}
         <div class="tn">${esc(x.name)}</div>
       </div>`).join('')}</div>
-    ${pool.length > CAP ? `<div class="hintline" style="margin-top:12px">Showing ${CAP} of ${pool.length.toLocaleString('en-US')} — narrow with a source pill or the search.</div>` : ''}`
+    ${pager(pool.length, PAGE, collPage, 'collPage', 'renderCollGrid')}`
     : '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">Nothing here</div><div class="empty-s">' + (collShowOwned ? 'Nothing kept under this filter yet — the hunt awaits.' : 'Nothing missing here — this ground is fully claimed!') + '</div></div>';
 }
+function pager(total, per, page, varName, renderFn) {
+  const pages = Math.max(1, Math.ceil(total / per));
+  if (pages <= 1) return '';
+  return `<div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-top:16px">
+    <button class="pill-btn" style="flex:0 0 auto" ${page <= 0 ? 'disabled' : ''} onclick="${varName}--;${renderFn}();$('main').scrollTop=0">‹ Prev</button>
+    <span class="hintline" style="font-variant-numeric:tabular-nums">Page ${page + 1} of ${pages} · ${total.toLocaleString('en-US')} total</span>
+    <button class="pill-btn" style="flex:0 0 auto" ${page >= pages - 1 ? 'disabled' : ''} onclick="${varName}++;${renderFn}();$('main').scrollTop=0">Next ›</button>
+  </div>`;
+}
+/* ---------- TRANSMOG: the wardrobe ---------- */
+let tmogData = null, tmogMine = null, tmogFilter = 'all', tmogPage = 0;
+const SLOT_PRETTY = t => (t || '').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+async function loadTransmog() {
+  const body = $('tmog-body');
+  if (!tmogMine) {
+    body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">Opening the wardrobe…</div></div>';
+    try {
+      const [mine, atlas] = await Promise.all([
+        fetch('/api/transmog').then(r => r.json()),
+        fetch('/api/static/tmog').then(r => r.json()),
+      ]);
+      if (mine.error) { body.innerHTML = '<div class="hintline">No awake character to read the wardrobe from.</div>'; return; }
+      tmogMine = mine; tmogData = atlas.data;
+    } catch (e) { body.innerHTML = '<div class="hintline">The wardrobe would not open.</div>'; return; }
+  }
+  renderTmog();
+}
+function renderTmog() {
+  if (!tmogData) { $('tmog-body').innerHTML = '<div class="hintline">The transmog atlas isn\u2019t built yet — Settings → Static Game Data → Rebuild.</div>'; $('tmog-hero').innerHTML = ''; return; }
+  const totals = tmogData.slot_totals || {};
+  const mineSlots = tmogMine.slots || {};
+  const totalAll = Object.values(totals).reduce((a, b) => a + b, 0);
+  const mineAll = Object.entries(mineSlots).reduce((a, [k, v]) => a + (totals[k] ? Math.min(v, totals[k]) : v), 0);
+  const pctv = totalAll ? mineAll / totalAll : 0;
+  const C = 2 * Math.PI * 44;
+  const bars = Object.entries(totals).sort((a, b) => b[1] - a[1]).map(([k, tot]) => {
+    const n = Math.min(mineSlots[k] || 0, tot);
+    return `<div class="slotbar"><span class="sn">${esc(SLOT_PRETTY(k))}</span>
+      <div class="pbar"><i style="width:${tot ? Math.round(n / tot * 100) : 0}%"></i></div>
+      <span class="sv">${n.toLocaleString('en-US')} / ${tot.toLocaleString('en-US')}</span></div>`;
+  }).join('');
+  $('tmog-hero').innerHTML = `<div class="glass tmog-hero">
+    <div class="ring" style="width:108px;height:108px">
+      <svg width="108" height="108" viewBox="0 0 108 108">
+        <circle class="rc" cx="54" cy="54" r="44"/>
+        <circle class="rp" cx="54" cy="54" r="44" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - pctv)).toFixed(1)}"/>
+      </svg>
+      <div class="rv" style="font-size:23px">${Math.round(pctv * 100)}%</div>
+    </div>
+    <div>
+      <div style="font-family:Cinzel,serif;font-size:17px;letter-spacing:.04em;margin-bottom:3px">
+        <b style="color:var(--gold);font-family:'Barlow Condensed';font-size:21px">${mineAll.toLocaleString('en-US')}</b>
+        <span style="color:var(--muted);font-family:Barlow,sans-serif;font-size:13px"> of ${totalAll.toLocaleString('en-US')} appearances kept · ${(tmogMine.sets || []).length.toLocaleString('en-US')} full sets</span>
+      </div>
+      <div class="slotbars">${bars}</div>
+    </div>
+  </div>`;
+  renderTmogFilters();
+  renderTmogGrid();
+}
+function tmogSetState(st) {
+  const have = new Set(tmogMine.appearances || []);
+  return (tmogData.sets || []).map(x => {
+    const n = x.apps.filter(a => have.has(a)).length;
+    return { ...x, n, m: x.apps.length,
+      state: x.m === 0 ? 'empty' : n === x.apps.length ? 'complete' : n > 0 ? 'partial' : 'unstarted' };
+  });
+}
+function renderTmogFilters() {
+  const rows = tmogSetState();
+  const counts = { all: rows.length, complete: 0, partial: 0, unstarted: 0 };
+  rows.forEach(r => { if (counts[r.state] != null) counts[r.state]++; });
+  $('tmog-filters').innerHTML = [
+    ['all', 'All'], ['complete', '✓ Complete'], ['partial', 'In progress'], ['unstarted', 'Unclaimed'],
+  ].map(([k, l]) => `<button class="vtab ${tmogFilter === k ? 'on' : ''}" onclick="tmogFilter='${k}';tmogPage=0;renderTmogFilters();renderTmogGrid()">${l} · ${counts[k] ?? 0}</button>`).join('');
+}
+function renderTmogGrid() {
+  const body = $('tmog-body');
+  let rows = tmogSetState().filter(r => r.m > 0);
+  if (tmogFilter !== 'all') rows = rows.filter(r => r.state === tmogFilter);
+  const q = ($('tmog-search').value || '').toLowerCase();
+  if (q) rows = rows.filter(r => (r.name || '').toLowerCase().includes(q));
+  rows.sort((a, b) => (b.n / b.m) - (a.n / a.m) || (a.name || '').localeCompare(b.name || ''));
+  const PAGE = 96;
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE));
+  if (tmogPage >= pages) tmogPage = pages - 1;
+  const pageRows = rows.slice(tmogPage * PAGE, (tmogPage + 1) * PAGE);
+  body.innerHTML = rows.length ? `
+    <div class="setgrid">${pageRows.map(r => `
+      <div class="setcard glass ${r.state === 'complete' ? 'done' : ''}" role="button" tabindex="0" onclick="tmogLb(${r.id})">
+        ${r.icon_item ? `<img src="/api/icon/${r.icon_item}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div style="width:40px"></div>'}
+        <div class="sm">
+          <div class="sn">${esc(r.name)}</div>
+          <div class="sc"><div class="pbar"><i style="width:${Math.round(r.n / r.m * 100)}%"></i></div><span class="sv">${r.n}/${r.m}</span></div>
+        </div>
+      </div>`).join('')}</div>
+    ${pager(rows.length, PAGE, tmogPage, 'tmogPage', 'renderTmogGrid')}`
+    : '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">No sets here</div></div>';
+}
+async function tmogLb(setId) {
+  const r = tmogSetState().find(x => x.id === setId);
+  if (!r) return;
+  const have = new Set(tmogMine.appearances || []);
+  $('lb-hero').innerHTML = r.icon_item ? `<img class="iconic" src="/api/icon/${r.icon_item}" alt="">` : `<div class="ph">${esc((r.name || '?')[0])}</div>`;
+  $('lb-name').textContent = r.name;
+  $('lb-chips').innerHTML = [
+    `<span class="chip"><span class="v">${r.n} / ${r.m} pieces</span></span>`,
+    r.state === 'complete' ? '<span class="chip kept-chip"><span class="v">✓ Set complete</span></span>'
+                           : '<span class="chip miss-chip"><span class="v">☾ The hunt continues</span></span>',
+  ].join('');
+  const dEl = $('lb-desc');
+  dEl.style.display = ''; dEl.innerHTML = '<div class="hintline">fetching the pieces…</div>';
+  $('lb-guide').onclick = () => openGuide(r.name);
+  $('lb-extra').innerHTML = ''; $('lb-count').textContent = '';
+  lbPool = [];
+  document.querySelectorAll('.lb-nav').forEach(b => b.style.display = 'none');
+  $('lb-back').classList.add('open');
+  const pieces = await Promise.all(r.apps.map(async a => {
+    try { return { a, d: await (await fetch('/api/tmog/appearance/' + a)).json() }; }
+    catch (e) { return { a, d: null }; }
+  }));
+  if (!$('lb-back').classList.contains('open')) return;
+  dEl.innerHTML = pieces.map(({ a, d }) => {
+    const it = d && (d.items || [])[0];
+    return `<div class="piece">
+      ${it ? `<img src="/api/icon/${it.id}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div style="width:26px"></div>'}
+      <span class="pslot">${esc(d ? d.slot || '' : '')}</span>
+      <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(it ? it.name : 'appearance ' + a)}</span>
+      <span class="have">${have.has(a) ? '<span class="good">✓</span>' : '<span style="color:var(--muted)">☾</span>'}</span>
+    </div>`;
+  }).join('');
+}
+
 /* ---------- trophy lightbox ---------- */
 let lbPool = [], lbIdx = 0;
 function lbOpenId(id, poolIds) {
@@ -1327,8 +1502,10 @@ function lbRender() {
     (x.img && bigArt !== x.img ? `onerror="this.outerHTML='<img class=iconic src=${esc(x.img)}>'"` : '') + `>` + btn3d;
   else if (x.img) hero.innerHTML = `<img class="iconic" src="${esc(x.img)}" alt="">` + btn3d;
   else hero.innerHTML = `<div class="ph">${esc((x.name || '?')[0])}</div>` + btn3d;
-  const desc = x.desc || (collKind === 'toys' && (x.src || '').length > 34 ? x.src : null);
+  const srcLong = collKind === 'toys' && (x.src || '').length > 34 ? x.src : null;
+  const desc = [x.use, x.desc || srcLong].filter(Boolean).join('\n');
   const dEl = $('lb-desc');
+  dEl.style.whiteSpace = 'pre-line';
   dEl.textContent = desc || '';
   dEl.style.display = desc ? '' : 'none';
   const turnBtn = '';

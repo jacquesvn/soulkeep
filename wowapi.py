@@ -172,6 +172,29 @@ def get_season_bests(region, realm, name, season_id):
     return {"rating": round(rating, 1) if rating else None,
             "runs": sorted(best.values(), key=lambda x: x["rating"])}
 
+def get_transmogs(region, realm, name):
+    """Account-wide collected transmogs: completed sets, per-slot counts, and the flat
+    list of every collected appearance id."""
+    j = _get(region, _charbase(region, realm, name) + "/collections/transmogs", f"profile-{region}")
+    if j.get("_error"):
+        return {"error": j["_error"]}
+    slots, flat = {}, []
+    for s in (j.get("slots") or []):
+        stype = (s.get("slot") or {}).get("type") or (s.get("slot") or {}).get("name")
+        ids = [a.get("id") for a in (s.get("appearances") or []) if a.get("id")]
+        slots[stype] = len(ids)
+        flat += ids
+    return {"sets": [{"id": x.get("id"), "name": x.get("name")} for x in (j.get("appearance_sets") or [])],
+            "slots": slots, "appearances": flat}
+
+def get_appearance(region, aid):
+    """One item appearance: its slot and the items that share the look."""
+    a = _get(region, f"/data/wow/item-appearance/{aid}", f"static-{region}")
+    if a.get("_error"):
+        return None
+    return {"slot": (a.get("slot") or {}).get("name"),
+            "items": [{"id": i.get("id"), "name": i.get("name")} for i in (a.get("items") or [])[:4]]}
+
 def get_known_recipes(region, realm, name):
     """Known recipe ids across EVERY tier of each primary profession."""
     j = _get(region, _charbase(region, realm, name) + "/professions", f"profile-{region}")
