@@ -228,6 +228,35 @@ def augment_media(region="eu"):
     _save("toys", toys)
     _log(f"toy art: {sum(1 for t in toys if t.get('img'))}/{len(toys)}")
 
+def augment_pets_3d(region="eu"):
+    """Pets earn what mounts have: creature display ids (→ 3D viewer + zoom renders),
+    plus flavor descriptions and the wild-capturable flag."""
+    ns = f"static-{region}"
+    pets = load("pets") or []
+    BUILD["step"] = "pet models"
+    def one(p):
+        if p.get("disp"):
+            return None
+        d = wowapi._get(region, f"/data/wow/pet/{p['id']}", ns)
+        if d.get("_error"):
+            return None
+        out = {"desc": (d.get("description") or "")[:400] or None,
+               "cap": bool(d.get("is_capturable"))}
+        cid = (d.get("creature") or {}).get("id")
+        if cid:
+            c = wowapi._get(region, f"/data/wow/creature/{cid}", ns)
+            cds = c.get("creature_displays") or []
+            if cds and cds[0].get("id"):
+                out["disp"] = cds[0]["id"]
+        return (p["id"], out)
+    got = dict(x for x in _many(pets, one) if x)
+    for p in pets:
+        if p["id"] in got:
+            p.update({k: v for k, v in got[p["id"]].items() if v is not None})
+    _save("pets", pets)
+    _log(f"pet models: {sum(1 for p in pets if p.get('disp'))}/{len(pets)} display ids, "
+         f"{sum(1 for p in pets if p.get('desc'))} descriptions")
+
 def augment_recipes(region="eu"):
     """Modern recipes (KA/Midnight) dropped crafted_item from the API — resolve the crafted
     item ids by exact-name item search (one id per crafting-quality rank)."""
@@ -272,7 +301,7 @@ def build_all(region="eu"):
         return
     BUILD.update(running=True, log=[])
     try:
-        for fn in (build_season, build_mounts, build_toys, build_journal, build_recipes, augment_recipes, build_pets, augment_media):
+        for fn in (build_season, build_mounts, build_toys, build_journal, build_recipes, augment_recipes, build_pets, augment_media, augment_pets_3d):
             try:
                 fn(region)
             except Exception as e:

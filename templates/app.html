@@ -314,6 +314,22 @@ button{font-family:Barlow,system-ui,sans-serif}
 .lb-count{font-size:10.5px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-left:auto;}
 .kept-chip{background:rgba(111,224,192,.14);border:1px solid rgba(111,224,192,.4);color:var(--good);}
 .lb3d{width:100%;height:340px;border:0;display:block;background:#0B0A18;}
+.lb3d-btn{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:2;
+  background:linear-gradient(135deg, var(--deep), var(--violet));color:#FBF6FF;
+  border:1px solid rgba(199,125,255,.6);border-radius:999px;padding:10px 22px;
+  font:600 13.5px Barlow,sans-serif;letter-spacing:.04em;cursor:pointer;
+  animation:btnpulse 2.6s ease-in-out infinite;transition:transform .15s;}
+.lb3d-btn:hover{transform:translateX(-50%) translateY(-2px);}
+@keyframes btnpulse{0%,100%{box-shadow:0 6px 26px -6px rgba(177,92,255,.9), 0 0 30px -8px rgba(177,92,255,.5)}50%{box-shadow:0 6px 30px -4px rgba(199,125,255,1), 0 0 62px -6px rgba(177,92,255,.85)}}
+.tile{position:relative;}
+.easycard{position:relative;}
+.iconframe{width:100%;aspect-ratio:1;display:grid;place-items:center;
+  background:radial-gradient(62% 62% at 50% 44%, rgba(177,92,255,.18), transparent 72%), var(--raised);}
+.iconframe img{width:56%;max-width:64px;aspect-ratio:1;border-radius:11px;
+  border:1px solid rgba(199,125,255,.35);box-shadow:0 0 20px -4px rgba(177,92,255,.55);}
+.t3d{position:absolute;top:6px;right:6px;z-index:2;font:700 9px Barlow,sans-serif;letter-spacing:.1em;
+  padding:3px 7px;border-radius:6px;background:linear-gradient(135deg, var(--deep), var(--violet));
+  color:#FBF6FF;border:1px solid rgba(199,125,255,.6);box-shadow:0 0 12px -2px rgba(177,92,255,.7);pointer-events:none;}
 .miss-chip{background:rgba(243,199,102,.1);border:1px solid rgba(243,199,102,.35);color:var(--gold);}
 
 /* ---------- update banner ---------- */
@@ -422,6 +438,7 @@ button{font-family:Barlow,system-ui,sans-serif}
       <div class="lb-body">
         <div class="lb-name" id="lb-name"></div>
         <div class="lb-chips" id="lb-chips"></div>
+        <div class="hintline" id="lb-desc" style="margin:-4px 0 12px;display:none"></div>
         <div class="lb-actions">
           <button class="add-btn" id="lb-guide">Open the guide ↗</button>
           <span id="lb-extra"></span>
@@ -1157,7 +1174,7 @@ function renderBoard() {
 }
 
 /* ---------- COLLECTIONS: The Hunt ---------- */
-let collIndex = {}, collMine = null, collKind = 'mounts', collFilter = null, collShowOwned = false, lastPoolIds = [];
+let collIndex = {}, collMine = null, collKind = 'mounts', collFilter = null, collShowOwned = false, lastPoolIds = [], petType = null;
 const LIMITED = new Set(['In-Game Shop', 'Promotion', 'Trading Card Game']);
 const EASY_SRC = new Set(['Vendor', 'Quest', 'Profession', 'Pet Battle', 'Discovery']);
 async function loadCollections() {
@@ -1187,7 +1204,7 @@ function collStats(k) {
     missObt: obt.filter(x => !mine.has(x.id)),
     missLim: lim.filter(x => !mine.has(x.id)) };
 }
-function collSetKind(k) { collKind = k; collFilter = null; renderColl(); }
+function collSetKind(k) { collKind = k; collFilter = null; petType = null; renderColl(); }
 function renderColl() { renderRings(); renderEasy(); renderFilters(); renderCollGrid(); }
 
 function renderRings() {
@@ -1221,7 +1238,8 @@ function renderEasy() {
     <div class="p-eyebrow" style="margin-bottom:10px">Easy Marks · gettable this week — today's picks</div>
     <div class="easyrow">${picks.map(x => `
       <div class="easycard glass" role="button" tabindex="0" title="A closer look" onclick="lbOpenId(${x.id}, [${picks.map(y => y.id).join(',')}])">
-        ${x.img ? `<img src="${esc(x.img)}" alt="" loading="lazy">` : `<div class="ph">${esc((x.name || '?')[0])}</div>`}
+        ${tileArt(x)}
+        ${(collKind === 'mounts' && x.img) || x.disp ? '<span class="t3d">3D</span>' : ''}
         <div class="en">${esc(x.name)}</div>
         <div class="es">${esc(x.src)}</div>
       </div>`).join('')}</div>` : '';
@@ -1240,8 +1258,25 @@ function renderFilters() {
     limN ? `<button class="vtab ${collFilter === '__limited' ? 'on' : ''}" onclick="collFilter='__limited';renderFilters();renderCollGrid()">⏳ Limited · ${limN}</button>` : '',
     `<button class="vtab" style="margin-left:8px" onclick="collShowOwned=!collShowOwned;collFilter=null;renderFilters();renderCollGrid()">${collShowOwned ? 'Showing kept — see missing' : 'Showing missing — see kept'}</button>`,
   ].join('');
+  if (collKind === 'pets') {
+    const types = {};
+    pool.forEach(x => { if (x.type) types[x.type] = (types[x.type] || 0) + 1; });
+    $('coll-filters').innerHTML += '<div style="flex-basis:100%;height:0"></div>' +
+      Object.entries(types).sort((a, b) => b[1] - a[1]).map(([t, n]) =>
+        `<button class="vtab ${petType === t ? 'on' : ''}" style="padding:4px 11px;font-size:11px" onclick="petType=petType==='${t.replace(/'/g, "\'")}'?null:'${t.replace(/'/g, "\'")}';renderFilters();renderCollGrid()">${esc(t)} · ${n}</button>`).join('');
+  }
 }
 
+function tileArt(x) {
+  if (collKind === 'mounts' && x.img) return `<img src="${esc(x.img)}" alt="" loading="lazy">`;
+  if (x.disp) {
+    const big = `https://render.worldofwarcraft.com/eu/npcs/zoom/creature-display-${x.disp}.jpg`;
+    const fb = x.img ? `this.outerHTML='<div class=iconframe><img src=${esc(x.img)} loading=lazy></div>'` : `this.remove()`;
+    return `<img src="${esc(big)}" alt="" loading="lazy" onerror="${fb}">`;
+  }
+  if (x.img) return `<div class="iconframe"><img src="${esc(x.img)}" alt="" loading="lazy"></div>`;
+  return `<div class="ph">${esc((x.name || '?')[0])}</div>`;
+}
 function renderCollGrid() {
   const body = $('coll-body');
   const st = collStats(collKind);
@@ -1252,6 +1287,7 @@ function renderCollGrid() {
     pool = collShowOwned ? st.obt.filter(x => st.mine.has(x.id)) : st.missObt;
     if (collFilter) pool = pool.filter(x => (x.src || 'Unknown') === collFilter);
   }
+  if (collKind === 'pets' && petType) pool = pool.filter(x => x.type === petType);
   const q = ($('coll-search').value || '').toLowerCase();
   if (q) pool = pool.filter(x => (x.name || '').toLowerCase().includes(q) || (x.src || '').toLowerCase().includes(q));
   const CAP = 240;
@@ -1260,7 +1296,8 @@ function renderCollGrid() {
     <div class="tilegrid">${pool.slice(0, CAP).map(x => `
       <div class="tile ${collShowOwned ? 'kept' : 'miss'}" role="button" tabindex="0" title="${esc(x.src)}${x.faction ? ' · ' + esc(x.faction) : ''}${x.type ? ' · ' + esc(x.type) : ''}"
            onclick="lbOpenId(${x.id}, lastPoolIds)">
-        ${x.img ? `<img src="${esc(x.img)}" alt="" loading="lazy">` : `<div class="ph">${esc((x.name || '?')[0])}</div>`}
+        ${tileArt(x)}
+        ${(collKind === 'mounts' && x.img) || x.disp ? '<span class="t3d">3D</span>' : ''}
         <div class="tn">${esc(x.name)}</div>
       </div>`).join('')}</div>
     ${pool.length > CAP ? `<div class="hintline" style="margin-top:12px">Showing ${CAP} of ${pool.length.toLocaleString('en-US')} — narrow with a source pill or the search.</div>` : ''}`
@@ -1282,16 +1319,26 @@ function lbRender() {
   if (!x) return;
   const kept = new Set((collMine || {})[collKind] || []).has(x.id);
   const hero = $('lb-hero');
-  const dispId = collKind === 'mounts' && x.img ? (x.img.match(/creature-display-(\d+)/) || [])[1] : null;
-  if (x.img && collKind === 'mounts') hero.innerHTML = `<img class="big" src="${esc(x.img)}" alt="">`;
-  else if (x.img) hero.innerHTML = `<img class="iconic" src="${esc(x.img)}" alt="">`;
-  else hero.innerHTML = `<div class="ph">${esc((x.name || '?')[0])}</div>`;
-  const turnBtn = dispId ? `<button class="pill-btn" style="flex:0 0 auto" onclick="lb3d(${dispId})">⟲ Turn the beast</button>` : '';
+  const dispId = x.disp || (collKind === 'mounts' && x.img ? (x.img.match(/creature-display-(\d+)/) || [])[1] : null);
+  const bigArt = collKind === 'mounts' ? x.img
+    : dispId ? `https://render.worldofwarcraft.com/eu/npcs/zoom/creature-display-${dispId}.jpg` : null;
+  const btn3d = dispId ? `<button class="lb3d-btn" onclick="lb3d(${dispId})">⟲ View in 3D</button>` : '';
+  if (bigArt) hero.innerHTML = `<img class="big" src="${esc(bigArt)}" alt="" ` +
+    (x.img && bigArt !== x.img ? `onerror="this.outerHTML='<img class=iconic src=${esc(x.img)}>'"` : '') + `>` + btn3d;
+  else if (x.img) hero.innerHTML = `<img class="iconic" src="${esc(x.img)}" alt="">` + btn3d;
+  else hero.innerHTML = `<div class="ph">${esc((x.name || '?')[0])}</div>` + btn3d;
+  const desc = x.desc || (collKind === 'toys' && (x.src || '').length > 34 ? x.src : null);
+  const dEl = $('lb-desc');
+  dEl.textContent = desc || '';
+  dEl.style.display = desc ? '' : 'none';
+  const turnBtn = '';
   $('lb-name').textContent = x.name || '';
+  const srcAsDesc = collKind === 'toys' && (x.src || '').length > 34;
   $('lb-chips').innerHTML = [
-    `<span class="chip"><span class="v">${esc(x.src || 'Unknown')}</span></span>`,
+    srcAsDesc ? '' : `<span class="chip"><span class="v">${esc(x.src || 'Unknown')}</span></span>`,
     x.faction ? `<span class="chip"><span class="v">${esc(x.faction)}</span></span>` : '',
     x.type ? `<span class="chip"><span class="v">${esc(x.type)}</span></span>` : '',
+    x.cap ? `<span class="chip kept-chip"><span class="v">◎ Wild capture</span></span>` : '',
     kept ? `<span class="chip kept-chip"><span class="v">✓ Kept</span></span>`
          : `<span class="chip miss-chip"><span class="v">☾ The hunt continues</span></span>`,
   ].join('');
