@@ -1,9 +1,9 @@
-"""WoW Roster — desktop app (Flask + pywebview). Renders a roster of characters pulled live from the
-Blizzard API via wowapi.py. Run:  python app.py"""
+"""WoW Roster — desktop app (Flask + pywebview). Serves the "Midnight" SPA (templates/app.html),
+which pulls live character data from /api/roster. Run:  python app.py"""
 import json, os, threading
 from concurrent.futures import ThreadPoolExecutor
 import webview
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, jsonify
 import wowapi
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -20,35 +20,52 @@ def save_roster(r):
 def key(c):
     return (c["region"].lower(), c["realm"].lower(), c["name"].lower())
 
+def fetch_all(roster):
+    if not roster:
+        return []
+    with ThreadPoolExecutor(max_workers=min(8, len(roster))) as pool:
+        return list(pool.map(lambda e: wowapi.get_character(e["region"], e["realm"], e["name"]), roster))
+
 @app.route("/")
 def index():
+    return render_template("app.html")
+
+@app.route("/api/roster")
+def api_roster():
     roster = load_roster()
-    # fetch characters concurrently (each is ~5 API calls) so a big roster loads fast; keep order
-    with ThreadPoolExecutor(max_workers=min(8, max(1, len(roster)))) as pool:
-        chars = list(pool.map(lambda e: wowapi.get_character(e["region"], e["realm"], e["name"]), roster))
-    items = [{"entry": e, "char": c} for e, c in zip(roster, chars)]
-    return render_template("roster.html", items=items)
+    chars = fetch_all(roster)
+    for e, c in zip(roster, chars):
+        c["entry"] = e  # the region/realm/name key the client sends back for /api/remove
+    return jsonify({"chars": chars})
 
-@app.route("/add", methods=["POST"])
-def add():
+@app.route("/api/add", methods=["POST"])
+def api_add():
+    d = request.get_json(force=True)
+    e = {"region": (d.get("region") or "").strip().lower(),
+         "realm": (d.get("realm") or "").strip().lower().replace(" ", "-"),
+         "name": (d.get("name") or "").strip().lower()}
+    if not (e["region"] and e["realm"] and e["name"]):
+        return jsonify({"error": "region, realm and name are all required"}), 400
     r = load_roster()
-    e = {"region": request.form.get("region", "").strip().lower(),
-         "realm": request.form.get("realm", "").strip().lower().replace(" ", "-"),
-         "name": request.form.get("name", "").strip().lower()}
-    if e["region"] and e["realm"] and e["name"] and not any(key(x) == key(e) for x in r):
-        r.append(e); save_roster(r)
-    return redirect(url_for("index"))
+    if any(key(x) == key(e) for x in r):
+        return jsonify({"error": "already on the roster"}), 409
+    c = wowapi.get_character(e["region"], e["realm"], e["name"])
+    r.append(e)
+    save_roster(r)
+    c["entry"] = e
+    return jsonify({"char": c})
 
-@app.route("/remove", methods=["POST"])
-def remove():
-    e = {"region": request.form["region"], "realm": request.form["realm"], "name": request.form["name"]}
+@app.route("/api/remove", methods=["POST"])
+def api_remove():
+    d = request.get_json(force=True)
+    e = {"region": d.get("region", ""), "realm": d.get("realm", ""), "name": d.get("name", "")}
     save_roster([c for c in load_roster() if key(c) != key(e)])
-    return redirect(url_for("index"))
+    return jsonify({"ok": True})
 
 def run_flask():
     app.run(host="127.0.0.1", port=5177, threaded=True)
 
 if __name__ == "__main__":
     threading.Thread(target=run_flask, daemon=True).start()
-    webview.create_window("WoW Roster", "http://127.0.0.1:5177", width=1180, height=860)
+    webview.create_window("WoW Roster", "http://127.0.0.1:5177", width=1280, height=880)
     webview.start()

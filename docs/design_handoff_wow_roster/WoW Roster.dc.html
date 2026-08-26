@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;background:#07060E;}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:rgba(177,92,255,.18);border-radius:99px;border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:rgba(177,92,255,.35);border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-track{background:transparent}
+::selection{background:rgba(177,92,255,.35)}
+input::placeholder{color:rgba(167,159,200,.55)}
+a{color:#C77DFF;text-decoration:none}a:hover{color:#F3C766}
+:focus-visible{outline:2px solid #C77DFF;outline-offset:2px;border-radius:4px}
+@keyframes drift{from{background-position:0 0}to{background-position:-600px 300px}}
+@keyframes corona{0%,100%{box-shadow:0 0 14px 3px rgba(177,92,255,.45), inset 0 0 8px rgba(177,92,255,.35)}50%{box-shadow:0 0 22px 6px rgba(199,125,255,.6), inset 0 0 10px rgba(199,125,255,.5)}}
+@keyframes breathe{0%,100%{opacity:.55}50%{opacity:.8}}
+@keyframes cardZoom{to{transform:scale(1.045);opacity:0;filter:brightness(1.35)}}
+@keyframes pageIn{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:none}}
+[data-card] [data-glow]{opacity:0;transition:opacity .25s ease}
+[data-card]:hover{transform:translateY(-3px);border-color:color-mix(in srgb, var(--cc) 32%, transparent) !important;box-shadow:0 0 0 1px color-mix(in srgb, var(--cc) 22%, transparent), 0 18px 44px -18px color-mix(in srgb, var(--cc) 48%, transparent), 0 0 52px 2px color-mix(in srgb, var(--cc) 22%, transparent), 0 0 110px 16px color-mix(in srgb, var(--cc) 12%, transparent) !important}
+[data-card]:hover [data-glow]{opacity:1}
+[data-nav]{cursor:pointer;transition:background .15s,color .15s}
+[data-nav]:hover{background:rgba(177,92,255,.08);color:var(--ink)}
+[data-nav][data-active="true"]{background:rgba(177,92,255,.13);color:var(--ink);box-shadow:inset 2px 0 0 var(--violet), 0 0 24px -4px rgba(177,92,255,.45)}
+[data-row]{transition:background .15s ease;border-radius:8px}
+[data-row]:hover{background:rgba(237,233,255,.045)}
+[data-theme="dawn"]{--bg:#F4EFE4;--panel:#FBF7EC;--raised:#FFFFFF;--ink:#241A52;--muted:#6E668F;--violet:#7A2FD6;--glow:#7A2FD6;--gold:#A8751F;--goldhi:#8A5E14;--line:rgba(122,47,214,.18);--starop:0;--abyss:#E7DFCC;}
+@media (max-width:1100px){
+  [data-mq="sidebar"]{display:none !important}
+  [data-mq="tabbar"]{display:flex !important}
+  [data-mq="main"]{padding:20px 16px 100px !important}
+  [data-mq="hero"]{flex-wrap:wrap !important}
+}
+@media (max-width:680px){
+  [data-mq="header"]{flex-direction:column !important;align-items:stretch !important}
+  [data-mq="dgrid"]{grid-template-columns:1fr !important}
+  [data-mq="gear"]{grid-template-columns:1fr !important}
+}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+</style>
+</helmet>
+<div data-theme="{{ theme }}" style="--bg:#07060E;--panel:#141028;--raised:#1B1636;--ink:#EDE9FF;--muted:#A79FC8;--violet:#B15CFF;--glow:#C77DFF;--deep:#7A2FD6;--gold:#F3C766;--goldhi:#E7A93A;--good:#6FE0C0;--warn:#E7A93A;--bad:#E0435B;--line:rgba(177,92,255,.14);--abyss:#241A52;--starop:1;position:relative;display:flex;height:100vh;overflow:hidden;background:var(--bg);color:var(--ink);font-family:Barlow,system-ui,sans-serif;font-size:15px;">
+  <div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;opacity:var(--starop);background-image:radial-gradient(1.6px 1.6px at 22% 28%, rgba(237,233,255,.75), transparent 40%),radial-gradient(1.2px 1.2px at 68% 12%, rgba(199,125,255,.8), transparent 40%),radial-gradient(1.4px 1.4px at 84% 62%, rgba(237,233,255,.6), transparent 40%),radial-gradient(1.2px 1.2px at 40% 78%, rgba(237,233,255,.55), transparent 40%),radial-gradient(2px 2px at 8% 88%, rgba(199,125,255,.6), transparent 40%),radial-gradient(1.2px 1.2px at 52% 44%, rgba(237,233,255,.5), transparent 40%),radial-gradient(2.2px 2.2px at 92% 20%, rgba(243,199,102,.5), transparent 40%);background-size:600px 600px;animation:{{ starAnim }};"></div>
+  <div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;opacity:var(--starop);background:radial-gradient(720px 460px at 78% -8%, rgba(177,92,255,.32), transparent 62%),radial-gradient(520px 400px at 12% 32%, rgba(122,47,214,.26), transparent 65%),radial-gradient(620px 420px at 96% 62%, rgba(243,199,102,.10), transparent 65%),radial-gradient(640px 460px at 30% 108%, rgba(36,26,82,.85), transparent 70%);"></div>
+
+  <aside data-mq="sidebar" style="position:relative;z-index:2;width:228px;flex:0 0 228px;display:flex;flex-direction:column;border-right:1px solid var(--line);background:linear-gradient(180deg, color-mix(in srgb, var(--panel) 55%, transparent), color-mix(in srgb, var(--bg) 30%, transparent));backdrop-filter:blur(16px) saturate(1.15);-webkit-backdrop-filter:blur(16px) saturate(1.15);">
+    <div style="display:flex;align-items:center;gap:11px;padding:22px 18px 18px;">
+      <div style="width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 42% 40%, #0B0A18 55%, #241A52);border:1px solid rgba(177,92,255,.5);animation:corona 6s ease-in-out infinite;"></div>
+      <div>
+        <div style="font-family:Cinzel,serif;font-weight:700;font-size:15px;letter-spacing:.14em;">WoW ROSTER</div>
+        <div style="font-size:9.5px;letter-spacing:.28em;color:var(--muted);text-transform:uppercase;">Midnight</div>
+      </div>
+    </div>
+    <div style="height:1px;margin:0 18px 14px;background:linear-gradient(90deg, transparent, var(--line) 20%, var(--line) 80%, transparent);"></div>
+    <nav style="display:flex;flex-direction:column;gap:2px;padding:0 10px;font-weight:500;color:var(--muted);">
+      <div data-nav="1" data-active="{{ navRosterActive }}" role="button" tabindex="0" onClick="{{ goRoster }}" style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:9px;"><span style="width:16px;text-align:center;color:var(--violet);">◈</span>Roster</div>
+      <div data-nav="1" data-active="{{ navDetailActive }}" role="button" tabindex="0" onClick="{{ goDetail }}" style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:9px;"><span style="width:16px;text-align:center;color:var(--violet);">☾</span>Character</div>
+      <div data-nav="1" role="button" tabindex="0" style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:9px;opacity:.55;"><span style="width:16px;text-align:center;color:var(--violet);">✦</span>Collections</div>
+      <div data-nav="1" data-active="{{ settingsActive }}" role="button" tabindex="0" onClick="{{ openSettings }}" style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:9px;"><span style="width:16px;text-align:center;color:var(--violet);">⛭</span>Settings</div>
+    </nav>
+    <div style="margin-top:auto;padding:16px 18px 20px;display:flex;flex-direction:column;gap:10px;">
+      <div style="height:1px;background:linear-gradient(90deg, transparent, var(--line) 20%, var(--line) 80%, transparent);"></div>
+      <div style="font-size:12px;color:var(--muted);letter-spacing:.06em;">EU · Draenor</div>
+      <div style="display:flex;gap:8px;">
+        <button onClick="{{ toggleTheme }}" style="flex:1;background:rgba(237,233,255,.05);color:var(--ink);border:1px solid rgba(237,233,255,.09);border-radius:999px;padding:7px 10px;font:500 12px Barlow,sans-serif;cursor:pointer;letter-spacing:.04em;transition:background .2s, box-shadow .2s;" style-hover="background:rgba(177,92,255,.16);box-shadow:0 0 18px -4px rgba(177,92,255,.5)">{{ themeLabel }}</button>
+        <button title="Refresh" style="background:rgba(237,233,255,.05);color:var(--muted);border:1px solid rgba(237,233,255,.09);border-radius:999px;padding:7px 11px;font:500 12px Barlow,sans-serif;cursor:pointer;transition:transform .35s cubic-bezier(.3,.8,.3,1), color .2s, box-shadow .2s;" style-hover="color:var(--ink);transform:rotate(180deg);box-shadow:0 0 18px -4px rgba(177,92,255,.5)">⟳</button>
+      </div>
+    </div>
+  </aside>
+
+  <main data-mq="main" style="position:relative;z-index:1;flex:1;overflow-y:auto;padding:34px 40px 28px;">
+    <sc-if value="{{ isRoster }}" hint-placeholder-val="{{ true }}">
+      <div data-mq="header" style="display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:26px;animation:pageIn .4s cubic-bezier(.25,.8,.3,1) both;">
+        <div>
+          <div style="font-size:10.5px;letter-spacing:.32em;color:var(--violet);text-transform:uppercase;margin-bottom:8px;">Your Characters · Midnight</div>
+          <h1 style="margin:0;font-family:Cinzel,serif;font-weight:600;font-size:40px;letter-spacing:.12em;line-height:1;background:linear-gradient(180deg, var(--ink), rgba(237,233,255,.6));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">ROSTER</h1>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;background:rgba(237,233,255,.04);border:1px solid rgba(237,233,255,.09);border-radius:999px;overflow:hidden;">
+            <span style="padding:9px 11px;font-size:12px;color:var(--muted);border-right:1px solid var(--line);letter-spacing:.06em;">EU</span>
+            <input placeholder="Realm / Name" style="background:transparent;border:0;color:var(--ink);font:400 13px Barlow,sans-serif;padding:9px 12px;width:150px;outline-offset:-2px;">
+          </div>
+          <button style="background:linear-gradient(135deg, var(--deep), var(--violet));color:#FBF6FF;border:1px solid rgba(199,125,255,.5);border-radius:999px;padding:10px 18px;font:600 13px Barlow,sans-serif;letter-spacing:.03em;cursor:pointer;box-shadow:0 6px 22px -8px rgba(177,92,255,.7), inset 0 1px 0 rgba(255,255,255,.18);transition:transform .15s ease, box-shadow .15s ease;" style-hover="transform:translateY(-1px);box-shadow:0 10px 28px -8px rgba(177,92,255,.85), inset 0 1px 0 rgba(255,255,255,.18);">+ Add Character</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:12px;margin-bottom:28px;animation:pageIn .45s cubic-bezier(.25,.8,.3,1) .05s both;">
+        <div style="background:linear-gradient(180deg, rgba(237,233,255,.04), transparent 55%), color-mix(in srgb, var(--panel) 40%, transparent);backdrop-filter:blur(14px) saturate(1.15);-webkit-backdrop-filter:blur(14px) saturate(1.15);border:1px solid rgba(237,233,255,.08);border-radius:16px;padding:16px 18px;box-shadow:0 8px 24px -16px rgba(0,0,0,.5);"><div style="font-size:9.5px;letter-spacing:.24em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Characters</div><div style="font:600 28px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;">8</div></div>
+        <div style="background:linear-gradient(180deg, rgba(237,233,255,.04), transparent 55%), color-mix(in srgb, var(--panel) 40%, transparent);backdrop-filter:blur(14px) saturate(1.15);-webkit-backdrop-filter:blur(14px) saturate(1.15);border:1px solid rgba(237,233,255,.08);border-radius:16px;padding:16px 18px;box-shadow:0 8px 24px -16px rgba(0,0,0,.5);"><div style="font-size:9.5px;letter-spacing:.24em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Avg Item Level</div><div style="font:600 28px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;color:var(--gold);">292</div></div>
+        <div style="background:linear-gradient(180deg, rgba(237,233,255,.04), transparent 55%), color-mix(in srgb, var(--panel) 40%, transparent);backdrop-filter:blur(14px) saturate(1.15);-webkit-backdrop-filter:blur(14px) saturate(1.15);border:1px solid rgba(237,233,255,.08);border-radius:16px;padding:16px 18px;box-shadow:0 8px 24px -16px rgba(0,0,0,.5);"><div style="font-size:9.5px;letter-spacing:.24em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Top M+ Rating</div><div style="font:600 28px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;color:var(--good);">3610</div></div>
+        <div style="background:linear-gradient(180deg, rgba(237,233,255,.04), transparent 55%), color-mix(in srgb, var(--panel) 40%, transparent);backdrop-filter:blur(14px) saturate(1.15);-webkit-backdrop-filter:blur(14px) saturate(1.15);border:1px solid rgba(237,233,255,.08);border-radius:16px;padding:16px 18px;box-shadow:0 8px 24px -16px rgba(0,0,0,.5);"><div style="font-size:9.5px;letter-spacing:.24em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Raid-Ready</div><div style="font:600 28px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;">4</div></div>
+        <div style="background:linear-gradient(180deg, rgba(237,233,255,.04), transparent 55%), color-mix(in srgb, var(--panel) 40%, transparent);backdrop-filter:blur(14px) saturate(1.15);-webkit-backdrop-filter:blur(14px) saturate(1.15);border:1px solid rgba(237,233,255,.08);border-radius:16px;padding:16px 18px;box-shadow:0 8px 24px -16px rgba(0,0,0,.5);"><div style="font-size:9.5px;letter-spacing:.24em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;">Achievements</div><div style="font:600 28px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;">180,412</div></div>
+      </div>
+
+      <sc-if value="{{ showEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:18px;padding:70px 20px;text-align:center;">
+          <div style="width:110px;height:110px;border-radius:50%;background:radial-gradient(circle at 44% 42%, #0B0A18 58%, #241A52);border:1px solid rgba(177,92,255,.55);animation:corona 6s ease-in-out infinite;"></div>
+          <div style="font-family:Cinzel,serif;font-size:20px;letter-spacing:.06em;">No characters yet</div>
+          <div style="color:var(--muted);max-width:380px;font-size:13.5px;line-height:1.6;">Add one above. Only recently-active characters return data.</div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ notEmpty }}" hint-placeholder-val="{{ true }}">
+        <div data-mq="grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr));gap:18px;">
+          <sc-for list="{{ chars }}" as="c" hint-placeholder-count="6">
+            <div data-card="1" role="button" tabindex="0" onClick="{{ c.open }}" style="--cc:{{ c.col }};position:relative;background:linear-gradient(180deg, color-mix(in srgb, var(--raised) 52%, transparent), color-mix(in srgb, var(--panel) 38%, transparent) 58%);backdrop-filter:blur(14px) saturate(1.15);-webkit-backdrop-filter:blur(14px) saturate(1.15);border:1px solid rgba(237,233,255,.09);border-radius:20px;overflow:hidden;cursor:{{ c.cursor }};filter:{{ c.dimFilter }};transition:transform .22s cubic-bezier(.2,.7,.3,1), box-shadow .22s ease, border-color .22s ease;animation:{{ c.anim }};box-shadow:0 12px 34px -22px rgba(0,0,0,.6);">
+              <div data-glow="1" aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;border-radius:20px;background:radial-gradient(130% 95% at 50% 0%, color-mix(in srgb, var(--cc) 14%, transparent), transparent 62%);"></div>
+              <div style="position:relative;height:112px;background:radial-gradient(140% 120% at 50% -10%, {{ c.tint }}, transparent 62%),radial-gradient(1.2px 1.2px at 24% 40%, rgba(237,233,255,.45), transparent 45%),radial-gradient(1px 1px at 74% 26%, rgba(237,233,255,.4), transparent 45%),radial-gradient(1.3px 1.3px at 58% 68%, rgba(199,125,255,.35), transparent 45%);display:grid;place-items:center;">
+                <div style="width:66px;height:66px;border-radius:50%;border:1px solid {{ c.ring }};background:radial-gradient(circle at 50% 42%, {{ c.tint }}, transparent 75%);display:grid;place-items:center;font-family:Cinzel,serif;font-weight:700;font-size:26px;color:{{ c.col }};text-shadow:0 0 16px {{ c.col }};">{{ c.mono }}</div>
+                <div style="position:absolute;top:10px;left:12px;font:600 11px 'Barlow Condensed',sans-serif;letter-spacing:.1em;color:var(--muted);background:rgba(7,6,14,.45);border:1px solid var(--line);border-radius:999px;padding:2px 8px;">LVL {{ c.lvl }}</div>
+                <sc-if value="{{ c.isAsleep }}" hint-placeholder-val="{{ false }}">
+                  <div title="Slumbering" style="position:absolute;top:8px;right:40px;font-size:15px;color:var(--muted);">☾</div>
+                </sc-if>
+                <button onClick="{{ c.remove }}" title="Remove" aria-label="Remove character" style="position:absolute;top:8px;right:10px;width:24px;height:24px;border-radius:7px;background:transparent;border:0;color:var(--muted);font-size:13px;cursor:pointer;opacity:.35;transition:opacity .15s;" style-hover="opacity:1;background:rgba(224,67,91,.15);color:#E0435B">✕</button>
+              </div>
+              <div style="padding:14px 16px 12px;display:flex;flex-direction:column;gap:7px;">
+                <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+                  <div style="font-family:Cinzel,serif;font-weight:600;font-size:20px;letter-spacing:.03em;color:{{ c.col }};text-shadow:0 1px 10px rgba(7,6,14,.7);">{{ c.name }}</div>
+                  <sc-if value="{{ c.hasTitle }}" hint-placeholder-val="{{ false }}"><div style="font-style:italic;font-size:12px;color:var(--gold);">{{ c.title }}</div></sc-if>
+                </div>
+                <div style="font-size:12px;color:var(--muted);letter-spacing:.02em;">{{ c.identity }}</div>
+                <sc-if value="{{ c.hasChips }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;">
+                    <sc-for list="{{ c.chips }}" as="ch" hint-placeholder-count="3">
+                      <div style="display:flex;align-items:center;gap:5px;background:rgba(237,233,255,.055);border:0;border-radius:999px;padding:4px 11px;">
+                        <span style="font-size:8.5px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;">{{ ch.l }}</span>
+                        <span style="font:600 12.5px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;color:{{ ch.col }};">{{ ch.v }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ c.hasXp }}" hint-placeholder-val="{{ false }}">
+                  <div style="height:4px;border-radius:99px;background:var(--raised);overflow:hidden;margin-top:2px;"><div style="height:100%;width:{{ c.xpPct }};background:linear-gradient(90deg, var(--deep), var(--violet));"></div></div>
+                </sc-if>
+                <sc-if value="{{ c.hasNote }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size:12px;color:var(--warn);opacity:.9;margin-top:2px;">{{ c.note }}</div>
+                </sc-if>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:4px;padding-top:10px;border-top:1px solid rgba(237,233,255,.06);font-size:11.5px;color:var(--muted);">
+                  <sc-if value="{{ c.hasGuild }}" hint-placeholder-val="{{ true }}"><span>{{ c.guild }}</span><span style="opacity:.5;">·</span></sc-if>
+                  <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:6px;height:6px;border-radius:50%;background:{{ c.faccol }};"></span>{{ c.faction }}</span>
+                  <span style="margin-left:auto;">{{ c.seen }}</span>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <div style="margin-top:30px;text-align:center;font-size:11px;letter-spacing:.08em;color:var(--muted);opacity:.7;">Data: Blizzard Battle.net API · retail (Midnight)</div>
+    </sc-if>
+
+    <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+      <button onClick="{{ goRoster }}" style="background:transparent;border:0;color:var(--muted);font:500 13px Barlow,sans-serif;cursor:pointer;padding:0 0 18px;letter-spacing:.04em;transition:color .15s, transform .2s ease;display:inline-block;" style-hover="color:var(--ink);transform:translateX(-3px)">← Roster</button>
+      <div data-mq="hero" style="position:relative;display:flex;align-items:center;gap:26px;background:linear-gradient(180deg, color-mix(in srgb, var(--raised) 70%, transparent), color-mix(in srgb, var(--panel) 55%, transparent));backdrop-filter:blur(16px) saturate(1.15);-webkit-backdrop-filter:blur(16px) saturate(1.15);border:1px solid var(--line);border-radius:22px;padding:30px 32px;margin-bottom:22px;overflow:hidden;border-color:rgba(237,233,255,.08);box-shadow:0 16px 44px -28px rgba(0,0,0,.65);animation:pageIn .4s cubic-bezier(.25,.8,.3,1) both;">
+        <div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(60% 120% at 85% 0%, {{ d.tint }}, transparent 60%),radial-gradient(1.2px 1.2px at 18% 34%, rgba(237,233,255,.4), transparent 45%),radial-gradient(1px 1px at 64% 18%, rgba(237,233,255,.35), transparent 45%),radial-gradient(1.4px 1.4px at 88% 70%, rgba(199,125,255,.35), transparent 45%);"></div>
+        <div style="position:relative;flex:0 0 auto;width:104px;height:104px;border-radius:50%;border:1px solid {{ d.ring }};background:radial-gradient(circle at 50% 42%, {{ d.tint }}, transparent 75%);display:grid;place-items:center;font-family:Cinzel,serif;font-weight:700;font-size:40px;color:{{ d.col }};text-shadow:0 0 22px {{ d.col }};box-shadow:0 0 46px -8px {{ d.col }}66, inset 0 0 26px -10px {{ d.col }}44;">{{ d.mono }}</div>
+        <div style="position:relative;min-width:220px;">
+          <div style="font-size:10px;letter-spacing:.3em;color:var(--violet);text-transform:uppercase;margin-bottom:6px;">Character · {{ d.realm }} · EU</div>
+          <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;">
+            <div style="font-family:Cinzel,serif;font-weight:600;font-size:34px;letter-spacing:.04em;color:{{ d.col }};text-shadow:0 1px 12px rgba(7,6,14,.75);">{{ d.name }}</div>
+            <sc-if value="{{ d.hasTitle }}" hint-placeholder-val="{{ false }}"><div style="font-style:italic;font-size:14px;color:var(--gold);">{{ d.title }}</div></sc-if>
+          </div>
+          <div style="font-size:13px;color:var(--muted);margin-top:6px;">{{ d.identity }}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;display:flex;gap:8px;align-items:center;"><sc-if value="{{ d.hasGuild }}" hint-placeholder-val="{{ true }}"><span>{{ d.guild }}</span><span style="opacity:.5;">·</span></sc-if><span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:6px;height:6px;border-radius:50%;background:{{ d.faccol }};"></span>{{ d.faction }}</span></div>
+        </div>
+        <div style="position:relative;display:flex;gap:26px;margin-left:auto;flex-wrap:wrap;">
+          <div><div style="font-size:9.5px;letter-spacing:.24em;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Item Level</div><div style="font:600 32px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;color:var(--gold);">{{ d.ilvlText }}</div></div>
+          <div><div style="font-size:9.5px;letter-spacing:.24em;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Mythic+</div><div style="font:600 32px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;color:var(--good);">{{ d.mplusText }}</div></div>
+          <div><div style="font-size:9.5px;letter-spacing:.24em;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Raid</div><div style="font:600 32px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;color:#7FE08F;">{{ d.raidText }}</div></div>
+        </div>
+      </div>
+
+      <div data-mq="dgrid" style="display:grid;grid-template-columns:1.25fr 1fr;gap:18px;align-items:start;animation:pageIn .45s cubic-bezier(.25,.8,.3,1) .07s both;">
+        <div style="background:linear-gradient(180deg, rgba(237,233,255,.035), transparent 50%), color-mix(in srgb, var(--panel) 40%, transparent);backdrop-filter:blur(14px) saturate(1.15);-webkit-backdrop-filter:blur(14px) saturate(1.15);border:1px solid rgba(237,233,255,.08);border-radius:18px;padding:22px 24px;box-shadow:0 10px 30px -20px rgba(0,0,0,.55);">
+          <div style="font-size:10px;letter-spacing:.28em;color:var(--violet);text-transform:uppercase;margin-bottom:14px;">Gear</div>
+          <div data-mq="gear" style="display:grid;grid-template-columns:1fr 1fr;gap:4px 26px;">
+            <sc-for list="{{ d.gear }}" as="g" hint-placeholder-count="8">
+              <div data-row="1" style="display:flex;align-items:baseline;gap:10px;padding:6px 6px;margin:0 -6px;border-bottom:1px solid rgba(177,92,255,.07);">
+                <span style="flex:0 0 62px;font-size:9.5px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;">{{ g.slot }}</span>
+                <span style="flex:1;font-size:13px;color:{{ g.qcol }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ g.name }}</span>
+                <sc-if value="{{ g.ench }}" hint-placeholder-val="{{ false }}"><span title="Enchanted" style="color:var(--good);font-size:11px;">✦</span></sc-if>
+                <span style="font:600 13px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;color:var(--gold);">{{ g.ilvl }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:18px;">
+          <sc-if value="{{ d.hasMplus }}" hint-placeholder-val="{{ true }}">
+            <div style="background:linear-gradient(180deg, rgba(237,233,255,.035), transparent 50%), color-mix(in srgb, var(--panel) 40%, transparent);backdrop-filter:blur(14px) saturate(1.15);-webkit-backdrop-filter:blur(14px) saturate(1.15);border:1px solid rgba(237,233,255,.08);border-radius:18px;padding:22px 24px;box-shadow:0 10px 30px -20px rgba(0,0,0,.55);">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;"><div style="font-size:10px;letter-spacing:.28em;color:var(--violet);text-transform:uppercase;">Mythic+</div><div style="font:600 24px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;color:var(--good);">{{ d.mplusText }}</div></div>
+              <div style="position:relative;height:34px;margin:0 6px 14px;">
+                <div style="position:absolute;left:0;right:0;top:15px;height:2px;background:var(--raised);"></div>
+                <div style="position:absolute;left:0;top:15px;height:2px;width:{{ d.mplusPct }};background:linear-gradient(90deg, var(--deep), var(--good));"></div>
+                <div style="position:absolute;inset:0;display:flex;justify-content:space-between;">
+                  <sc-for list="{{ d.nodes }}" as="n" hint-placeholder-count="6">
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+                      <div style="width:11px;height:11px;transform:rotate(45deg);margin-top:10px;background:{{ n.bg }};border:1px solid {{ n.bd }};box-shadow:{{ n.gl }};"></div>
+                      <div style="font:500 10px 'Barlow Condensed',sans-serif;color:var(--muted);">{{ n.label }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <sc-for list="{{ d.runs }}" as="r" hint-placeholder-count="3">
+                  <div data-row="1" style="display:flex;align-items:baseline;gap:10px;font-size:13px;padding:4px 6px;margin:0 -6px;"><span style="font:600 13px 'Barlow Condensed',sans-serif;color:var(--good);flex:0 0 32px;">+{{ r.key }}</span><span style="color:var(--ink);">{{ r.dungeon }}</span><span style="margin-left:auto;font:500 12px 'Barlow Condensed',sans-serif;color:var(--muted);">{{ r.score }}</span></div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ d.hasRaid }}" hint-placeholder-val="{{ true }}">
+            <div style="background:linear-gradient(180deg, rgba(237,233,255,.035), transparent 50%), color-mix(in srgb, var(--panel) 40%, transparent);backdrop-filter:blur(14px) saturate(1.15);-webkit-backdrop-filter:blur(14px) saturate(1.15);border:1px solid rgba(237,233,255,.08);border-radius:18px;padding:22px 24px;box-shadow:0 10px 30px -20px rgba(0,0,0,.55);">
+              <div style="font-size:10px;letter-spacing:.28em;color:var(--violet);text-transform:uppercase;margin-bottom:4px;">Raid</div>
+              <div style="font-family:Cinzel,serif;font-size:15px;margin-bottom:14px;">Sanctum of the Eclipse</div>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <sc-for list="{{ d.raidRows }}" as="row" hint-placeholder-count="3">
+                  <div>
+                    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;"><span>{{ row.diff }}</span><span style="font-family:'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;">{{ row.text }}</span></div>
+                    <div style="display:flex;gap:3px;">
+                      <sc-for list="{{ row.segs }}" as="s" hint-placeholder-count="8">
+                        <div style="flex:1;height:7px;border-radius:3px;background:{{ s.bg }};"></div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+            <div style="background:linear-gradient(180deg, rgba(237,233,255,.035), transparent 50%), color-mix(in srgb, var(--panel) 40%, transparent);backdrop-filter:blur(14px) saturate(1.15);-webkit-backdrop-filter:blur(14px) saturate(1.15);border:1px solid rgba(237,233,255,.08);border-radius:18px;padding:20px 22px;box-shadow:0 10px 30px -20px rgba(0,0,0,.55);"><div style="font-size:10px;letter-spacing:.28em;color:var(--violet);text-transform:uppercase;margin-bottom:8px;">Mounts</div><div style="font:600 30px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;">{{ d.mounts }}</div></div>
+            <div style="background:linear-gradient(180deg, rgba(237,233,255,.035), transparent 50%), color-mix(in srgb, var(--panel) 40%, transparent);backdrop-filter:blur(14px) saturate(1.15);-webkit-backdrop-filter:blur(14px) saturate(1.15);border:1px solid rgba(237,233,255,.08);border-radius:18px;padding:20px 22px;box-shadow:0 10px 30px -20px rgba(0,0,0,.55);"><div style="font-size:10px;letter-spacing:.28em;color:var(--violet);text-transform:uppercase;margin-bottom:8px;">Pets</div><div style="font:600 30px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;">{{ d.pets }}</div></div>
+          </div>
+          <sc-if value="{{ d.hasProfs }}" hint-placeholder-val="{{ true }}">
+            <div style="background:linear-gradient(180deg, rgba(237,233,255,.035), transparent 50%), color-mix(in srgb, var(--panel) 40%, transparent);backdrop-filter:blur(14px) saturate(1.15);-webkit-backdrop-filter:blur(14px) saturate(1.15);border:1px solid rgba(237,233,255,.08);border-radius:18px;padding:22px 24px;box-shadow:0 10px 30px -20px rgba(0,0,0,.55);">
+              <div style="font-size:10px;letter-spacing:.28em;color:var(--violet);text-transform:uppercase;margin-bottom:12px;">Professions</div>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <sc-for list="{{ d.profRows }}" as="p" hint-placeholder-count="2">
+                  <div style="display:flex;align-items:center;gap:12px;">
+                    <span style="flex:0 0 110px;font-size:13px;">{{ p.name }}</span>
+                    <div style="flex:1;height:5px;border-radius:99px;background:var(--raised);overflow:hidden;"><div style="height:100%;width:{{ p.pct }};background:linear-gradient(90deg, var(--goldhi), var(--gold));"></div></div>
+                    <span style="font:500 12px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;color:var(--muted);">{{ p.skill }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+      <div style="margin-top:26px;text-align:center;font-size:11px;letter-spacing:.08em;color:var(--muted);opacity:.7;">Data: Blizzard Battle.net API · retail (Midnight)</div>
+    </sc-if>
+  </main>
+
+  <div onClick="{{ closeSettings }}" aria-hidden="true" style="position:fixed;inset:0;z-index:8;background:rgba(7,6,14,.55);backdrop-filter:blur(3px);opacity:{{ panelBackOp }};pointer-events:{{ panelBackPe }};transition:opacity .32s ease;"></div>
+  <aside role="dialog" aria-label="Settings" style="position:fixed;top:0;left:0;bottom:0;z-index:9;width:min(340px, 88vw);display:flex;flex-direction:column;background:linear-gradient(180deg, color-mix(in srgb, var(--raised) 80%, transparent), color-mix(in srgb, var(--panel) 72%, transparent) 60%);backdrop-filter:blur(20px) saturate(1.2);-webkit-backdrop-filter:blur(20px) saturate(1.2);border-right:1px solid rgba(237,233,255,.09);box-shadow:24px 0 60px -30px rgba(0,0,0,.7);transform:{{ panelX }};transition:transform .38s cubic-bezier(.32,.9,.3,1);">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:22px 22px 16px;">
+      <div>
+        <div style="font-size:9.5px;letter-spacing:.28em;color:var(--violet);text-transform:uppercase;margin-bottom:6px;">Command Console</div>
+        <div style="font-family:Cinzel,serif;font-weight:600;font-size:19px;letter-spacing:.08em;">SETTINGS</div>
+      </div>
+      <button onClick="{{ closeSettings }}" aria-label="Close settings" style="width:30px;height:30px;border-radius:999px;background:rgba(237,233,255,.06);border:1px solid rgba(237,233,255,.09);color:var(--muted);font-size:13px;cursor:pointer;transition:color .15s, background .15s;" style-hover="color:var(--ink);background:rgba(177,92,255,.18)">✕</button>
+    </div>
+    <div style="height:1px;margin:0 22px 6px;background:linear-gradient(90deg, transparent, var(--line) 20%, var(--line) 80%, transparent);"></div>
+    <div style="flex:1;overflow-y:auto;padding:14px 22px 22px;display:flex;flex-direction:column;gap:22px;">
+      <div>
+        <div style="font-size:9.5px;letter-spacing:.24em;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">Account</div>
+        <div style="background:rgba(237,233,255,.04);border:1px solid rgba(237,233,255,.07);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
+          <div style="width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 42% 40%, #0B0A18 55%, #241A52);border:1px solid rgba(177,92,255,.5);"></div>
+          <div>
+            <div style="font-size:13.5px;font-weight:600;">Battle.net · EU</div>
+            <div style="font-size:11.5px;color:var(--muted);">Draenor · connected</div>
+          </div>
+          <span style="margin-left:auto;width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 8px var(--good);"></span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:9.5px;letter-spacing:.24em;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">Appearance</div>
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 2px;">
+            <div><div style="font-size:13.5px;">Theme</div><div style="font-size:11px;color:var(--muted);">Midnight or Dawn</div></div>
+            <button onClick="{{ toggleTheme }}" style="background:rgba(237,233,255,.05);color:var(--ink);border:1px solid rgba(237,233,255,.09);border-radius:999px;padding:6px 13px;font:500 12px Barlow,sans-serif;cursor:pointer;">{{ themeLabel }}</button>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 2px;">
+            <div><div style="font-size:13.5px;">Show slumbering characters</div><div style="font-size:11px;color:var(--muted);">Keep sleeping alts on the roster</div></div>
+            <button onClick="{{ slumberToggle }}" role="switch" aria-checked="{{ slumberOnAttr }}" aria-label="Show slumbering characters" style="position:relative;width:40px;height:22px;border-radius:999px;border:0;cursor:pointer;background:{{ slumberBg }};transition:background .25s ease;"><span style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#EDE9FF;transform:{{ slumberKnob }};transition:transform .25s cubic-bezier(.3,.9,.3,1);"></span></button>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 2px;">
+            <div><div style="font-size:13.5px;">Ambient motion</div><div style="font-size:11px;color:var(--muted);">Starfield drift & corona pulse</div></div>
+            <button onClick="{{ motionToggle }}" role="switch" aria-checked="{{ motionOnAttr }}" aria-label="Ambient motion" style="position:relative;width:40px;height:22px;border-radius:999px;border:0;cursor:pointer;background:{{ motionBg }};transition:background .25s ease;"><span style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#EDE9FF;transform:{{ motionKnob }};transition:transform .25s cubic-bezier(.3,.9,.3,1);"></span></button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:9.5px;letter-spacing:.24em;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">Data</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 2px;">
+          <div><div style="font-size:13.5px;">Auto refresh</div><div style="font-size:11px;color:var(--muted);">Poll the Battle.net API hourly</div></div>
+          <button onClick="{{ refreshToggle }}" role="switch" aria-checked="{{ refreshOnAttr }}" aria-label="Auto refresh" style="position:relative;width:40px;height:22px;border-radius:999px;border:0;cursor:pointer;background:{{ refreshBg }};transition:background .25s ease;"><span style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#EDE9FF;transform:{{ refreshKnob }};transition:transform .25s cubic-bezier(.3,.9,.3,1);"></span></button>
+        </div>
+        <div style="font-size:11px;color:var(--muted);padding:2px 2px 0;">Last sync · 14 minutes ago</div>
+      </div>
+    </div>
+    <div style="padding:16px 22px 20px;border-top:1px solid rgba(237,233,255,.06);font-size:10.5px;letter-spacing:.08em;color:var(--muted);opacity:.7;">WoW Roster · Midnight · v0.1</div>
+  </aside>
+  <nav data-mq="tabbar" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:5;background:rgba(11,10,24,.92);backdrop-filter:blur(10px);border-top:1px solid var(--line);justify-content:space-around;padding:8px 6px calc(8px + env(safe-area-inset-bottom));">
+    <button onClick="{{ goRoster }}" style="background:transparent;border:0;color:{{ tabRosterCol }};display:flex;flex-direction:column;align-items:center;gap:3px;font:500 10px Barlow,sans-serif;letter-spacing:.08em;cursor:pointer;min-width:64px;padding:4px;"><span style="font-size:17px;">◈</span>ROSTER</button>
+    <button onClick="{{ goDetail }}" style="background:transparent;border:0;color:{{ tabDetailCol }};display:flex;flex-direction:column;align-items:center;gap:3px;font:500 10px Barlow,sans-serif;letter-spacing:.08em;cursor:pointer;min-width:64px;padding:4px;"><span style="font-size:17px;">☾</span>CHARACTER</button>
+    <button style="background:transparent;border:0;color:var(--muted);opacity:.6;display:flex;flex-direction:column;align-items:center;gap:3px;font:500 10px Barlow,sans-serif;letter-spacing:.08em;cursor:pointer;min-width:64px;padding:4px;"><span style="font-size:17px;">✦</span>COLLECTIONS</button>
+    <button onClick="{{ openSettings }}" style="background:transparent;border:0;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;font:500 10px Barlow,sans-serif;letter-spacing:.08em;cursor:pointer;min-width:64px;padding:4px;"><span style="font-size:17px;">⛭</span>SETTINGS</button>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;sortBy&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;roster order&quot;,&quot;options&quot;:[&quot;roster order&quot;,&quot;item level&quot;,&quot;m+ rating&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Roster&quot;},&quot;showEmptyState&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Roster&quot;}}">
+class Component extends DCLogic {
+  state = { view: 'roster', sel: 'Loonwhy', theme: 'midnight', removed: [], settings: false, showSlumber: true, motion: true, autoRefresh: true };
+  componentDidMount() { document.title = 'WoW Roster'; }
+  raw() {
+    return [
+      { name: 'Loonwhy', race: 'Night Elf', cls: 'Warlock', spec: 'Destruction', faction: 'Alliance', realm: 'Draenor', lvl: 90, ilvl: 312, mplus: 3409, raid: '8/8H', mraid: 1, profs: [['Enchanting', 94]], guild: '‹CMT›', title: 'the Draconic Hero', seen: '2 days ago', st: 'rich', mounts: 214, pets: 412 },
+      { name: 'Voidfang', race: 'Void Elf', cls: 'Demon Hunter', spec: 'Havoc', faction: 'Alliance', realm: 'Draenor', lvl: 90, ilvl: 318, mplus: 3610, raid: '8/8H', mraid: 2, profs: [], guild: '‹CMT›', title: 'Sha\u2019tari Defender', seen: '5 hours ago', st: 'rich', mounts: 186, pets: 231 },
+      { name: 'Sunwarden', race: 'Blood Elf', cls: 'Paladin', spec: 'Retribution', faction: 'Horde', realm: 'Tarren Mill', lvl: 90, ilvl: 305, mplus: 2740, raid: '6/8H', mraid: 0, profs: [['Jewelcrafting', 88], ['Blacksmithing', 76]], guild: '‹Eclipse›', title: 'the Lightbringer', seen: '1 day ago', st: 'rich', mounts: 142, pets: 118 },
+      { name: 'Emberwing', race: 'Dracthyr', cls: 'Evoker', spec: 'Devastation', faction: 'Alliance', realm: 'Draenor', lvl: 90, ilvl: 300, mplus: 2510, raid: '5/8H', mraid: 0, profs: [['Alchemy', 91], ['Herbalism', 100]], guild: '‹CMT›', title: '', seen: '3 days ago', st: 'rich', mounts: 97, pets: 164 },
+      { name: 'Thornhide', race: 'Tauren', cls: 'Druid', spec: 'Guardian', faction: 'Horde', realm: 'Tarren Mill', lvl: 90, ilvl: 296, mplus: 2210, raid: '8/8N', mraid: 0, profs: [['Leatherworking', 82], ['Skinning', 95]], guild: '‹Eclipse›', title: '', seen: '4 days ago', st: 'rich', mounts: 121, pets: 88 },
+      { name: 'Frostveil', race: 'Troll', cls: 'Mage', spec: 'Frost', faction: 'Horde', realm: 'Tarren Mill', lvl: 88, ilvl: 284, mplus: 1980, raid: '3/8N', mraid: 0, profs: [['Tailoring', 64]], guild: '‹Eclipse›', title: '', seen: '6 days ago', st: 'rich', mounts: 74, pets: 59 },
+      { name: 'Ironhowl', race: 'Orc', cls: 'Warrior', spec: 'Arms', faction: 'Horde', realm: 'Tarren Mill', lvl: 79, ilvl: 210, mplus: 0, raid: '', mraid: 0, profs: [['Mining', 40]], guild: '', title: '', seen: '1 week ago', st: 'levelling', mounts: 31, pets: 12 },
+      { name: 'Nightwhisper', race: 'Night Elf', cls: 'Priest', spec: 'Shadow', faction: 'Alliance', realm: 'Draenor', lvl: 90, ilvl: 0, mplus: 0, raid: '', mraid: 0, profs: [], guild: '‹CMT›', title: '', seen: '47 days ago', st: 'slumbering', mounts: 0, pets: 0 }
+    ];
+  }
+  toggleVals(prefix, key) {
+    const on = this.state[key];
+    return {
+      [prefix + 'Bg']: on ? 'linear-gradient(135deg, var(--deep), var(--violet))' : 'rgba(237,233,255,.12)',
+      [prefix + 'Knob']: on ? 'translateX(18px)' : 'translateX(0)',
+      [prefix + 'OnAttr']: on ? 'true' : 'false',
+      [prefix + 'Toggle']: () => this.setState(s => ({ [key]: !s[key] }))
+    };
+  }
+  hash(s) { let h = 7; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; }
+  gearFor(c) {
+    const slots = ['Head', 'Neck', 'Shoulders', 'Back', 'Chest', 'Wrists', 'Hands', 'Waist', 'Legs', 'Feet', 'Ring', 'Ring', 'Trinket', 'Trinket', 'Main Hand'];
+    const adj = ['Eclipsed', 'Voidtouched', 'Starforged', 'Duskwoven', 'Harbinger\u2019s', 'Moonlit', 'Thalassian', 'Sunwell'];
+    const noun = { Head: 'Crown', Neck: 'Amulet', Shoulders: 'Mantle', Back: 'Drape', Chest: 'Vestment', Wrists: 'Bindings', Hands: 'Grips', Waist: 'Cord', Legs: 'Leggings', Feet: 'Treads', Ring: 'Seal', Trinket: 'Idol', 'Main Hand': 'Edge' };
+    const noun2 = { Ring: 'Band', Trinket: 'Sigil' };
+    const tail = ['of the Corona', 'of Silent Stars', 'of Quel\u2019Thalas', 'of the Deep Night', 'of Fading Light', 'of the Harbinger', 'of Whispers', 'of the Last Dawn'];
+    const Q = { epic: '#A335EE', rare: '#0070DD', leg: '#FF8000' };
+    return slots.map((slot, i) => {
+      const h = this.hash(c.name + slot + i);
+      const n = (i === 11 || i === 13) ? (noun2[slot] || noun[slot]) : noun[slot];
+      const q = (c.mplus >= 3400 && i === 14) ? Q.leg : (h % 7 === 0 ? Q.rare : Q.epic);
+      return { slot, name: adj[h % adj.length] + ' ' + n + ' ' + tail[(h >>> 3) % tail.length], ilvl: String(Math.max(180, c.ilvl + (h % 13) - 6)), qcol: q, ench: h % 3 === 0 };
+    });
+  }
+  renderVals() {
+    const CC = { Warrior: '#C69B6D', Paladin: '#F48CBA', Hunter: '#AAD372', Rogue: '#FFF468', Priest: '#FFFFFF', Shaman: '#0070DD', Warlock: '#8788EE', Monk: '#00FF98', Druid: '#FF7C0A', 'Demon Hunter': '#A330C9', Evoker: '#33937F', 'Death Knight': '#C41E3A', Mage: '#3FC7EB' };
+    const F = { Alliance: '#4A7FD6', Horde: '#C4232B' };
+    const sortBy = this.props.sortBy ?? 'roster order';
+    let list = this.raw().filter(c => !this.state.removed.includes(c.name) && (this.state.showSlumber || c.st !== 'slumbering'));
+    if (sortBy === 'item level') list = [...list].sort((a, b) => b.ilvl - a.ilvl);
+    if (sortBy === 'm+ rating') list = [...list].sort((a, b) => b.mplus - a.mplus);
+    const chars = list.map((c, ci) => {
+      const col = CC[c.cls], asleep = c.st === 'slumbering', lvling = c.st === 'levelling';
+      const chips = [];
+      if (c.ilvl) chips.push({ l: 'ilvl', v: String(c.ilvl), col: 'var(--gold)' });
+      if (c.mplus) chips.push({ l: 'M+', v: String(c.mplus), col: 'var(--good)' });
+      if (c.raid) chips.push({ l: 'raid', v: c.raid, col: '#7FE08F' });
+      if (lvling) chips.push({ l: 'level', v: c.lvl + ' / 90', col: 'var(--warn)' });
+      c.profs.forEach(p => chips.push({ l: '', v: p[0], col: 'var(--ink)' }));
+      const mono = c.cls.split(' ').map(w => w[0]).join('');
+      return {
+        ...c, col, mono, faccol: F[c.faction], tint: col + '2E', ring: col + '55',
+        identity: c.realm + ' \u00B7 EU \u00B7 Lvl ' + c.lvl + ' ' + c.race + ' ' + c.spec + ' ' + c.cls,
+        chips, hasChips: chips.length > 0, hasTitle: !!c.title, hasGuild: !!c.guild,
+        isAsleep: asleep, hasXp: lvling, xpPct: '62%',
+        hasNote: asleep, note: asleep ? '\u26A0 Slumbering \u2014 resub & log in once to wake.' : '',
+        seen: 'Last seen ' + c.seen,
+        cursor: asleep ? 'default' : 'pointer',
+        dimFilter: asleep ? 'saturate(.25) brightness(.78)' : 'none',
+        anim: this.state.leaving === c.name ? 'cardZoom .26s ease forwards' : ('pageIn .5s cubic-bezier(.25,.8,.3,1) ' + (90 + ci * 45) + 'ms both' + (asleep ? ', breathe 5.5s ease-in-out infinite' : '')),
+        open: asleep ? undefined : () => {
+          if (this.state.leaving) return;
+          this.setState({ leaving: c.name });
+          setTimeout(() => this.setState({ view: 'detail', sel: c.name, leaving: null }), 250);
+        },
+        remove: (e) => { e.stopPropagation(); this.setState(s => ({ removed: [...s.removed, c.name] })); }
+      };
+    });
+    const sc = chars.find(x => x.name === this.state.sel && !x.isAsleep) || chars.find(x => !x.isAsleep) || chars[0];
+    let d = {};
+    if (sc) {
+      const thresholds = [1000, 1500, 2000, 2500, 3000, 3500];
+      const pool = ['Ara-Kara, City of Echoes', 'The Dawnbreaker', 'Halls of the Harbinger', 'Duskhollow Spire', 'Court of Falling Stars', 'The Sunwell Depths'];
+      const key = Math.max(2, Math.floor(sc.mplus / 200));
+      const h = this.hash(sc.name);
+      const rn = sc.raid ? parseInt(sc.raid) : 0, isH = (sc.raid || '').endsWith('H');
+      const rows = [
+        { diff: 'Normal', n: isH ? 8 : rn }, { diff: 'Heroic', n: isH ? rn : 0 }, { diff: 'Mythic', n: sc.mraid }
+      ].map(r => ({ diff: r.diff, text: r.n + ' / 8', segs: Array.from({ length: 8 }, (_, i) => ({ bg: i < r.n ? (r.diff === 'Mythic' ? 'linear-gradient(90deg, var(--deep), var(--violet))' : r.diff === 'Heroic' ? 'linear-gradient(90deg, var(--goldhi), var(--gold))' : 'var(--good)') : 'var(--raised)' })) }));
+      d = {
+        ...sc,
+        ilvlText: sc.ilvl ? String(sc.ilvl) : '\u2014',
+        mplusText: sc.mplus ? String(sc.mplus) : '\u2014',
+        raidText: sc.raid || '\u2014',
+        hasMplus: sc.mplus > 0, hasRaid: !!sc.raid, hasProfs: sc.profs.length > 0,
+        mplusPct: Math.min(100, sc.mplus / 3500 * 100).toFixed(1) + '%',
+        nodes: thresholds.map(t => ({ label: String(t), bg: sc.mplus >= t ? 'var(--good)' : 'var(--raised)', bd: sc.mplus >= t ? 'var(--good)' : 'var(--line)', gl: sc.mplus >= t ? '0 0 10px rgba(111,224,192,.5)' : 'none' })),
+        runs: sc.mplus ? [0, 1, 2].map(i => ({ key: String(key - i), dungeon: pool[(h + i) % pool.length], score: (Math.round((sc.mplus / 8 - i * 7)) ).toFixed(1) })) : [],
+        gear: this.gearFor(sc),
+        profRows: sc.profs.map(p => ({ name: p[0], skill: p[1] + ' / 100', pct: p[1] + '%' })),
+        mounts: String(sc.mounts), pets: String(sc.pets)
+      };
+    }
+    const view = this.state.view;
+    return {
+      chars, d,
+      isRoster: view === 'roster', isDetail: view === 'detail',
+      navRosterActive: view === 'roster' ? 'true' : 'false',
+      navDetailActive: view === 'detail' ? 'true' : 'false',
+      tabRosterCol: view === 'roster' ? 'var(--glow)' : 'var(--muted)',
+      tabDetailCol: view === 'detail' ? 'var(--glow)' : 'var(--muted)',
+      goRoster: () => this.setState({ view: 'roster' }),
+      goDetail: () => this.setState({ view: 'detail' }),
+      theme: this.state.theme,
+      themeLabel: this.state.theme === 'midnight' ? '\u263E Midnight' : '\u2600 Dawn',
+      toggleTheme: () => this.setState(s => ({ theme: s.theme === 'midnight' ? 'dawn' : 'midnight' })),
+      showEmpty: !!this.props.showEmptyState, notEmpty: !this.props.showEmptyState,
+      settingsActive: this.state.settings ? 'true' : 'false',
+      openSettings: () => this.setState({ settings: true }),
+      closeSettings: () => this.setState({ settings: false }),
+      panelX: this.state.settings ? 'translateX(0)' : 'translateX(-106%)',
+      panelBackOp: this.state.settings ? 1 : 0,
+      panelBackPe: this.state.settings ? 'auto' : 'none',
+      starAnim: this.state.motion ? 'drift 160s linear infinite' : 'none',
+      ...this.toggleVals('slumber', 'showSlumber'),
+      ...this.toggleVals('motion', 'motion'),
+      ...this.toggleVals('refresh', 'autoRefresh')
+    };
+  }
+}
+</script>
+</body>
+</html>

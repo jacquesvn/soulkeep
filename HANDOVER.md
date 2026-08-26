@@ -28,9 +28,22 @@ Neltharion realm went to sleep. **This project is separate from Neltharion.**
 - `roster.json` — seeded Loonwhy (rich) + Oblivz (awake) + Oblivionn (slumbering).
 - Verified end-to-end in the Browser pane: all three card states render; add/remove round-trips.
 
-## In flight / NEXT (v1 polish — see TODO.md)
-- Loading state on first paint; Refresh button; character detail view (gear/collections/best runs).
-- NOTE: the pywebview WINDOW itself wasn't launched here (needs a display); only Flask+template were
-  verified headlessly. First real `python app.py` by the Highlord is the last confirmation.
+## Done — "MIDNIGHT" REDESIGN SHIPPED (2026-08-26)
+- The Highlord commissioned Claude Design; handoff landed in **docs/design_handoff_wow_roster/**
+  (README.md = pixel-final spec; `WoW Roster.dc.html` = working prototype; brief alongside).
+- Implemented faithfully as a SPA in **templates/app.html** (old roster.html deleted):
+  starfield/nebula + frosted glass + Cinzel/Barlow; Roster grid (summary bar, class-glow cards,
+  3 card states, quick-add, 2-click remove); Character Detail (hero, real gear w/ quality colours +
+  enchant ✦, M+ tier track + top-3 runs, raid segments, mounts/pets, professions); settings drawer
+  (Midnight/Dawn, slumber filter, motion toggle, hourly auto-refresh); sidebar → tab bar <1100px.
+- **wowapi.py extended** for detail data (equipment/runs/raid_rows/prof_rows/mounts/pets/avatar/
+  last_seen/state). **app.py** now serves JSON: `/api/roster`, `/api/add`, `/api/remove`.
+- All verified live in the Browser pane against real API data (Loonwhy/Oblivz/Oblivionn) + mobile.
+
+## In flight / NEXT
+- Highlord's first `python app.py` = confirmation the pywebview window opens clean (only headless-
+  browser verification was possible here).
+- Polish: sort options; disk cache for instant first paint. Then Phase 2 (Battle.net login) /
+  Phase 4 (Android PWA — design is already fully responsive, a big head start).
 
 See `project_wow_roster` memory + ROADMAP.md + TODO.md.

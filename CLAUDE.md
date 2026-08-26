@@ -18,15 +18,22 @@ Client-credentials OAuth (client_id/secret) → token at `https://oauth.battle.n
 Public character data needs NO user login. Auto-roster (all a user's alts) needs user OAuth
 (`wow.profile` scope) later. Rate: 36k/hr. **The API only serves recently-active characters.**
 
-## The app (v1 — BUILT)
-Desktop app: **Flask backend + pywebview window**, stdlib-only API layer.
-- `wowapi.py` — fetch + normalize. `get_character(region, realm, name)` → a clean UI-ready dict
-  (name/class/spec/ilvl/M+ rating/raid/professions/title/render/class_color), or `{error, hint}` on
-  404 (slumbering). Caches the OAuth token; reads creds from `bnet.env`.
-- `app.py` — Flask routes (`/`, `/add`, `/remove`) + the pywebview desktop window. Fetches the roster
-  **concurrently** (ThreadPoolExecutor). Run it: `python app.py`.
-- `templates/roster.html` — dark WoW-flavoured roster grid; class-coloured names, portraits, stat chips.
-- `roster.json` — the tracked characters (region/realm/name), edited live via the add/remove UI.
+## The app (v2 — "Midnight" design SHIPPED)
+Desktop app: **Flask backend + pywebview window** serving a single-page app.
+- `wowapi.py` — fetch + normalize. `get_character(region, realm, name)` → a full UI-ready dict:
+  card data (name/class/class_color/spec/ilvl/M+ rating/raid chip/professions/title/last_seen/avatar)
+  PLUS detail data (gear w/ quality colours + enchant flags, top-3 M+ runs, raid_rows per difficulty,
+  prof_rows w/ skill points, mounts/pets counts). `state`: rich | levelling | slumbering (404).
+  Caches the OAuth token; reads creds from `bnet.env`. ~8 API calls per character, run concurrently.
+- `app.py` — Flask: `/` (SPA), `/api/roster`, `/api/add`, `/api/remove` + the pywebview window.
+  Run it: `python app.py`.
+- `templates/app.html` — THE UI: the full **"Midnight" design** from Claude Design
+  (docs/design_handoff_wow_roster/ = authoritative spec, implemented pixel-faithful): frosted-glass
+  panels over a drifting starfield + nebula, Cinzel/Barlow type, sidebar → bottom tab bar <1100px,
+  Roster grid + Character Detail views, settings drawer, Midnight/Dawn themes (localStorage-persisted),
+  class-coloured card glows, slumbering cards breathe, reduced-motion respected.
+- `roster.json` — the tracked characters (region/realm/name), edited live via the add/remove UI
+  (remove = two-click arm pattern; add parses "realm / name").
 
 ## Dev scripts (kept for reference)
 - `python spike.py <region> <realm-slug> <name>` — pull one raw character → last_profile.json.

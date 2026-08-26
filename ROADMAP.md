@@ -12,7 +12,21 @@ Dev app registered; client-credentials token + live calls working; `spike.py` pu
 - [x] Add / remove characters by region/realm/name (manual), stored in `roster.json`.
 - [x] Platform: **DESKTOP** — Flask + pywebview window (`app.py`); concurrent per-char fetch.
 - Verified end-to-end against Loonwhy (rich), Oblivz (awake/bare), Oblivionn (slumbering card).
-- Polish TODO: loading state on first paint; character detail view (gear/collections); refresh button.
+
+## Phase 1.5 — "Midnight" visual redesign  ✅ SHIPPED
+Full Claude Design handoff (docs/design_handoff_wow_roster/) implemented as a single-page app
+(`templates/app.html`, replacing roster.html):
+- [x] Starfield + nebula ambience, frosted-glass panels, Cinzel/Barlow/Barlow Condensed type.
+- [x] Roster view: summary stat bar, class-glow character cards (rich/levelling/slumbering states),
+      quick-add (region + "realm / name"), two-click remove, empty + loading states.
+- [x] Character Detail view: hero band, full gear list (quality colours + enchant ✦ + per-item ilvl),
+      M+ tier track w/ milestone diamonds + top-3 real runs, raid difficulty segment rows,
+      mounts/pets counts, profession skill bars. (wowapi.py extended to feed all of it.)
+- [x] Settings drawer: account card, Midnight/Dawn themes, show-slumbering filter, ambient-motion
+      toggle, hourly auto-refresh + last-sync caption. Settings persist via localStorage.
+- [x] Responsive: sidebar → bottom tab bar <1100px; 1-col detail <680px; reduced-motion respected.
+- Verified live in-browser: roster + detail render real Loonwhy data; drawer/theme/filters/mobile pass.
+- Polish TODO: sort options (ilvl / M+ / class); disk cache for instant first paint.
 
 ## Phase 2 — Battle.net login → auto-roster
 - OAuth authorization-code flow (`wow.profile`), redirect `https://localhost`.
