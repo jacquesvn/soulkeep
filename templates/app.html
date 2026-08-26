@@ -261,6 +261,35 @@ button{font-family:Barlow,system-ui,sans-serif}
 .good{color:var(--good)}.bad{color:#E0435B}.gold-t{color:var(--gold)}
 .hintline{font-size:12px;color:var(--muted);line-height:1.6;}
 
+/* ---------- the hunt: rings, easy marks, gallery ---------- */
+.ringrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:18px;animation:pageIn .4s cubic-bezier(.25,.8,.3,1) both;}
+.ringcard{display:flex;align-items:center;gap:16px;border-radius:18px;padding:15px 18px;cursor:pointer;border:1px solid rgba(237,233,255,.08);transition:transform .2s, box-shadow .2s, border-color .2s;}
+.ringcard:hover{transform:translateY(-2px);}
+.ringcard.on{border-color:rgba(177,92,255,.5);box-shadow:0 0 44px -10px rgba(177,92,255,.55), inset 0 0 30px -24px rgba(177,92,255,.6);}
+.ring{position:relative;width:84px;height:84px;flex:0 0 auto;}
+.ring svg{transform:rotate(-90deg);display:block;}
+.ring .rc{fill:none;stroke:var(--raised);stroke-width:7;}
+.ring .rp{fill:none;stroke:url(#ringgrad);stroke-width:7;stroke-linecap:round;}
+.ring .rv{position:absolute;inset:0;display:grid;place-items:center;font:600 19px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;}
+.rc-meta .t{font-family:Cinzel,serif;font-weight:600;font-size:15px;letter-spacing:.05em;}
+.rc-meta .n{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.5;}
+.easyrow{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;margin-bottom:6px;}
+.easycard{flex:0 0 152px;border-radius:14px;overflow:hidden;cursor:pointer;border:1px solid rgba(237,233,255,.08);transition:transform .18s, border-color .18s;}
+.easycard:hover{transform:translateY(-3px);border-color:rgba(199,125,255,.45);}
+.easycard img{width:100%;height:92px;object-fit:cover;display:block;background:var(--raised);}
+.easycard .ph{width:100%;height:92px;display:grid;place-items:center;font:700 26px Cinzel,serif;color:var(--violet);background:var(--raised);}
+.easycard .en{font-size:11.5px;padding:8px 10px 3px;line-height:1.3;max-height:2.8em;overflow:hidden;}
+.easycard .es{font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);padding:0 10px 9px;}
+.tilegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(106px,1fr));gap:10px;}
+.tile{border-radius:12px;overflow:hidden;cursor:pointer;background:rgba(237,233,255,.03);border:1px solid rgba(237,233,255,.06);transition:transform .15s, border-color .15s;}
+.tile:hover{transform:translateY(-2px);border-color:rgba(177,92,255,.45);}
+.tile img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--raised);}
+.tile .ph{width:100%;aspect-ratio:1;display:grid;place-items:center;font:700 30px Cinzel,serif;color:var(--violet);background:var(--raised);}
+.tile.miss img{filter:grayscale(.85) brightness(.72);transition:filter .2s;}
+.tile.miss:hover img{filter:grayscale(.15) brightness(.95);}
+.tile.kept{border-color:rgba(111,224,192,.28);}
+.tile .tn{font-size:10.5px;padding:6px 8px 7px;line-height:1.25;color:var(--muted);max-height:3em;overflow:hidden;}
+
 /* ---------- update banner ---------- */
 .updbar{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:7;display:flex;align-items:center;gap:12px;
   padding:8px 10px 8px 16px;border-radius:999px;font-size:13px;color:var(--ink);
@@ -417,13 +446,18 @@ button{font-family:Barlow,system-ui,sans-serif}
         <div class="eyebrow">Account-Wide · The Hunt</div>
         <h1 class="vtitle">COLLECTIONS</h1>
       </div>
-      <div class="vtabs" id="coll-tabs">
-        <button class="vtab on" data-t="mounts" onclick="collTab('mounts')">Mounts</button>
-        <button class="vtab" data-t="pets" onclick="collTab('pets')">Pets</button>
-        <button class="vtab" data-t="toys" onclick="collTab('toys')">Toys</button>
-        <div class="searchpill" style="margin-left:auto"><input id="coll-search" placeholder="Filter missing…" oninput="renderCollections()"></div>
+      <div class="ringrow" id="ringrow"></div>
+      <div id="easy-marks"></div>
+      <div id="coll-controls" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+        <div class="vtabs" id="coll-filters" style="margin:0"></div>
+        <div class="searchpill" style="margin-left:auto"><input id="coll-search" placeholder="Search the hunt…" oninput="renderCollGrid()"></div>
       </div>
       <div id="coll-body"></div>
+      <svg width="0" height="0" style="position:absolute"><defs>
+        <linearGradient id="ringgrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#7A2FD6"/><stop offset="1" stop-color="#6FE0C0"/>
+        </linearGradient>
+      </defs></svg>
     </section>
 
     <section id="view-economy" style="display:none">
@@ -1079,8 +1113,10 @@ function renderBoard() {
   }).join('') + `<div class="hintline" style="margin-top:14px">Vault slots fill as you play; the board reads your addon exports + this week's runs from the API. Log an alt out to refresh their column.</div>`;
 }
 
-/* ---------- COLLECTIONS ---------- */
-let collIndex = {}, collMine = null, collKind = 'mounts';
+/* ---------- COLLECTIONS: The Hunt ---------- */
+let collIndex = {}, collMine = null, collKind = 'mounts', collFilter = null, collShowOwned = false;
+const LIMITED = new Set(['In-Game Shop', 'Promotion', 'Trading Card Game']);
+const EASY_SRC = new Set(['Vendor', 'Quest', 'Profession', 'Pet Battle', 'Discovery']);
 async function loadCollections() {
   const body = $('coll-body');
   if (!collMine) {
@@ -1096,46 +1132,95 @@ async function loadCollections() {
       collIndex = { mounts: m.data || [], pets: p.data || [], toys: t.data || [] };
     } catch (e) { body.innerHTML = '<div class="hintline">Could not load collections.</div>'; return; }
   }
-  renderCollections();
+  renderColl();
 }
-function collTab(k) {
-  collKind = k;
-  document.querySelectorAll('#coll-tabs .vtab').forEach(b => b.classList.toggle('on', b.dataset.t === k));
-  renderCollections();
+function collStats(k) {
+  const index = collIndex[k] || [], mine = new Set((collMine || {})[k] || []);
+  const obt = index.filter(x => !LIMITED.has(x.src));
+  const lim = index.filter(x => LIMITED.has(x.src));
+  return { index, mine, obt, lim,
+    ownedObt: obt.filter(x => mine.has(x.id)).length,
+    ownedLim: lim.filter(x => mine.has(x.id)).length,
+    missObt: obt.filter(x => !mine.has(x.id)),
+    missLim: lim.filter(x => !mine.has(x.id)) };
 }
-function renderCollections() {
-  const body = $('coll-body');
-  const index = collIndex[collKind] || [], mine = new Set((collMine || {})[collKind] || []);
-  if (!index.length) { body.innerHTML = '<div class="hintline">The game-data cache for this tab isn’t built yet — Settings → Static data → Rebuild.</div>'; return; }
-  const q = ($('coll-search').value || '').toLowerCase();
-  const have = index.filter(x => mine.has(x.id));
-  const missing = index.filter(x => !mine.has(x.id) && (!q || (x.name || '').toLowerCase().includes(q) || (x.src || '').toLowerCase().includes(q)));
-  const bySrc = {};
-  missing.forEach(x => { (bySrc[x.src || 'Unknown'] = bySrc[x.src || 'Unknown'] || []).push(x); });
-  const groups = Object.entries(bySrc).sort((a, b) => b[1].length - a[1].length);
-  const pct = index.length ? Math.round(have.length / index.length * 100) : 0;
-  body.innerHTML = `
-    <div class="panel" style="margin-bottom:16px">
-      <div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap">
-        <span class="bigpct c-gold">${have.length.toLocaleString('en-US')}</span>
-        <span style="color:var(--muted)">of ${index.length.toLocaleString('en-US')} ${collKind} kept · ${pct}%</span>
+function collSetKind(k) { collKind = k; collFilter = null; renderColl(); }
+function renderColl() { renderRings(); renderEasy(); renderFilters(); renderCollGrid(); }
+
+function renderRings() {
+  const KINDS = [['mounts', 'Mounts'], ['pets', 'Pets'], ['toys', 'Toys']];
+  $('ringrow').innerHTML = KINDS.map(([k, label]) => {
+    const st = collStats(k);
+    const pctv = st.obt.length ? st.ownedObt / st.obt.length : 0;
+    const C = 2 * Math.PI * 35;
+    return `<div class="glass ringcard ${k === collKind ? 'on' : ''}" role="button" tabindex="0" onclick="collSetKind('${k}')">
+      <div class="ring">
+        <svg width="84" height="84" viewBox="0 0 84 84">
+          <circle class="rc" cx="42" cy="42" r="35"/>
+          <circle class="rp" cx="42" cy="42" r="35" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - pctv)).toFixed(1)}"/>
+        </svg>
+        <div class="rv">${Math.round(pctv * 100)}%</div>
       </div>
-      <div class="pbar gold" style="margin-top:10px"><i style="width:${pct}%"></i></div>
-    </div>
-    <div class="p-eyebrow" style="margin-bottom:10px">The Hunt · ${missing.length.toLocaleString('en-US')} missing — every row opens its guide</div>
-    ${groups.map(([src, items], i) => `
-      <details class="cgroup" ${(i < 2 && !q) || q ? 'open' : ''}>
-        <summary>${esc(src)}<span class="ct">${items.length}</span></summary>
-        <div class="hunt">${items.slice(0, 80).map(x => `
-          <div class="run huntrow" role="button" tabindex="0" title="Open the Wowhead guide in your browser"
-               onclick="openGuide('${esc(x.name).replace(/'/g, "\\'")}')" onkeydown="if(event.key==='Enter')openGuide('${esc(x.name).replace(/'/g, "\\'")}')">
-            <span>${esc(x.name)}</span>
-            ${x.type ? `<span class="mchip" style="padding:1px 8px">${esc(x.type)}</span>` : ''}
-            ${x.faction ? `<span class="mchip" style="padding:1px 8px">${esc(x.faction)}</span>` : ''}
-            <span class="s guide">Guide ↗</span>
-          </div>`).join('')}
-        ${items.length > 80 ? `<div class="hintline" style="padding:6px 6px 2px">… +${items.length - 80} more in this source — narrow with the filter above</div>` : ''}</div>
-      </details>`).join('')}`;
+      <div class="rc-meta">
+        <div class="t">${label}</div>
+        <div class="n"><b style="color:var(--gold);font-family:'Barlow Condensed'">${st.ownedObt.toLocaleString('en-US')}</b> of ${st.obt.length.toLocaleString('en-US')} huntable${st.ownedLim ? `<br>+${st.ownedLim} limited kept` : st.lim.length ? `<br>${st.lim.length} lost to time` : ''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderEasy() {
+  const st = collStats(collKind);
+  const pool = st.missObt.filter(x => EASY_SRC.has(x.src));
+  const d = new Date(), seed = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+  const picks = [...pool].sort((a, b) => ((a.id * 2654435761 ^ seed) >>> 0) - ((b.id * 2654435761 ^ seed) >>> 0)).slice(0, 8);
+  $('easy-marks').innerHTML = picks.length ? `
+    <div class="p-eyebrow" style="margin-bottom:10px">Easy Marks · gettable this week — today's picks</div>
+    <div class="easyrow">${picks.map(x => `
+      <div class="easycard glass" role="button" tabindex="0" title="Open the Wowhead guide" onclick="openGuide('${esc(x.name).replace(/'/g, "\\'")}')">
+        ${x.img ? `<img src="${esc(x.img)}" alt="" loading="lazy">` : `<div class="ph">${esc((x.name || '?')[0])}</div>`}
+        <div class="en">${esc(x.name)}</div>
+        <div class="es">${esc(x.src)}</div>
+      </div>`).join('')}</div>` : '';
+}
+
+function renderFilters() {
+  const st = collStats(collKind);
+  const pool = collShowOwned ? st.obt.filter(x => st.mine.has(x.id)) : st.missObt;
+  const bySrc = {};
+  pool.forEach(x => { bySrc[x.src || 'Unknown'] = (bySrc[x.src || 'Unknown'] || 0) + 1; });
+  const tops = Object.entries(bySrc).sort((a, b) => b[1] - a[1]).slice(0, 7);
+  const limN = (collShowOwned ? st.lim.filter(x => st.mine.has(x.id)) : st.missLim).length;
+  $('coll-filters').innerHTML = [
+    `<button class="vtab ${collFilter === null ? 'on' : ''}" onclick="collFilter=null;renderFilters();renderCollGrid()">All · ${pool.length.toLocaleString('en-US')}</button>`,
+    ...tops.map(([src, n]) => `<button class="vtab ${collFilter === src ? 'on' : ''}" onclick="collFilter='${esc(src).replace(/'/g, "\\'")}';renderFilters();renderCollGrid()">${esc(src)} · ${n}</button>`),
+    limN ? `<button class="vtab ${collFilter === '__limited' ? 'on' : ''}" onclick="collFilter='__limited';renderFilters();renderCollGrid()">⏳ Limited · ${limN}</button>` : '',
+    `<button class="vtab" style="margin-left:8px" onclick="collShowOwned=!collShowOwned;collFilter=null;renderFilters();renderCollGrid()">${collShowOwned ? 'Showing kept — see missing' : 'Showing missing — see kept'}</button>`,
+  ].join('');
+}
+
+function renderCollGrid() {
+  const body = $('coll-body');
+  const st = collStats(collKind);
+  if (!st.index.length) { body.innerHTML = '<div class="hintline">The game-data cache for this tab isn\u2019t built yet — Settings → Static Game Data → Rebuild.</div>'; return; }
+  let pool;
+  if (collFilter === '__limited') pool = collShowOwned ? st.lim.filter(x => st.mine.has(x.id)) : st.missLim;
+  else {
+    pool = collShowOwned ? st.obt.filter(x => st.mine.has(x.id)) : st.missObt;
+    if (collFilter) pool = pool.filter(x => (x.src || 'Unknown') === collFilter);
+  }
+  const q = ($('coll-search').value || '').toLowerCase();
+  if (q) pool = pool.filter(x => (x.name || '').toLowerCase().includes(q) || (x.src || '').toLowerCase().includes(q));
+  const CAP = 240;
+  body.innerHTML = pool.length ? `
+    <div class="tilegrid">${pool.slice(0, CAP).map(x => `
+      <div class="tile ${collShowOwned ? 'kept' : 'miss'}" role="button" tabindex="0" title="${esc(x.src)}${x.faction ? ' · ' + esc(x.faction) : ''}${x.type ? ' · ' + esc(x.type) : ''} — open the guide"
+           onclick="openGuide('${esc(x.name).replace(/'/g, "\\'")}')">
+        ${x.img ? `<img src="${esc(x.img)}" alt="" loading="lazy">` : `<div class="ph">${esc((x.name || '?')[0])}</div>`}
+        <div class="tn">${esc(x.name)}</div>
+      </div>`).join('')}</div>
+    ${pool.length > CAP ? `<div class="hintline" style="margin-top:12px">Showing ${CAP} of ${pool.length.toLocaleString('en-US')} — narrow with a source pill or the search.</div>` : ''}`
+    : '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">Nothing here</div><div class="empty-s">' + (collShowOwned ? 'Nothing kept under this filter yet — the hunt awaits.' : 'Nothing missing here — this ground is fully claimed!') + '</div></div>';
 }
 async function openGuide(name) {
   try { await fetch('/api/open?url=' + encodeURIComponent('https://www.wowhead.com/search?q=' + name)); } catch (e) {}

@@ -172,6 +172,62 @@ def build_recipes(region="eu"):
     _save("recipes", out)
     _log(f"recipes: {len(out)} total")
 
+def augment_media(region="eu"):
+    """Add artwork URLs to the mount/pet/toy caches (the Hunt's gallery tiles).
+    Mounts: creature-display zoom render. Pets: the species icon. Toys: the item icon."""
+    ns = f"static-{region}"
+    mounts = load("mounts") or []
+    BUILD["step"] = "mount art"
+    def one_mount(m):
+        if m.get("img"):
+            return None
+        d = wowapi._get(region, f"/data/wow/mount/{m['id']}", ns)
+        cds = d.get("creature_displays") or []
+        if not cds or not cds[0].get("id"):
+            return None
+        md = wowapi._get(region, f"/data/wow/media/creature-display/{cds[0]['id']}", ns)
+        a = md.get("assets") or []
+        return (m["id"], a[0].get("value")) if a else None
+    got = dict(x for x in _many(mounts, one_mount) if x)
+    for m in mounts:
+        if m["id"] in got:
+            m["img"] = got[m["id"]]
+    _save("mounts", mounts)
+    _log(f"mount art: {sum(1 for m in mounts if m.get('img'))}/{len(mounts)}")
+
+    pets = load("pets") or []
+    BUILD["step"] = "pet art"
+    def one_pet(p):
+        if p.get("img"):
+            return None
+        d = wowapi._get(region, f"/data/wow/pet/{p['id']}", ns)
+        return (p["id"], d.get("icon")) if d.get("icon") else None
+    got = dict(x for x in _many(pets, one_pet) if x)
+    for p in pets:
+        if p["id"] in got:
+            p["img"] = got[p["id"]]
+    _save("pets", pets)
+    _log(f"pet art: {sum(1 for p in pets if p.get('img'))}/{len(pets)}")
+
+    toys = load("toys") or []
+    BUILD["step"] = "toy art"
+    def one_toy(t):
+        if t.get("img"):
+            return None
+        d = wowapi._get(region, f"/data/wow/toy/{t['id']}", ns)
+        iid = (d.get("item") or {}).get("id")
+        if not iid:
+            return None
+        md = wowapi._get(region, f"/data/wow/media/item/{iid}", ns)
+        a = md.get("assets") or []
+        return (t["id"], a[0].get("value")) if a else None
+    got = dict(x for x in _many(toys, one_toy) if x)
+    for t in toys:
+        if t["id"] in got:
+            t["img"] = got[t["id"]]
+    _save("toys", toys)
+    _log(f"toy art: {sum(1 for t in toys if t.get('img'))}/{len(toys)}")
+
 def augment_recipes(region="eu"):
     """Modern recipes (KA/Midnight) dropped crafted_item from the API — resolve the crafted
     item ids by exact-name item search (one id per crafting-quality rank)."""
@@ -216,7 +272,7 @@ def build_all(region="eu"):
         return
     BUILD.update(running=True, log=[])
     try:
-        for fn in (build_season, build_mounts, build_toys, build_journal, build_recipes, augment_recipes, build_pets):
+        for fn in (build_season, build_mounts, build_toys, build_journal, build_recipes, augment_recipes, build_pets, augment_media):
             try:
                 fn(region)
             except Exception as e:
