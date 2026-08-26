@@ -74,6 +74,8 @@ def _get(region, path, namespace):
             return json.load(r)
     except urllib.error.HTTPError as e:
         return {"_error": e.code}
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError):
+        return {"_error": "network"}
 
 # ---------- Battle.net user OAuth (authorization-code, scope wow.profile) ----------
 def _userf():
