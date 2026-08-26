@@ -260,6 +260,7 @@ button{font-family:Barlow,system-ui,sans-serif}
 .wval{font:600 14px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;}
 .good{color:var(--good)}.bad{color:#E0435B}.gold-t{color:var(--gold)}
 .hintline{font-size:12px;color:var(--muted);line-height:1.6;}
+.iic{width:22px;height:22px;border-radius:5px;vertical-align:middle;flex:0 0 auto;}
 
 /* ---------- the hunt: rings, easy marks, gallery ---------- */
 .ringrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:18px;animation:pageIn .4s cubic-bezier(.25,.8,.3,1) both;}
@@ -1227,34 +1228,53 @@ async function openGuide(name) {
 }
 
 /* ---------- ECONOMY ---------- */
-let econ = null, profitRows = null;
+let econ = null, profitRows = null, profitCrafter = null, profitBusy = false;
 async function renderEconomy() {
   const body = $('econ-body');
   if (!econ) body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">Counting the coffers…</div></div>';
   try { econ = await (await fetch('/api/economy/summary')).json(); } catch (e) { body.innerHTML = '<div class="hintline">Economy unreachable.</div>'; return; }
   const t = econ.token, ah = econ.ah;
   const refreshing = ah.refresh && ah.refresh.running;
+  // warband coffers from the addon exports
+  const coffers = Object.entries(gdata.chars || {}).map(([k, g]) => ({ name: k.split('-')[0], gold: g.gold || 0, ts: g.ts }))
+    .filter(x => x.gold).sort((a, b) => b.gold - a.gold);
+  const hoard = coffers.reduce((a, x) => a + x.gold, 0);
+  const maxGold = coffers.length ? coffers[0].gold : 1;
+  const tokensAffordable = t && hoard ? (hoard / t.price) : 0;
   body.innerHTML = `
     <div class="summary" style="margin-bottom:18px">
+      <div class="glass stat-card"><div class="stat-label">Warband Coffers</div><div class="stat-val c-gold">${hoard ? goldStr(hoard) : '—'}</div>
+        ${hoard && t ? `<div class="hintline">covers ${tokensAffordable.toFixed(1)} token${tokensAffordable >= 2 ? 's' : ''}</div>` : '<div class="hintline">gold flows in via the addon</div>'}</div>
       <div class="glass stat-card"><div class="stat-label">WoW Token</div><div class="stat-val c-gold">${t ? goldStr(t.price) : '—'}</div></div>
       <div class="glass stat-card"><div class="stat-label">AH prices known</div><div class="stat-val">${ah.count ? ah.count.toLocaleString('en-US') : '—'}</div></div>
-      <div class="glass stat-card"><div class="stat-label">AH refreshed</div><div class="stat-val" style="font-size:20px;line-height:34px">${ah.ts ? agoStr(ah.ts) : 'never'}</div></div>
-      <div class="glass stat-card" style="display:flex;flex-direction:column;justify-content:center">
-        <button class="pill-btn" onclick="econRefresh()" ${refreshing ? 'disabled' : ''}>${refreshing ? esc(ah.refresh.step) + '…' : '⟳ Refresh AH'}</button>
-      </div>
+      <div class="glass stat-card"><div class="stat-label">AH refreshed</div><div class="stat-val" style="font-size:20px;line-height:30px">${ah.ts ? agoStr(ah.ts) : 'never'}</div>
+        <button class="pill-btn" style="margin-top:6px" onclick="econRefresh()" ${refreshing ? 'disabled' : ''}>${refreshing ? esc(ah.refresh.step) + '…' : '⟳ Refresh AH'}</button></div>
     </div>
     <div class="dgrid">
       <div class="panel">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
           <div class="p-eyebrow">Crafting Profits</div>
-          <button class="pill-btn" style="margin-left:auto;flex:0 0 auto" onclick="econProfit()">Compute</button>
+          <div id="profit-pills" style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto"></div>
         </div>
-        <div id="profit-body" class="tblwrap">${profitRows ? profitTable() : '<div class="hintline">' + (ah.ts ? 'Compute joins every recipe your alts know against live AH prices.' : 'Refresh the AH first — then compute.') + '</div>'}</div>
+        <div id="profit-body" class="tblwrap"><div class="hintline">${ah.ts ? 'Consulting every crafter on the roster…' : 'Refresh the AH first — profits need live prices.'}</div></div>
       </div>
       <div class="dcol">
+        ${coffers.length ? `
+        <div class="panel">
+          <div class="p-eyebrow" style="margin-bottom:12px">The Coffers</div>
+          <div class="prof-rows">${coffers.slice(0, 8).map(x => `
+            <div class="prof-row"><span class="n">${esc(x.name)}</span>
+              <div class="prof-track"><i style="width:${Math.max(3, Math.round(x.gold / maxGold * 100))}%"></i></div>
+              <span class="s gold-t">${goldStr(x.gold)}</span></div>`).join('')}</div>
+          <div class="hintline" style="margin-top:8px">From addon exports — log an alt out to add their purse.</div>
+        </div>` : ''}
         <div class="panel">
           <div class="p-eyebrow" style="margin-bottom:10px">Token Price</div>
           <div id="token-chart" class="chart hintline">history builds as the app runs</div>
+        </div>
+        <div class="panel">
+          <div class="p-eyebrow" style="margin-bottom:10px">Market Movers</div>
+          <div id="movers-body" class="hintline">…</div>
         </div>
         <div class="panel">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
@@ -1263,40 +1283,69 @@ async function renderEconomy() {
           </div>
           <div id="watch-results"></div>
           <div id="watch-list">${(econ.watches || []).map(w => `
-            <div class="run"><span>${esc(w.name)}</span>
+            <div class="run"><img class="iic" src="/api/icon/${w.id}" alt="" loading="lazy" onerror="this.style.display='none'"><span>${esc(w.name)}</span>
               <span class="s" id="wp-${w.id}">…</span>
               <button class="rm-btn" style="position:static;opacity:.6" onclick="watchRemove(${w.id})">✕</button></div>`).join('') || '<div class="hintline">Watch an item to track its price across AH refreshes.</div>'}</div>
         </div>
       </div>
     </div>`;
   tokenChart();
+  loadMovers();
+  if (ah.ts && !profitBusy) econProfit();
   (econ.watches || []).forEach(async w => {
     try {
       const j = await (await fetch('/api/economy/pricehistory?id=' + w.id)).json();
       const el = $('wp-' + w.id);
-      if (el) el.textContent = j.current ? goldStr(j.current) : 'not listed';
+      if (!el) return;
+      let delta = '';
+      if ((j.rows || []).length >= 2) {
+        const a = j.rows[j.rows.length - 2].p, b = j.rows[j.rows.length - 1].p;
+        if (a) { const pc = ((b - a) / a * 100); delta = ` <span class="${pc >= 0 ? 'good' : 'bad'}" style="font-size:11px">${pc >= 0 ? '▲' : '▼'}${Math.abs(pc).toFixed(1)}%</span>`; }
+      }
+      el.innerHTML = (j.current ? goldStr(j.current) : 'not listed') + delta;
     } catch (e) {}
   });
   if (refreshing) setTimeout(() => { if (view === 'economy') renderEconomy(); }, 4000);
 }
+async function loadMovers() {
+  try {
+    const j = await (await fetch('/api/economy/movers')).json();
+    const el = $('movers-body');
+    if (!el) return;
+    el.classList.remove('hintline');
+    el.innerHTML = (j.rows || []).length ? j.rows.slice(0, 8).map(m => `
+      <div class="run"><img class="iic" src="/api/icon/${m.id}" alt="" loading="lazy" onerror="this.style.display='none'"><span>${esc(m.name)}</span>
+        <span class="s"><span class="${m.pct >= 0 ? 'good' : 'bad'}">${m.pct >= 0 ? '▲' : '▼'}${Math.abs(m.pct)}%</span> · ${goldStr(m.cur)}</span></div>`).join('')
+      : '<div class="hintline">Movers appear once two AH refreshes exist to compare.</div>';
+  } catch (e) {}
+}
 function profitTable() {
-  if (!profitRows || !profitRows.length) return '<div class="hintline">No priceable recipes yet — refresh the AH, and make sure the recipe cache is built (Settings).</div>';
-  return `<table class="tbl"><tr><th>Crafter</th><th>Recipe</th><th class="num">Sale</th><th class="num">Cost</th><th class="num">Margin</th></tr>
-    ${profitRows.slice(0, 40).map(r => `<tr>
-      <td>${esc(r.char)}<span style="color:var(--muted)"> · ${esc(r.prof)}</span></td>
+  if (!profitRows || !profitRows.length) return '<div class="hintline">No priceable recipes yet — refresh the AH, and check the recipe cache in Settings.</div>';
+  const crafters = [...new Set(profitRows.map(r => r.char))];
+  $('profit-pills').innerHTML = crafters.length > 1 ? [
+    `<button class="vtab ${profitCrafter === null ? 'on' : ''}" style="padding:4px 11px;font-size:11px" onclick="profitCrafter=null;$('profit-body').innerHTML=profitTable()">All</button>`,
+    ...crafters.map(ch => `<button class="vtab ${profitCrafter === ch ? 'on' : ''}" style="padding:4px 11px;font-size:11px" onclick="profitCrafter='${esc(ch)}';$('profit-body').innerHTML=profitTable()">${esc(ch)}</button>`)
+  ].join('') : '';
+  const rows = profitCrafter ? profitRows.filter(r => r.char === profitCrafter) : profitRows;
+  return `<table class="tbl"><tr><th></th><th>Recipe</th><th>Crafter</th><th class="num">Sale</th><th class="num">Cost</th><th class="num">Margin</th></tr>
+    ${rows.slice(0, 40).map(r => `<tr>
+      <td style="width:26px;padding-right:0"><img class="iic" src="/api/icon/${r.crafted_id}" alt="" loading="lazy" onerror="this.style.display='none'"></td>
       <td>${esc(r.recipe)}${r.missing.length ? ` <span title="No AH price for: ${esc(r.missing.join(', '))}" style="color:var(--warn)">*</span>` : ''}</td>
+      <td style="color:var(--muted)">${esc(r.char)} · ${esc(r.prof)}</td>
       <td class="num gold-t">${goldStr(r.sale)}</td><td class="num">${goldStr(r.cost)}</td>
       <td class="num ${r.margin >= 0 ? 'good' : 'bad'}">${r.margin >= 0 ? '+' : '−'}${goldStr(Math.abs(r.margin))}</td></tr>`).join('')}</table>
-    <div class="hintline" style="margin-top:8px">* some reagents had no AH listing — real cost is higher. Top 40 by margin shown.</div>`;
+    <div class="hintline" style="margin-top:8px">* some reagents had no AH listing — true cost is higher. Top 40 by margin.</div>`;
 }
 async function econRefresh() {
   await fetch('/api/economy/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ region: 'eu', realm: 'draenor' }) });
   renderEconomy();
 }
 async function econProfit() {
-  $('profit-body').innerHTML = '<div class="hintline">Consulting every crafter on the roster…</div>';
+  profitBusy = true;
   try { profitRows = (await (await fetch('/api/economy/profit')).json()).rows; } catch (e) { profitRows = []; }
-  $('profit-body').innerHTML = profitTable();
+  profitBusy = false;
+  const el = $('profit-body');
+  if (el) el.innerHTML = profitTable();
 }
 async function watchSearch() {
   const q = $('watch-q').value.trim();
@@ -1308,7 +1357,7 @@ async function watchSearch() {
 }
 async function watchAdd(id, name) {
   await fetch('/api/economy/watch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, name }) });
-  econ = null; $('watch-q').value = ''; renderEconomy();
+  econ = null; renderEconomy();
 }
 async function watchRemove(id) {
   await fetch('/api/economy/watch', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
@@ -1317,8 +1366,10 @@ async function watchRemove(id) {
 async function tokenChart() {
   try {
     const rows = (await (await fetch('/api/economy/token_history')).json()).rows;
-    if (rows && rows.length >= 2) drawChart($('token-chart'), rows.map(r => ({ x: r.ts, y: r.price / 10000 })), v => Math.round(v).toLocaleString('en-US') + 'g');
-    else if (rows && rows.length === 1) $('token-chart').innerHTML = '<div class="hintline">one sample so far (' + goldStr(rows[0].price) + ') — the line appears as history accrues</div>';
+    const el = $('token-chart');
+    if (!el) return;
+    if (rows && rows.length >= 2) drawChart(el, rows.map(r => ({ x: r.ts / 1000, y: r.price / 10000 })), v => Math.round(v).toLocaleString('en-US') + 'g');
+    else if (rows && rows.length === 1) el.innerHTML = '<div class="hintline">one sample so far (' + goldStr(rows[0].price) + ') — the line appears as history accrues</div>';
   } catch (e) {}
 }
 

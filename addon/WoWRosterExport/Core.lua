@@ -45,12 +45,21 @@ local function collect()
     end
   end
 
+  -- never let an early-login snapshot (data not loaded yet) clobber good values with zeros
+  local prior = WoWRosterExportDB[name .. "-" .. realm]
+  if prior then
+    if (d.gold or 0) == 0 and (prior.gold or 0) > 0 then d.gold = prior.gold end
+    if (d.ilvl or 0) == 0 and (prior.ilvl or 0) > 0 then d.ilvl = prior.ilvl end
+    if #d.currencies == 0 and prior.currencies and #prior.currencies > 0 then d.currencies = prior.currencies end
+    if #d.vault == 0 and prior.vault and #prior.vault > 0 then d.vault = prior.vault end
+  end
   WoWRosterExportDB[name .. "-" .. realm] = d
 end
 
 f:SetScript("OnEvent", function(_, ev)
   if ev == "PLAYER_ENTERING_WORLD" then
     C_Timer.After(10, function() pcall(collect) end)   -- let vault/currency data load in
+    C_Timer.After(60, function() pcall(collect) end)   -- and once more when fully settled
   else
     pcall(collect)
   end

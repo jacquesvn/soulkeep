@@ -313,6 +313,15 @@ def api_price_history():
     cur = {int(k): v for k, v in (s or {}).get("prices", {}).items()}.get(iid)
     return jsonify({"rows": economy.price_history(iid), "current": cur})
 
+@app.route("/api/icon/<int:iid>")
+def api_icon(iid):
+    url = economy.item_icon(AUTH["region"], iid)
+    return redirect(url) if url else (jsonify({"error": "no icon"}), 404)
+
+@app.route("/api/economy/movers")
+def api_econ_movers():
+    return jsonify({"rows": economy.movers()})
+
 @app.route("/api/economy/profit")
 def api_econ_profit():
     cached = json.load(open(CACHE, encoding="utf-8")).get("chars", []) if os.path.exists(CACHE) else []

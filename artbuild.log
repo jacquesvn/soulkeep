@@ -1,0 +1,55 @@
+mount art: 1669/1669
+pet art: 2179/2179
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import sys; sys.stdout.reconfigure(encoding='utf-8'); import staticdata; staticdata.augment_media('eu')
+                                                                             ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\Jacques Code\WoW Roster\staticdata.py", line 224, in augment_media
+    got = dict(x for x in _many(toys, one_toy) if x)
+                          ~~~~~^^^^^^^^^^^^^^^
+  File "D:\Jacques Code\WoW Roster\staticdata.py", line 40, in _many
+    for r in pool.map(fn, items):
+             ~~~~~~~~^^^^^^^^^^^
+  File "C:\Python314\Lib\concurrent\futures\_base.py", line 639, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Python314\Lib\concurrent\futures\_base.py", line 311, in _result_or_cancel
+    return fut.result(timeout)
+           ~~~~~~~~~~^^^^^^^^^
+  File "C:\Python314\Lib\concurrent\futures\_base.py", line 450, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\concurrent\futures\_base.py", line 395, in __get_result
+    raise self._exception
+  File "C:\Python314\Lib\concurrent\futures\thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "C:\Python314\Lib\concurrent\futures\thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "D:\Jacques Code\WoW Roster\staticdata.py", line 221, in one_toy
+    md = wowapi._get(region, f"/data/wow/media/item/{iid}", ns)
+  File "D:\Jacques Code\WoW Roster\wowapi.py", line 74, in _get
+    return json.load(r)
+           ~~~~~~~~~^^^
+  File "C:\Python314\Lib\json\__init__.py", line 298, in load
+    return loads(fp.read(),
+                 ~~~~~~~^^
+  File "C:\Python314\Lib\http\client.py", line 478, in read
+    return self._read_chunked(amt)
+           ~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Python314\Lib\http\client.py", line 602, in _read_chunked
+    while (chunk_left := self._get_chunk_left()) is not None:
+                         ~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\http\client.py", line 584, in _get_chunk_left
+    chunk_left = self._read_next_chunk_size()
+  File "C:\Python314\Lib\http\client.py", line 544, in _read_next_chunk_size
+    line = self.fp.readline(_MAXLINE + 1)
+  File "C:\Python314\Lib\socket.py", line 729, in readinto
+    return self._sock.recv_into(b)
+           ~~~~~~~~~~~~~~~~~~~~^^^
+  File "C:\Python314\Lib\ssl.py", line 1304, in recv_into
+    return self.read(nbytes, buffer)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\ssl.py", line 1138, in read
+    return self._sslobj.read(len, buffer)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+TimeoutError: The read operation timed out

@@ -158,6 +158,58 @@ def search_item(region, name):
                         "quality": ((d.get("quality") or {}).get("type") or "").title()})
     return out
 
+# ---------- item icons (grow-as-you-go cache) ----------
+ICONS = os.path.join(APPDIR, "item_icons.json")
+_ICONS = None
+
+def item_icon(region, iid):
+    global _ICONS
+    if _ICONS is None:
+        try:
+            _ICONS = json.load(open(ICONS, encoding="utf-8"))
+        except (OSError, ValueError):
+            _ICONS = {}
+    k = str(iid)
+    if k in _ICONS:
+        return _ICONS[k]
+    md = wowapi._get(region, f"/data/wow/media/item/{iid}", f"static-{region}")
+    a = md.get("assets") or []
+    url = a[0].get("value") if a else None
+    _ICONS[k] = url
+    try:
+        json.dump(_ICONS, open(ICONS, "w", encoding="utf-8"))
+    except OSError:
+        pass
+    return url
+
+# ---------- market movers (price change between the last two AH refreshes) ----------
+def movers(limit=12):
+    hist = {}
+    try:
+        for line in open(PRICE_HIST, encoding="utf-8"):
+            r = json.loads(line)
+            hist.setdefault(r["id"], []).append((r["ts"], r["p"]))
+    except OSError:
+        return []
+    names = {x["id"]: x["name"] for x in watches()}
+    rec = staticdata.load("recipes") or {}
+    for r in rec.values():
+        for i in (r.get("crafted_ids") or []):
+            names.setdefault(i, r.get("name"))
+    out = []
+    for iid, rows in hist.items():
+        ts = sorted({t for t, _ in rows})
+        if len(ts) < 2:
+            continue
+        by = dict(rows)
+        prev, cur = by.get(ts[-2]), by.get(ts[-1])
+        if not prev or cur is None:
+            continue
+        out.append({"id": iid, "name": names.get(iid, f"item {iid}"),
+                    "prev": prev, "cur": cur, "pct": round((cur - prev) / prev * 100, 1)})
+    out.sort(key=lambda x: -abs(x["pct"]))
+    return out[:limit]
+
 # ---------- profit engine ----------
 def profit_for(known_recipe_ids, char_label):
     """Join a character's known recipes against the recipe cache + AH prices."""
