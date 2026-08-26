@@ -74,6 +74,56 @@ def _get(region, path, namespace):
     except urllib.error.HTTPError as e:
         return {"_error": e.code}
 
+# ---------- Battle.net user OAuth (authorization-code, scope wow.profile) ----------
+def _userf():
+    return os.path.join(_appdir(), "bnet_user.json")
+
+def auth_url(redirect_uri, state):
+    cid, _ = _creds()
+    q = urllib.parse.urlencode({"client_id": cid, "scope": "wow.profile", "state": state,
+                                "redirect_uri": redirect_uri, "response_type": "code"})
+    return f"https://oauth.battle.net/authorize?{q}"
+
+def exchange_code(code, redirect_uri):
+    """Swap the authorization code for a user token; persisted next to the app (24h lifetime)."""
+    cid, sec = _creds()
+    data = urllib.parse.urlencode({"grant_type": "authorization_code", "code": code,
+                                   "redirect_uri": redirect_uri}).encode()
+    req = urllib.request.Request("https://oauth.battle.net/token", data=data)
+    req.add_header("Authorization", "Basic " + base64.b64encode(f"{cid}:{sec}".encode()).decode())
+    with urllib.request.urlopen(req, timeout=20) as r:
+        j = json.load(r)
+    tok = {"access_token": j["access_token"], "expires_at": time.time() + j.get("expires_in", 86400)}
+    json.dump(tok, open(_userf(), "w", encoding="utf-8"))
+    return tok
+
+def user_token():
+    """The saved user token, or None if absent/expired (Battle.net issues no refresh tokens)."""
+    try:
+        t = json.load(open(_userf(), encoding="utf-8"))
+        if time.time() < t.get("expires_at", 0) - 60:
+            return t["access_token"]
+    except (OSError, ValueError):
+        pass
+    return None
+
+def get_account_chars(region, token):
+    """Account Profile Summary: every character on the logged-in account."""
+    q = urllib.parse.urlencode({"namespace": f"profile-{region}", "locale": "en_US"})
+    req = urllib.request.Request(f"https://{region}.api.blizzard.com/profile/user/wow?{q}")
+    req.add_header("Authorization", "Bearer " + token)
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            j = json.load(r)
+    except urllib.error.HTTPError as e:
+        return {"_error": e.code}
+    chars = []
+    for acct in j.get("wow_accounts") or []:
+        for c in acct.get("characters") or []:
+            chars.append({"name": c.get("name"), "realm_slug": c.get("realm", {}).get("slug"),
+                          "level": c.get("level"), "class": c.get("playable_class", {}).get("name")})
+    return {"chars": chars}
+
 _REALMS = {}  # per-region cache; the realm list changes ~never within a session
 
 def get_realms(region):

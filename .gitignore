@@ -7,3 +7,5 @@ build/
 dist/
 *.spec
 roster_cache.json
+bnet_user.json
+wowdir.json

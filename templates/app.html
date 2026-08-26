@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#07060E">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <title>WoW Roster</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
@@ -348,6 +351,10 @@ button{font-family:Barlow,system-ui,sans-serif}
           </div>
           <span class="presence off" id="presence"></span>
         </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="pill-btn" id="bnet-btn" onclick="bnetAction()">Connect Battle.net</button>
+        </div>
+        <div class="set-d" id="bnet-hint" style="margin-top:8px;line-height:1.5;display:none"></div>
       </div>
       <div>
         <div class="dr-sect">Appearance</div>
@@ -376,8 +383,21 @@ button{font-family:Barlow,system-ui,sans-serif}
         </div>
         <div class="dr-sync" id="dr-sync">Last sync · —</div>
       </div>
+      <div>
+        <div class="dr-sect">Game Data (addon)</div>
+        <div class="set-row">
+          <div><div class="set-l">WoW folder</div><div class="set-d" id="gd-dir">searching…</div></div>
+          <button class="pill-btn" style="flex:0 0 auto" id="gd-install" onclick="installAddon()">Install addon</button>
+        </div>
+        <div class="set-d" id="gd-status" style="line-height:1.5">The addon exports gold, Great Vault, currencies and lockouts — things the API can't see.</div>
+      </div>
+      <div>
+        <div class="dr-sect">Phone (same WiFi)</div>
+        <div class="set-d" id="phone-url" style="line-height:1.6;user-select:text">—</div>
+        <img id="phone-qr" alt="Scan to open on your phone" style="margin-top:10px;border-radius:10px;width:132px;display:none">
+      </div>
     </div>
-    <div class="dr-foot">WoW Roster · Midnight · v0.2</div>
+    <div class="dr-foot">WoW Roster · Midnight · v0.3</div>
   </aside>
 
   <nav class="tabbar">
@@ -651,6 +671,8 @@ function renderDetail() {
   const body = $('detail-body');
   if (!c) { body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">No character awake</div></div>'; return; }
   const e = c.entry, col = c.class_color, crest = crestHtml(c, 104);
+  const g = gd(c);  // companion-addon data for this character, if exported
+  const VAULT_T = { 1: 'Mythic+', 3: 'Raid', 6: 'World' };
   const thresholds = [1000, 1500, 2000, 2500, 3000, 3500];
   const pct = Math.min(100, (c.mplus_rating || 0) / 3500 * 100).toFixed(1);
   const gear = (c.gear || []).map(g => `
@@ -696,6 +718,7 @@ function renderDetail() {
       <div class="hs"><div class="stat-label">Item Level</div><div class="v c-gold">${c.ilvl ?? '—'}</div></div>
       <div class="hs"><div class="stat-label">Mythic+</div><div class="v c-teal">${c.mplus_rating ?? '—'}</div></div>
       <div class="hs"><div class="stat-label">Raid</div><div class="v c-raid">${c.raid || '—'}</div></div>
+      ${g && g.gold != null ? `<div class="hs"><div class="stat-label">Gold</div><div class="v c-gold">${goldStr(g.gold)}</div></div>` : ''}
     </div>
   </div>
   <div class="dgrid">
@@ -730,12 +753,89 @@ function renderDetail() {
         <div class="p-eyebrow" style="margin-bottom:12px">Professions</div>
         <div class="prof-rows">${profs}</div>
       </div>` : ''}
+      ${g && (g.vault || []).length ? `
+      <div class="panel">
+        <div class="p-eyebrow" style="margin-bottom:12px">Weekly Vault</div>
+        <div class="raid-rows">${(g.vault || []).map(v => `
+          <div>
+            <div class="rr-head"><span>${VAULT_T[v.type] || 'Tier ' + v.type}${v.level ? ' · lvl ' + v.level : ''}</span><span class="n">${v.progress} / ${v.threshold}</span></div>
+            <div class="segs">${Array.from({ length: v.threshold }, (_, i) => `<div class="seg ${i < v.progress ? 'm' : ''}"></div>`).join('')}</div>
+          </div>`).join('')}</div>
+      </div>` : ''}
+      ${g && (g.lockouts || []).length ? `
+      <div class="panel">
+        <div class="p-eyebrow" style="margin-bottom:12px">Lockouts</div>
+        <div class="runs">${g.lockouts.map(l => `
+          <div class="run"><span>${esc(l.name)}</span><span class="s">${esc(l.diff || '')} · ${l.done}/${l.total}</span></div>`).join('')}</div>
+      </div>` : ''}
+      ${g && (g.currencies || []).length ? `
+      <div class="panel">
+        <div class="p-eyebrow" style="margin-bottom:12px">Currencies</div>
+        <div class="runs">${g.currencies.slice(0, 8).map(cu => `
+          <div class="run"><span>${esc(cu.name)}</span><span class="s">${Number(cu.qty).toLocaleString('en-US')}</span></div>`).join('')}</div>
+      </div>` : ''}
     </div>
   </div>`;
 }
 
+/* ---------- Battle.net account / game data / phone ---------- */
+let acct = { connected: false }, gdata = { chars: {} };
+async function loadAccount() {
+  try { acct = await (await fetch('/api/account')).json(); } catch (e) { return; }
+  $('acct-s').textContent = acct.connected ? 'connected · characters auto-import' : 'not connected';
+  $('presence').classList.toggle('off', !acct.connected);
+  $('bnet-btn').textContent = acct.connected ? 'Re-import characters' : 'Connect Battle.net';
+  const hint = $('bnet-hint');
+  if (!acct.connected) {
+    hint.style.display = '';
+    hint.innerHTML = 'First time: add <b style="user-select:text">' + esc(acct.redirect_uri || '') +
+      '</b> as a Redirect URL on your client at develop.battle.net, then connect.';
+  } else hint.style.display = 'none';
+  if (acct.phone_url) {
+    $('phone-url').innerHTML = 'Open <b>' + esc(acct.phone_url) + '</b> in your phone’s browser, then “Add to Home screen”.';
+    $('phone-qr').src = '/api/qr.png'; $('phone-qr').style.display = '';
+  }
+}
+function bnetAction() {
+  if (acct.connected) return reimport();
+  window.location.href = '/auth/login?region=' + $('qa-region').value;
+}
+async function reimport() {
+  const b = $('bnet-btn'); b.disabled = true; b.textContent = 'Importing…';
+  try {
+    const j = await (await fetch('/api/import', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ region: $('qa-region').value }) })).json();
+    b.textContent = 'Imported ' + (j.added || 0) + ' new';
+    if (j.added) refresh();
+  } catch (e) { b.textContent = 'Import failed'; }
+  b.disabled = false;
+  setTimeout(loadAccount, 2500);
+}
+async function loadGamedata() {
+  try { gdata = await (await fetch('/api/gamedata')).json(); } catch (e) { return; }
+  $('gd-dir').textContent = gdata.wow_dir || 'not found — is retail WoW installed?';
+  const st = $('gd-status');
+  if (!gdata.found) st.textContent = 'No WoW install detected.';
+  else if (!gdata.addon_installed) st.textContent = 'Addon not installed yet — one click does it.';
+  else if (!gdata.has_data) st.textContent = 'Addon installed ✓ — data appears after you log a character out (or /reload).';
+  else st.textContent = 'Addon data live ✓ — ' + Object.keys(gdata.chars).length + ' character(s) exported. Vault/gold show on the detail view.';
+  $('gd-install').textContent = gdata.addon_installed ? 'Reinstall' : 'Install addon';
+}
+async function installAddon() {
+  const b = $('gd-install'); b.disabled = true;
+  try {
+    const r = await fetch('/api/addon/install', { method: 'POST' });
+    const j = await r.json();
+    $('gd-status').textContent = r.ok ? 'Installed ✓ — restart WoW (or /reload), then log out once to export data.' : (j.error || 'Install failed.');
+  } catch (e) { $('gd-status').textContent = 'Install failed.'; }
+  b.disabled = false;
+  setTimeout(loadGamedata, 1200);
+}
+function gd(c) { return (gdata.chars || {})[c.name + '-' + c.realm]; }
+function goldStr(copper) { return Math.floor(copper / 10000).toLocaleString('en-US') + 'g'; }
+
 /* ---------- settings drawer ---------- */
-function openSettings() { $('drawer').classList.add('open'); $('backdrop').classList.add('open'); $('nav-settings').classList.add('active'); }
+function openSettings() { $('drawer').classList.add('open'); $('backdrop').classList.add('open'); $('nav-settings').classList.add('active'); loadAccount(); loadGamedata(); }
 function closeSettings() { $('drawer').classList.remove('open'); $('backdrop').classList.remove('open'); $('nav-settings').classList.remove('active'); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSettings(); });
 
@@ -747,6 +847,19 @@ applySettings();
 setView('roster');
 loadRealms($('qa-region').value);
 $('qa-sort').value = S.sort;
+const qsBoot = new URLSearchParams(location.search);
+if (qsBoot.has('imported')) {
+  const n = qsBoot.get('imported');
+  $('qa-err').style.color = 'var(--good)';
+  $('qa-err').textContent = n === '0' ? 'Battle.net connected — no new characters to import.'
+                                      : `Battle.net connected — imported ${n} character${n === '1' ? '' : 's'}.`;
+  history.replaceState({}, '', '/');
+} else if (qsBoot.get('auth') === 'failed') {
+  $('qa-err').textContent = 'Battle.net sign-in failed — check the Redirect URL in your dev portal.';
+  history.replaceState({}, '', '/');
+}
+loadAccount();
+loadGamedata();
 loadRoster(true);
 </script>
 </body>
