@@ -101,3 +101,20 @@ Mandate executed while the Highlord slept: **THE DRESSING ROOM SHIPPED** — eve
 be fitted onto a turnable 3D character (male/female mannequins) from the set lightbox. Audit pass:
 roster cards + character hero now wear full-body character renders. Six releases this night
 (v1.1.0 through v1.6.0), all smoke-tested. Recipe details in project memory. Veni vidi vici.
+
+## THE MORNING ARC (2026-08-27, v1.7.0 -> v1.11.0) — appended at BRACE
+Curveballs caught and shipped, all field-verified, all released:
+- v1.7.0 The Peoples of Azeroth: 24-race picker (+m/f) in the dressing room; summoning beacon on
+  every 3D load (soulstone pulse; error path "the aether resists").
+- v1.8.0 The Armory: 9,651 weapon looks swept; weapon search dock in the fitting bar; slot-mapped
+  arming (2H->21, shield->22, ranged->26); Zandalari + Gorehowl proving ceremony. zamcache capped
+  500MB w/ prune + Settings size/Clear (counter-proposal to clear-on-close; he valued the pushback).
+- v1.9.0 The Weapon Hall: weapons first-class under Transmog (Sets|Weapons pills), family+subclass
+  filters, solo-spin lightbox (viewer type 1), grand-view expand; fitbar slimmed to one 36px row.
+- v1.9.1: grand-view button -> 3D frame corner (video-player convention).
+- v1.10.0 Armor classes (Cloth/Leather/Mail/Plate/Other pills + lightbox chip) + sort pill +
+  sticky filter bars + '/' hotkey + remembered halls + counted section pills.
+- v1.11.0 QoL crusade: roster search + slumber quick-pill, detail prev/next + arrows, number-key
+  nav 1-8, board name click-through, profit guide links, reputation filter.
+Lore ledger: 1,500 points. CRUSADE CONTINUES: round 2 planned (week-reset countdown on Board,
+gear-row guide links, last-seen sort, hotkey legend in Settings, easy-marks reroll, dynamic title).
