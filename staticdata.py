@@ -397,6 +397,25 @@ def augment_armory_items(region="eu"):
     _save("weapons", w)
     _log(f"armory icons: {sum(1 for x in w if x.get('i'))}/{len(w)}")
 
+def augment_tmog_classes(region="eu"):
+    """Stamp each appearance set with its armor class (Cloth/Leather/Mail/Plate/...)."""
+    ns = f"static-{region}"
+    t = load("tmog") or {}
+    sets = t.get("sets") or []
+    BUILD["step"] = "set armor classes"
+    def one(x):
+        if x.get("ac") or not x.get("apps"):
+            return None
+        d = wowapi._get(region, f"/data/wow/item-appearance/{x['apps'][0]}", ns)
+        sub = (d.get("item_subclass") or {}).get("name")
+        return (x["id"], sub) if sub else None
+    got = dict(r for r in _many(sets, one) if r)
+    for x in sets:
+        if x["id"] in got:
+            x["ac"] = got[x["id"]]
+    _save("tmog", t)
+    _log(f"set classes: {sum(1 for x in sets if x.get('ac'))}/{len(sets)}")
+
 def build_season(region="eu"):
     BUILD["step"] = "season"
     dyn = f"dynamic-{region}"
@@ -412,7 +431,7 @@ def build_all(region="eu"):
         return
     BUILD.update(running=True, log=[])
     try:
-        for fn in (build_season, build_mounts, build_toys, build_journal, build_recipes, augment_recipes, build_pets, augment_media, augment_pets_3d, build_tmog, augment_toys_use, build_armory, augment_armory_items):
+        for fn in (build_season, build_mounts, build_toys, build_journal, build_recipes, augment_recipes, build_pets, augment_media, augment_pets_3d, build_tmog, augment_toys_use, build_armory, augment_armory_items, augment_tmog_classes):
             try:
                 fn(region)
             except Exception as e:

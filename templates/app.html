@@ -267,6 +267,10 @@ button{font-family:Barlow,system-ui,sans-serif}
 .hintline{font-size:12px;color:var(--muted);line-height:1.6;}
 .iic{width:22px;height:22px;border-radius:5px;vertical-align:middle;flex:0 0 auto;}
 
+.stickybar{position:sticky;top:-34px;z-index:5;padding:10px 0 8px;margin:0 -8px 14px;padding-left:8px;padding-right:8px;
+  background:linear-gradient(180deg, rgba(7,6,14,.94) 82%, transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+.app[data-theme="dawn"] .stickybar{background:linear-gradient(180deg, rgba(244,239,228,.95) 82%, transparent);}
+
 /* ---------- the hunt: rings, easy marks, gallery ---------- */
 .ringrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:18px;animation:pageIn .4s cubic-bezier(.25,.8,.3,1) both;}
 .ringcard{display:flex;align-items:center;gap:16px;border-radius:18px;padding:15px 18px;cursor:pointer;border:1px solid rgba(237,233,255,.08);transition:transform .2s, box-shadow .2s, border-color .2s;}
@@ -585,7 +589,7 @@ button{font-family:Barlow,system-ui,sans-serif}
       </div>
       <div class="ringrow" id="ringrow"></div>
       <div id="easy-marks"></div>
-      <div id="coll-controls" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+      <div id="coll-controls" class="stickybar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <div class="vtabs" id="coll-filters" style="margin:0"></div>
         <div class="searchpill" style="margin-left:auto"><input id="coll-search" placeholder="Search the hunt…" oninput="collPage=0;renderCollGrid()"></div>
       </div>
@@ -603,11 +607,11 @@ button{font-family:Barlow,system-ui,sans-serif}
         <h1 class="vtitle">TRANSMOG</h1>
       </div>
       <div class="vtabs" id="tmog-sections" style="margin-bottom:14px">
-        <button class="vtab on" data-t="sets" onclick="tmogSetSection('sets')">⚜ Sets</button>
-        <button class="vtab" data-t="weapons" onclick="tmogSetSection('weapons')">⚔ Weapons</button>
+        <button class="vtab on" data-t="sets" id="sec-sets" onclick="tmogSetSection('sets')">⚜ Sets</button>
+        <button class="vtab" data-t="weapons" id="sec-weapons" onclick="tmogSetSection('weapons')">⚔ Weapons</button>
       </div>
       <div id="tmog-hero"></div>
-      <div id="tmog-controls" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+      <div id="tmog-controls" class="stickybar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <div class="vtabs" id="tmog-filters" style="margin:0"></div>
         <div class="searchpill" style="margin-left:auto"><input id="tmog-search" placeholder="Search sets…" oninput="tmogPage=0;renderTmogSection()"></div>
       </div>
@@ -743,7 +747,7 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp
 const num = n => (n == null ? '—' : Number(n).toLocaleString('en-US'));
 const ekey = e => `${e.region}/${e.realm}/${e.name}`;
 
-function saveSettings() { try { localStorage.setItem('wr-settings', JSON.stringify({ theme: S.theme, showSlumber: S.showSlumber, motion: S.motion, autoRefresh: S.autoRefresh, collapsed: S.collapsed, sbMode: S.sbMode, sort: S.sort, v2: S.v2 })); } catch (e) {} }
+function saveSettings() { try { localStorage.setItem('wr-settings', JSON.stringify({ theme: S.theme, showSlumber: S.showSlumber, motion: S.motion, autoRefresh: S.autoRefresh, collapsed: S.collapsed, sbMode: S.sbMode, sort: S.sort, v2: S.v2, collKind: S.collKind, tmogSection: S.tmogSection })); } catch (e) {} }
 
 function sbSetCollapsed(vis) {  // purely visual — S.collapsed only changes in static mode
   $('app').classList.toggle('sb-collapsed', vis);
@@ -1276,7 +1280,7 @@ function renderBoard() {
 }
 
 /* ---------- COLLECTIONS: The Hunt ---------- */
-let collIndex = {}, collMine = null, collKind = 'mounts', collFilter = null, collShowOwned = false, lastPoolIds = [], petType = null, collPage = 0;
+let collIndex = {}, collMine = null, collKind = (S.collKind || 'mounts'), collFilter = null, collShowOwned = false, lastPoolIds = [], petType = null, collPage = 0;
 const LIMITED = new Set(['In-Game Shop', 'Promotion', 'Trading Card Game']);
 const EASY_SRC = new Set(['Vendor', 'Quest', 'Profession', 'Pet Battle', 'Discovery']);
 async function loadCollections() {
@@ -1306,7 +1310,7 @@ function collStats(k) {
     missObt: obt.filter(x => !mine.has(x.id)),
     missLim: lim.filter(x => !mine.has(x.id)) };
 }
-function collSetKind(k) { collKind = k; collFilter = null; petType = null; collPage = 0; renderColl(); }
+function collSetKind(k) { collKind = k; collFilter = null; petType = null; collPage = 0; S.collKind = k; saveSettings(); renderColl(); }
 function renderColl() { renderRings(); renderEasy(); renderFilters(); renderCollGrid(); }
 
 function renderRings() {
@@ -1418,14 +1422,16 @@ function pager(total, per, page, varName, renderFn) {
   </div>`;
 }
 /* ---------- TRANSMOG: the wardrobe ---------- */
-let tmogData = null, tmogMine = null, tmogFilter = 'all', tmogPage = 0;
-let tmogSection = 'sets', wpnFamily = null, wpnClass = null;
+let tmogData = null, tmogMine = null, tmogFilter = 'all', tmogPage = 0, tmogArmor = null, tmogSort = 'closest';
+let tmogSection = (S.tmogSection || 'sets'), wpnFamily = null, wpnClass = null;
 const WPN_FAMILY = { 'One-Hand': ['WEAPON', 'WEAPONMAINHAND'], 'Two-Hand': ['TWOHWEAPON'],
   'Shield': ['SHIELD'], 'Off-hand': ['HOLDABLE', 'WEAPONOFFHAND'], 'Ranged': ['RANGED', 'RANGEDRIGHT'] };
 function tmogSetSection(sec) {
-  tmogSection = sec; tmogPage = 0; tmogFilter = 'all'; wpnFamily = null; wpnClass = null;
+  tmogSection = sec; tmogPage = 0; tmogFilter = 'all'; wpnFamily = null; wpnClass = null; tmogArmor = null;
+  S.tmogSection = sec; saveSettings();
   document.querySelectorAll('#tmog-sections .vtab').forEach(b => b.classList.toggle('on', b.dataset.t === sec));
   $('tmog-search').placeholder = sec === 'weapons' ? 'Search weapons…' : 'Search sets…';
+  // (placeholder + pills follow the section)
   $('tmog-search').value = '';
   renderTmogSection();
 }
@@ -1519,7 +1525,12 @@ function wpnLb(aid) {
   $('lb-back').classList.add('open');
 }
 const SLOT_PRETTY = t => (t || '').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+function tmogSyncSectionPills() {
+  document.querySelectorAll('#tmog-sections .vtab').forEach(b => b.classList.toggle('on', b.dataset.t === tmogSection));
+  $('tmog-search').placeholder = tmogSection === 'weapons' ? 'Search weapons…' : 'Search sets…';
+}
 async function loadTransmog() {
+  tmogSyncSectionPills();
   const body = $('tmog-body');
   if (!tmogMine) {
     body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">Opening the wardrobe…</div></div>';
@@ -1535,6 +1546,11 @@ async function loadTransmog() {
   renderTmog();
 }
 function renderTmog() {
+  if (tmogData) {
+    $('sec-sets').textContent = `⚜ Sets · ${((tmogData.sets || []).length).toLocaleString('en-US')}`;
+    if (typeof armory !== 'undefined' && armory && armory.length) $('sec-weapons').textContent = `⚔ Weapons · ${armory.length.toLocaleString('en-US')}`;
+    else { loadArmory().then(() => { if (armory.length) $('sec-weapons').textContent = `⚔ Weapons · ${armory.length.toLocaleString('en-US')}`; }); }
+  }
   if (tmogSection === 'weapons') { renderWpnHall(); return; }
   if (!tmogData) { $('tmog-body').innerHTML = '<div class="hintline">The transmog atlas isn\u2019t built yet — Settings → Static Game Data → Rebuild.</div>'; $('tmog-hero').innerHTML = ''; return; }
   const totals = tmogData.slot_totals || {};
@@ -1576,21 +1592,35 @@ function tmogSetState(st) {
       state: x.m === 0 ? 'empty' : n === x.apps.length ? 'complete' : n > 0 ? 'partial' : 'unstarted' };
   });
 }
+const ARMOR_CLASSES = ['Cloth', 'Leather', 'Mail', 'Plate'];
 function renderTmogFilters() {
   const rows = tmogSetState();
   const counts = { all: rows.length, complete: 0, partial: 0, unstarted: 0 };
   rows.forEach(r => { if (counts[r.state] != null) counts[r.state]++; });
-  $('tmog-filters').innerHTML = [
+  const state = [
     ['all', 'All'], ['complete', '✓ Complete'], ['partial', 'In progress'], ['unstarted', 'Unclaimed'],
   ].map(([k, l]) => `<button class="vtab ${tmogFilter === k ? 'on' : ''}" onclick="tmogFilter='${k}';tmogPage=0;renderTmogFilters();renderTmogGrid()">${l} · ${counts[k] ?? 0}</button>`).join('');
+  const haveAc = (tmogData.sets || []).some(x => x.ac);
+  const byAc = {};
+  (tmogData.sets || []).forEach(x => { if (x.ac) byAc[x.ac] = (byAc[x.ac] || 0) + 1; });
+  const armor = haveAc ? '<span style="flex-basis:100%;height:0"></span>' + ARMOR_CLASSES.filter(a => byAc[a]).map(a =>
+    `<button class="vtab ${tmogArmor === a ? 'on' : ''}" style="padding:4px 11px;font-size:11px" onclick="tmogArmor=tmogArmor==='${a}'?null:'${a}';tmogPage=0;renderTmogFilters();renderTmogGrid()">${a} · ${byAc[a]}</button>`).join('')
+    + (Object.keys(byAc).some(a => !ARMOR_CLASSES.includes(a)) ? `<button class="vtab ${tmogArmor === '__other' ? 'on' : ''}" style="padding:4px 11px;font-size:11px" onclick="tmogArmor=tmogArmor==='__other'?null:'__other';tmogPage=0;renderTmogFilters();renderTmogGrid()">Other · ${Object.entries(byAc).filter(([a]) => !ARMOR_CLASSES.includes(a)).reduce((n, [, v]) => n + v, 0)}</button>` : '')
+    : '';
+  const sort = `<button class="vtab" style="margin-left:8px;padding:4px 11px;font-size:11px" onclick="tmogSort=tmogSort==='closest'?'az':tmogSort==='az'?'largest':'closest';renderTmogFilters();renderTmogGrid()">Sort · ${tmogSort === 'closest' ? 'Closest' : tmogSort === 'az' ? 'A-Z' : 'Largest'}</button>`;
+  $('tmog-filters').innerHTML = state + sort + armor;
 }
 function renderTmogGrid() {
   const body = $('tmog-body');
   let rows = tmogSetState().filter(r => r.m > 0);
   if (tmogFilter !== 'all') rows = rows.filter(r => r.state === tmogFilter);
+  if (tmogArmor === '__other') rows = rows.filter(r => r.ac && !ARMOR_CLASSES.includes(r.ac));
+  else if (tmogArmor) rows = rows.filter(r => r.ac === tmogArmor);
   const q = ($('tmog-search').value || '').toLowerCase();
   if (q) rows = rows.filter(r => (r.name || '').toLowerCase().includes(q));
-  rows.sort((a, b) => (b.n / b.m) - (a.n / a.m) || (a.name || '').localeCompare(b.name || ''));
+  if (tmogSort === 'az') rows.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  else if (tmogSort === 'largest') rows.sort((a, b) => b.m - a.m || (a.name || '').localeCompare(b.name || ''));
+  else rows.sort((a, b) => (b.n / b.m) - (a.n / a.m) || (a.name || '').localeCompare(b.name || ''));
   const PAGE = 96;
   const pages = Math.max(1, Math.ceil(rows.length / PAGE));
   if (tmogPage >= pages) tmogPage = pages - 1;
@@ -1673,6 +1703,7 @@ async function tmogLb(setId) {
   $('lb-hero').innerHTML = r.icon_item ? `<img class="iconic" src="/api/icon/${r.icon_item}" alt="">` : `<div class="ph">${esc((r.name || '?')[0])}</div>`;
   $('lb-name').textContent = r.name;
   $('lb-chips').innerHTML = [
+    r.ac ? `<span class="chip"><span class="v">${esc(r.ac)}</span></span>` : '',
     `<span class="chip"><span class="v">${r.n} / ${r.m} pieces</span></span>`,
     r.state === 'complete' ? '<span class="chip kept-chip"><span class="v">✓ Set complete</span></span>'
                            : '<span class="chip miss-chip"><span class="v">☾ The hunt continues</span></span>',
@@ -1775,6 +1806,10 @@ function lb3d(dispId) {
 function lbNav(d) { if (!lbPool.length) return; lbIdx = (lbIdx + d + lbPool.length) % lbPool.length; lbRender(); }
 function lbClose() { $('lb-back').classList.remove('open'); }
 document.addEventListener('keydown', e => {
+  if (e.key === '/' && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) {
+    const box = view === 'collections' ? $('coll-search') : view === 'transmog' ? $('tmog-search') : null;
+    if (box) { e.preventDefault(); box.focus(); }
+  }
   if ($('mvfull').classList.contains('open')) { if (e.key === 'Escape') mvCollapse(); return; }
   if (!$('lb-back').classList.contains('open')) return;
   if (e.key === 'Escape') lbClose();
