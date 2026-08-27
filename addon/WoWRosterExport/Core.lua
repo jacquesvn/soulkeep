@@ -6,14 +6,14 @@ f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("PLAYER_LOGOUT")
 f:RegisterEvent("TIME_PLAYED_MSG")
 
--- /played capture: request quietly, catch the reply, never spam chat
-local expectingPlayed = false
+-- /played capture: request quietly, cache the reply, embed it in every snapshot
+local pendingPlayed = nil
 local function requestPlayed()
-  expectingPlayed = true
+  if not RequestTimePlayed then return end
   local orig = ChatFrame_DisplayTimePlayed
-  ChatFrame_DisplayTimePlayed = function() end
+  if orig then ChatFrame_DisplayTimePlayed = function() end end
   RequestTimePlayed()
-  C_Timer.After(1.5, function() ChatFrame_DisplayTimePlayed = orig end)
+  if orig then C_Timer.After(1.5, function() ChatFrame_DisplayTimePlayed = orig end) end
 end
 
 local function collect()
@@ -21,6 +21,7 @@ local function collect()
   local name, realm = UnitName("player"), GetRealmName()
   if not name or not realm then return end
   local d = { ts = time(), gold = GetMoney(), level = UnitLevel("player") }
+  if pendingPlayed then d.played = pendingPlayed end
 
   local ok, ilvl = pcall(function() return select(2, GetAverageItemLevel()) end)
   if ok and ilvl then d.ilvl = math.floor(ilvl + 0.5) end
@@ -70,8 +71,8 @@ end
 
 f:SetScript("OnEvent", function(_, ev, arg1)
   if ev == "TIME_PLAYED_MSG" then
-    if expectingPlayed and arg1 and arg1 > 0 then
-      expectingPlayed = false
+    if arg1 and arg1 > 0 then
+      pendingPlayed = arg1
       local key = UnitName("player") .. "-" .. GetRealmName()
       if WoWRosterExportDB and WoWRosterExportDB[key] then
         WoWRosterExportDB[key].played = arg1
@@ -80,8 +81,9 @@ f:SetScript("OnEvent", function(_, ev, arg1)
     return
   end
   if ev == "PLAYER_ENTERING_WORLD" then
+    C_Timer.After(2, function() pcall(requestPlayed) end)  -- reply is cached; any later snapshot embeds it
     C_Timer.After(10, function() pcall(collect) end)   -- let vault/currency data load in
-    C_Timer.After(12, function() pcall(requestPlayed) end)
+    C_Timer.After(45, function() if not pendingPlayed then pcall(requestPlayed) end end)
     C_Timer.After(60, function() pcall(collect) end)   -- and once more when fully settled
   else
     pcall(collect)
@@ -90,6 +92,7 @@ end)
 
 SLASH_WOWROSTER1 = "/wowroster"
 SlashCmdList["WOWROSTER"] = function()
+  pcall(requestPlayed)
   pcall(collect)
   print("|cffb15cffWoW Roster|r: snapshot taken — it writes to disk on logout or /reload.")
 end
