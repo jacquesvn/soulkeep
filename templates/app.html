@@ -541,6 +541,8 @@ button{font-family:Barlow,system-ui,sans-serif}
           <h1 class="rtitle">ROSTER</h1>
         </div>
         <div class="qa-wrap">
+          <div class="qa"><input class="qa-input" id="ro-search" placeholder="Find a soul…" style="width:110px" oninput="renderRoster()"></div>
+          <button class="vtab" id="slumber-pill" style="align-self:center" onclick="toggle('showSlumber', null)" title="Show or hide slumbering souls">☾</button>
           <div class="qa">
             <select class="qa-region" id="qa-sort" aria-label="Sort" style="border-right:0;text-transform:none" onchange="setSort(this.value)">
               <option value="added">Sort · Added</option>
@@ -569,7 +571,14 @@ button{font-family:Barlow,system-ui,sans-serif}
     </section>
 
     <section id="view-detail" style="display:none">
-      <button class="back-btn" onclick="goRoster()">← Roster</button>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="back-btn" onclick="goRoster()">← Roster</button>
+        <span style="margin-left:auto;display:flex;gap:8px;align-items:center;padding-bottom:18px">
+          <button class="pill-btn" style="flex:0 0 auto;padding:5px 12px" onclick="detailNav(-1)" title="Previous soul (←)">‹</button>
+          <span class="hintline" id="detail-pos"></span>
+          <button class="pill-btn" style="flex:0 0 auto;padding:5px 12px" onclick="detailNav(1)" title="Next soul (→)">›</button>
+        </span>
+      </div>
       <div id="detail-body"></div>
       <div class="footline" style="margin-top:26px">Soulkeep · Blizzard Battle.net API · retail (Midnight)</div>
     </section>
@@ -771,6 +780,13 @@ function applySettings() {
   $('sb-mode-btn').textContent = hover ? 'Open on hover' : 'Static';
   $('sb-mode-d').textContent = hover ? 'Rail flies open while hovered' : 'Static — collapse with the « button';
   $('sw-slumber').setAttribute('aria-checked', String(S.showSlumber));
+  const sp = $('slumber-pill');
+  if (sp) {
+    const n = chars.filter(c => !awake(c)).length;
+    sp.classList.toggle('on', S.showSlumber);
+    sp.textContent = '☾ ' + (n || '');
+    sp.title = (S.showSlumber ? 'Hide' : 'Show') + ' the ' + n + ' slumbering soul' + (n === 1 ? '' : 's');
+  }
   $('sw-motion').setAttribute('aria-checked', String(S.motion));
   $('sw-refresh').setAttribute('aria-checked', String(S.autoRefresh));
   clearInterval(refreshTimer);
@@ -806,7 +822,7 @@ async function loadRoster(initial) {
   } catch (e) { fetchOk = false; }
   loading = false;
   $('refresh-btn').classList.remove('busy');
-  renderRoster(); renderChrome();
+  renderRoster(); renderChrome(); applySettings();
   if (view === 'detail') renderDetail();
 }
 function refresh() { loadRoster(false); }
@@ -815,6 +831,8 @@ function refresh() { loadRoster(false); }
 function awake(c) { return !c.error; }
 function visibleChars() {
   let list = chars.filter(c => S.showSlumber || awake(c));
+  const q = (($('ro-search') || {}).value || '').toLowerCase();
+  if (q) list = list.filter(c => [c.name, c.class, c.realm, c.spec].some(v => (v || '').toLowerCase().includes(q)));
   if (S.sort === 'ilvl')  list = [...list].sort((a, b) => (b.ilvl || 0) - (a.ilvl || 0));
   if (S.sort === 'mplus') list = [...list].sort((a, b) => (b.mplus_rating || 0) - (a.mplus_rating || 0));
   if (S.sort === 'class') list = [...list].sort((a, b) => (a.class || '~').localeCompare(b.class || '~'));
@@ -993,6 +1011,15 @@ function goView(v) {
   if (v === 'economy') renderEconomy();
   if (v === 'progress') renderProgress();
 }
+function detailNav(d) {
+  const aw = chars.filter(awake);
+  if (aw.length < 2) return;
+  let i = aw.findIndex(c => ekey(c.entry) === sel);
+  if (i < 0) i = 0;
+  sel = ekey(aw[(i + d + aw.length) % aw.length].entry);
+  renderDetail();
+  $('main').scrollTop = 0;
+}
 function goRoster() { setView('roster'); renderRoster(); }
 function goDetail() { if (!currentDetail()) return; sel = ekey(currentDetail().entry); renderDetail(); setView('detail'); }
 function openChar(k) {
@@ -1010,6 +1037,10 @@ function renderDetail() {
   if (!c) { body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">No soul awake</div></div>'; return; }
   const e = c.entry, col = c.class_color, crest = crestHtml(c, 104);
   const g = gd(c);  // companion-addon data for this character, if exported
+  const awl = chars.filter(awake);
+  const pos = awl.findIndex(x => ekey(x.entry) === ekey(c.entry));
+  const posEl = $('detail-pos');
+  if (posEl) posEl.textContent = awl.length > 1 ? `${pos + 1} / ${awl.length}` : '';
   const VAULT_T = VAULT_LABEL;
   const thresholds = [1000, 1500, 2000, 2500, 3000, 3500];
   const pct = Math.min(100, (c.mplus_rating || 0) / 3500 * 100).toFixed(1);
@@ -1268,7 +1299,7 @@ function renderBoard() {
     const bestKey = weekRuns ? Math.max(...c.runs.map(r => r.key)) : null;
     return `<div class="panel" style="margin-bottom:12px;animation:pageIn .4s cubic-bezier(.25,.8,.3,1) ${i * 40}ms both">
       <div class="wrow">
-        <div class="wname" style="color:${c.class_color}">${esc(c.name)}<div style="font:400 10.5px Barlow,sans-serif;color:var(--muted);letter-spacing:.04em">${esc(c.realm)} · ilvl ${c.ilvl ?? '—'}</div></div>
+        <div class="wname" style="color:${c.class_color};cursor:pointer" role="button" tabindex="0" title="Open ${esc(c.name)}" onclick="sel='${esc(ekey(c.entry))}';renderDetail();setView('detail')">${esc(c.name)}<div style="font:400 10.5px Barlow,sans-serif;color:var(--muted);letter-spacing:.04em">${esc(c.realm)} · ilvl ${c.ilvl ?? '—'}</div></div>
         ${g ? vaultSegs(g.vault) : '<div class="wcell"><span class="wlabel">Vault</span><span class="hintline">no addon export yet — log them out once</span></div>'}
         <div class="wcell"><span class="wlabel">Keys this week</span><span class="wval ${weekRuns ? 'good' : ''}">${weekRuns ? weekRuns + ' run' + (weekRuns > 1 ? 's' : '') + ' · best +' + bestKey : 'none'}</span></div>
         <div class="wcell"><span class="wlabel">Lockouts</span><span class="wval">${g && g.lockouts && g.lockouts.length ? g.lockouts.map(l => esc(l.name) + ' ' + l.done + '/' + l.total).join(' · ') : '—'}</span></div>
@@ -1806,9 +1837,20 @@ function lb3d(dispId) {
 function lbNav(d) { if (!lbPool.length) return; lbIdx = (lbIdx + d + lbPool.length) % lbPool.length; lbRender(); }
 function lbClose() { $('lb-back').classList.remove('open'); }
 document.addEventListener('keydown', e => {
-  if (e.key === '/' && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) {
-    const box = view === 'collections' ? $('coll-search') : view === 'transmog' ? $('tmog-search') : null;
-    if (box) { e.preventDefault(); box.focus(); }
+  if (!/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) {
+    if (e.key === '/') {
+      const box = view === 'collections' ? $('coll-search') : view === 'transmog' ? $('tmog-search')
+        : view === 'roster' ? $('ro-search') : view === 'progress' ? $('rep-search') : null;
+      if (box) { e.preventDefault(); box.focus(); }
+    }
+    const NAVKEYS = { '1': () => goRoster(), '2': () => goDetail(), '3': () => goView('board'),
+      '4': () => goView('collections'), '5': () => goView('transmog'), '6': () => goView('economy'),
+      '7': () => goView('progress'), '8': () => openSettings() };
+    if (NAVKEYS[e.key] && !$('lb-back').classList.contains('open') && !$('mvfull').classList.contains('open')) NAVKEYS[e.key]();
+    if (view === 'detail' && !$('lb-back').classList.contains('open') && !$('mvfull').classList.contains('open')) {
+      if (e.key === 'ArrowRight') detailNav(1);
+      if (e.key === 'ArrowLeft') detailNav(-1);
+    }
   }
   if ($('mvfull').classList.contains('open')) { if (e.key === 'Escape') mvCollapse(); return; }
   if (!$('lb-back').classList.contains('open')) return;
@@ -1921,13 +1963,14 @@ function profitTable() {
     ...crafters.map(ch => `<button class="vtab ${profitCrafter === ch ? 'on' : ''}" style="padding:4px 11px;font-size:11px" onclick="profitCrafter='${esc(ch)}';$('profit-body').innerHTML=profitTable()">${esc(ch)}</button>`)
   ].join('') : '';
   const rows = profitCrafter ? profitRows.filter(r => r.char === profitCrafter) : profitRows;
-  return `<table class="tbl"><tr><th></th><th>Recipe</th><th>Crafter</th><th class="num">Sale</th><th class="num">Cost</th><th class="num">Margin</th></tr>
+  return `<table class="tbl"><tr><th></th><th>Recipe</th><th>Crafter</th><th class="num">Sale</th><th class="num">Cost</th><th class="num">Margin</th><th></th></tr>
     ${rows.slice(0, 40).map(r => `<tr>
       <td style="width:26px;padding-right:0"><img class="iic" src="/api/icon/${r.crafted_id}" alt="" loading="lazy" onerror="this.style.display='none'"></td>
       <td>${esc(r.recipe)}${r.missing.length ? ` <span title="No AH price for: ${esc(r.missing.join(', '))}" style="color:var(--warn)">*</span>` : ''}</td>
       <td style="color:var(--muted)">${esc(r.char)} · ${esc(r.prof)}</td>
       <td class="num gold-t">${goldStr(r.sale)}</td><td class="num">${goldStr(r.cost)}</td>
-      <td class="num ${r.margin >= 0 ? 'good' : 'bad'}">${r.margin >= 0 ? '+' : '−'}${goldStr(Math.abs(r.margin))}</td></tr>`).join('')}</table>
+      <td class="num ${r.margin >= 0 ? 'good' : 'bad'}">${r.margin >= 0 ? '+' : '−'}${goldStr(Math.abs(r.margin))}</td>
+      <td style="width:26px"><span class="guide" style="cursor:pointer;color:var(--glow)" title="Wowhead guide" onclick="openGuide('${esc(r.recipe).replace(/'/g, "\\'")}')">↗</span></td></tr>`).join('')}</table>
     <div class="hintline" style="margin-top:8px">* some reagents had no AH listing — true cost is higher. Top 40 by margin.</div>`;
 }
 async function econRefresh() {
@@ -1996,6 +2039,7 @@ async function renderProgress() {
   if (pts.length >= 2) drawChart($('prog-chart'), pts, fmt);
   else $('prog-chart').innerHTML = '<div class="hintline">' + (pts.length ? 'one point so far (' + fmt(pts[0].y) + ') — a line needs two; keep playing' : 'no data for this metric yet') + '</div>';
 }
+let repQ = '';
 async function renderReps() {
   const body = $('prog-body');
   if (!repRows) {
@@ -2009,14 +2053,16 @@ async function renderReps() {
     if (!best[r.faction] || pctv > best[r.faction].pctv)
       best[r.faction] = { ...r, char: cr.char, pctv };
   }));
-  const rows = Object.values(best).sort((a, b) => b.pctv - a.pctv);
-  body.innerHTML = rows.length ? `<div class="panel tblwrap"><table class="tbl">
+  let rows = Object.values(best).sort((a, b) => b.pctv - a.pctv);
+  if (repQ) rows = rows.filter(r => (r.faction || '').toLowerCase().includes(repQ) || (r.char || '').toLowerCase().includes(repQ));
+  body.innerHTML = `<div class="searchpill" style="margin-bottom:12px"><input id="rep-search" placeholder="Filter factions…" value="${esc(repQ)}" oninput="repQ=this.value.toLowerCase();renderReps();requestAnimationFrame(()=>{const b=$('rep-search');if(b){b.focus();b.setSelectionRange(b.value.length,b.value.length);}})"></div>` +
+  (rows.length ? `<div class="panel tblwrap"><table class="tbl">
     <tr><th>Faction</th><th>Best on</th><th>Standing</th><th style="width:30%">Progress</th><th class="num"></th></tr>
     ${rows.map(r => `<tr><td>${esc(r.faction)}</td><td>${esc(r.char)}</td>
       <td>${esc(r.standing || '')}${r.renown && !String(r.standing || '').includes('Renown') ? ' · Renown ' + r.renown : ''}</td>
       <td><div class="pbar"><i style="width:${Math.round(r.pctv * 100)}%"></i></div></td>
       <td class="num" style="color:var(--muted)">${(r.value || 0).toLocaleString('en-US')} / ${r.max.toLocaleString('en-US')}</td></tr>`).join('')}
-  </table></div>` : '<div class="hintline">No reputation data yet.</div>';
+  </table></div>` : '<div class="hintline">No factions match.</div>');
 }
 
 /* ---------- single-series line chart (SVG, crosshair tooltip) ---------- */
