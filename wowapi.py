@@ -248,8 +248,28 @@ def get_character(region, realm, name):
     # raid progress: compact chip string + per-difficulty rows for the latest instance
     raid_str, raid_name, raid_rows = None, None, []
     exps = raids.get("expansions") or []
+    _DRANK = {"Raid Finder": 1, "Normal": 2, "Heroic": 3, "Mythic": 4}
+    # the full chronicle: every instance ever raided, with per-difficulty rows
+    raid_hist = []
+    for _e in exps:
+        _ename = (_e.get("expansion") or {}).get("name")
+        if _ename == "Current Season":  # pseudo-tier duplicating real expansions
+            continue
+        for _inst in (_e.get("instances") or []):
+            _modes = _inst.get("modes") or []
+            if not _modes:
+                continue
+            _best = max(_modes, key=lambda m: (m.get("progress", {}).get("completed_count", 0),
+                                               _DRANK.get(m.get("difficulty", {}).get("name", ""), 0)))
+            _pr = _best.get("progress", {})
+            _bd = {m.get("difficulty", {}).get("name"): m.get("progress", {}) for m in _modes}
+            _tot = next((v.get("total_count") for v in _bd.values() if v.get("total_count")), 8)
+            raid_hist.append({"exp": _ename, "name": _inst.get("instance", {}).get("name"),
+                              "n": _pr.get("completed_count", 0), "total": _pr.get("total_count", _tot),
+                              "diff": (_best.get("difficulty", {}).get("name", "") or "")[:1],
+                              "rows": [{"diff": dn, "n": _bd.get(dn, {}).get("completed_count", 0), "total": _tot}
+                                       for dn in ("Normal", "Heroic", "Mythic")]})
     if exps:
-        _DRANK = {"Raid Finder": 1, "Normal": 2, "Heroic": 3, "Mythic": 4}
         for inst in reversed((exps[-1].get("instances") or [])):
             modes = inst.get("modes") or []
             if modes:
@@ -316,7 +336,7 @@ def get_character(region, realm, name):
         "last_seen": _ago(p.get("last_login_timestamp")),
         "last_login": p.get("last_login_timestamp"),
         "mplus_rating": round(rating) if rating else None,
-        "raid": raid_str, "raid_name": raid_name, "raid_rows": raid_rows,
+        "raid": raid_str, "raid_name": raid_name, "raid_rows": raid_rows, "raid_hist": raid_hist,
         "professions": [x["name"] for x in prof_rows], "prof_rows": prof_rows,
         "gear": gear, "runs": runs,
         "mounts": len(mounts.get("mounts") or []) if not mounts.get("_error") else None,

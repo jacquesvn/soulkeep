@@ -3,7 +3,7 @@ which pulls live character data from /api/roster. Run:  python app.py  (or the p
 import json, os, secrets, shutil, socket, sys, threading, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-VERSION = "1.16.2"
+VERSION = "1.17.0"
 REPO = "jacquesvn/soulkeep"  # update banner watches this repo's latest release
 import webview
 from flask import Flask, render_template, request, jsonify, redirect, send_file
@@ -31,11 +31,35 @@ def save_roster(r):
 def key(c):
     return (c["region"].lower(), c["realm"].lower(), c["name"].lower())
 
+_CURRENT_TIER = None
+def current_tier():
+    global _CURRENT_TIER
+    if _CURRENT_TIER is None:
+        _CURRENT_TIER = staticdata.load("current") or {}
+    return _CURRENT_TIER
+
+def apply_current_raid(c):
+    """Front-page only the live tier's raid; history stays in raid_hist for the Hall of Ages."""
+    cur = current_tier()
+    names = [n for n in (cur.get("raids") or []) if n != cur.get("world")]
+    if not names or not isinstance(c, dict) or c.get("error"):
+        return c
+    hits = [h for h in (c.get("raid_hist") or []) if h.get("name") in names]
+    if hits:
+        f = max(hits, key=lambda h: (h.get("n", 0), names.index(h["name"])))
+        c["raid"] = f"{f.get('n')}/{f.get('total')}{f.get('diff', '')}"
+        c["raid_name"], c["raid_rows"] = f.get("name"), f.get("rows") or []
+    else:
+        c["raid"], c["raid_name"], c["raid_rows"] = None, None, []
+    c["raid_season"] = cur.get("expansion")
+    return c
+
 def fetch_all(roster):
     if not roster:
         return []
     with ThreadPoolExecutor(max_workers=min(8, len(roster))) as pool:
-        return list(pool.map(lambda e: wowapi.get_character(e["region"], e["realm"], e["name"]), roster))
+        return list(pool.map(lambda e: apply_current_raid(
+            wowapi.get_character(e["region"], e["realm"], e["name"])), roster))
 
 @app.route("/")
 def index():
@@ -123,7 +147,7 @@ def api_add():
     r = load_roster()
     if any(key(x) == key(e) for x in r):
         return jsonify({"error": "already on the roster"}), 409
-    c = wowapi.get_character(e["region"], e["realm"], e["name"])
+    c = apply_current_raid(wowapi.get_character(e["region"], e["realm"], e["name"]))
     r.append(e)
     save_roster(r)
     c["entry"] = e
@@ -231,7 +255,7 @@ def api_addon_install():
 def api_static(name):
     if name == "status":
         return jsonify(staticdata.status())
-    if name not in ("mounts", "pets", "toys", "journal", "recipes", "season", "tmog", "weapons", "armorlooks"):
+    if name not in ("mounts", "pets", "toys", "journal", "recipes", "season", "tmog", "weapons", "armorlooks", "current"):
         return jsonify({"error": "unknown"}), 404
     return jsonify({"data": staticdata.load(name)})
 

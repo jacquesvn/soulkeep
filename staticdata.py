@@ -461,12 +461,29 @@ def build_season(region="eu"):
                      "dungeons": [{"id": x["id"], "name": x["name"]} for x in (d.get("dungeons") or [])]})
     _log(f"season: id {cur}")
 
+def build_current(region="eu"):
+    """What raid tier is live right now — from the journal's Current Season pseudo-tier."""
+    BUILD["step"] = "current tier"
+    ns = f"static-{region}"
+    idx = wowapi._get(region, "/data/wow/journal-expansion/index", ns)
+    tiers = idx.get("tiers") or []
+    cur = next((t for t in tiers if t.get("name") == "Current Season"), None)
+    raids, exp = [], None
+    if cur:
+        det = wowapi._get(region, f"/data/wow/journal-expansion/{cur['id']}", ns)
+        raids = [r.get("name") for r in (det.get("raids") or []) if r.get("name")]
+    real = [t for t in tiers if t.get("name") != "Current Season" and t.get("id")]
+    if real:
+        exp = max(real, key=lambda t: t["id"]).get("name")  # journal ids grow with release
+    _save("current", {"expansion": exp, "raids": raids, "world": raids[0] if raids else None})
+    _log(f"current: {exp} — {len(raids)} season raids")
+
 def build_all(region="eu"):
     if BUILD["running"]:
         return
     BUILD.update(running=True, log=[])
     try:
-        for fn in (build_season, build_mounts, build_toys, build_journal, build_recipes, augment_recipes, build_pets, augment_media, augment_pets_3d, build_tmog, augment_toys_use, build_armory, augment_armory_items, augment_tmog_classes, build_armorlooks):
+        for fn in (build_season, build_current, build_mounts, build_toys, build_journal, build_recipes, augment_recipes, build_pets, augment_media, augment_pets_3d, build_tmog, augment_toys_use, build_armory, augment_armory_items, augment_tmog_classes, build_armorlooks):
             try:
                 fn(region)
             except Exception as e:

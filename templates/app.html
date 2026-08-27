@@ -220,9 +220,9 @@ button{font-family:Barlow,system-ui,sans-serif}
 .vtitle{margin:0;font-family:Cinzel,serif;font-weight:600;font-size:34px;letter-spacing:.1em;line-height:1;background:linear-gradient(180deg, var(--ink), rgba(237,233,255,.6));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
 .app[data-theme="dawn"] .vtitle{background:linear-gradient(180deg, var(--ink), rgba(36,26,82,.6));-webkit-background-clip:text;background-clip:text;}
 .vtabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
-.vtab{background:rgba(237,233,255,.05);border:1px solid rgba(237,233,255,.09);color:var(--muted);border-radius:999px;padding:7px 15px;font:500 12.5px Barlow,sans-serif;cursor:pointer;letter-spacing:.03em;transition:background .15s,color .15s;}
-.vtab:hover{color:var(--ink);background:rgba(177,92,255,.1)}
-.vtab.on{background:linear-gradient(135deg, var(--deep), var(--violet));color:#FBF6FF;border-color:rgba(199,125,255,.5);}
+.vtab{background:rgba(237,233,255,.05);border:1px solid rgba(237,233,255,.09);color:var(--muted);border-radius:999px;padding:7px 15px;font:500 12.5px Barlow,sans-serif;cursor:pointer;letter-spacing:.03em;transition:background .15s,color .15s,box-shadow .2s;}
+.vtab:hover{color:var(--ink);background:rgba(177,92,255,.1);box-shadow:0 0 18px -4px rgba(177,92,255,.5)}
+.vtab.on{background:linear-gradient(135deg, var(--deep), var(--violet));color:#FBF6FF;border-color:rgba(199,125,255,.5);box-shadow:0 0 20px -5px rgba(177,92,255,.65);}
 .tbl{width:100%;border-collapse:collapse;font-size:13px;}
 .tbl th{text-align:left;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:500;padding:6px 10px;border-bottom:1px solid var(--line);}
 .tbl td{padding:7px 10px;border-bottom:1px solid rgba(177,92,255,.07);vertical-align:middle;}
@@ -403,7 +403,7 @@ button{font-family:Barlow,system-ui,sans-serif}
 .fitbar input{width:112px;}
 .fitbar .gbtn{background:rgba(237,233,255,.06);border:1px solid rgba(237,233,255,.12);color:var(--ink);
   border-radius:999px;padding:4px 9px;font:600 11px Barlow,sans-serif;cursor:pointer;flex:0 0 auto;}
-.fitbar .gbtn:hover{background:rgba(177,92,255,.25);}
+.fitbar .gbtn:hover{background:rgba(177,92,255,.25);box-shadow:0 0 14px -3px rgba(177,92,255,.6);}
 .lb3d-btn{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:2;
   background:linear-gradient(135deg, var(--deep), var(--violet));color:#FBF6FF;
   border:1px solid rgba(199,125,255,.6);border-radius:999px;padding:10px 22px;
@@ -1109,6 +1109,12 @@ function renderDetail() {
       <div class="rr-head"><span>${r.diff}</span><span class="n">${r.n} / ${r.total}</span></div>
       <div class="segs">${Array.from({ length: r.total }, (_, i) => `<div class="seg ${i < r.n ? segCls[r.diff] : ''}"></div>`).join('')}</div>
     </div>`).join('');
+  const histRows = (c.raid_hist || []).filter(h => h.name !== c.raid_name).slice().reverse().map(h => `
+    <div style="display:flex;gap:8px;align-items:baseline;font-size:12.5px">
+      <span style="color:var(--muted);font-size:10px;letter-spacing:.06em;min-width:112px;flex:0 0 auto">${esc(h.exp || '')}</span>
+      <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(h.name)}</span>
+      <span style="margin-left:auto;flex:0 0 auto;font-variant-numeric:tabular-nums;color:${h.n >= h.total ? 'var(--good)' : 'var(--ink)'}">${h.n}/${h.total}${esc(h.diff || '')}</span>
+    </div>`).join('');
   const profs = (c.prof_rows || []).map(p => `
     <div class="prof-row"><span class="n">${esc(p.name)}</span>
       <div class="prof-track"><i style="width:${Math.min(100, p.skill / p.max * 100)}%"></i></div>
@@ -1145,11 +1151,19 @@ function renderDetail() {
         <div class="p-eyebrow" style="margin-bottom:14px">Gear</div>
         ${gear ? `<div class="gear-grid">${gear}</div>` : '<div class="empty-s" style="color:var(--muted)">No equipment data.</div>'}
       </div>
-      ${(c.raid_rows || []).length ? `
+      ${((c.raid_rows || []).length || (c.raid_hist || []).length) ? `
       <div class="panel">
-        <div class="p-eyebrow" style="margin-bottom:4px">Raid</div>
+        <div class="p-eyebrow" style="margin-bottom:4px">Raid${c.raid_season ? ' · ' + esc(c.raid_season) : ''}</div>
+        ${(c.raid_rows || []).length ? `
         <div class="raid-name">${esc(c.raid_name || '')}</div>
-        <div class="raid-rows">${raidRows}</div>
+        <div class="raid-rows">${raidRows}</div>` : `
+        <div class="raid-name" style="color:var(--muted)">Awaiting first blood</div>
+        <div class="hintline">No kills in the current tier yet — the season awaits.</div>`}
+        ${histRows ? `
+        <details style="margin-top:14px">
+          <summary class="hintline" style="cursor:pointer;letter-spacing:.12em;text-transform:uppercase;font-size:10px;list-style-position:inside">⚔ Hall of Ages · ${(c.raid_hist || []).filter(h => h.name !== c.raid_name).length} raids of old</summary>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px">${histRows}</div>
+        </details>` : ''}
       </div>` : ''}
       ${(c.mounts != null || c.pets != null) ? `
       <div class="coll-grid">
@@ -1588,12 +1602,12 @@ function pager(total, per, page, varName, renderFn) {
   </div>`;
 }
 /* ---------- TRANSMOG: the wardrobe ---------- */
-let tmogData = null, tmogMine = null, tmogFilter = 'all', tmogPage = 0, tmogArmor = null, tmogSort = 'closest';
+let tmogData = null, tmogMine = null, tmogFilter = 'all', tmogPage = 0, tmogArmor = null, tmogSort = 'closest', tmogSlot = null;
 let tmogSection = (S.tmogSection || 'sets'), wpnFamily = null, wpnClass = null;
 const WPN_FAMILY = { 'One-Hand': ['WEAPON', 'WEAPONMAINHAND'], 'Two-Hand': ['TWOHWEAPON'],
   'Shield': ['SHIELD'], 'Off-hand': ['HOLDABLE', 'WEAPONOFFHAND'], 'Ranged': ['RANGED', 'RANGEDRIGHT'] };
 function tmogSetSection(sec) {
-  tmogSection = sec; tmogPage = 0; tmogFilter = 'all'; wpnFamily = null; wpnClass = null; tmogArmor = null;
+  tmogSection = sec; tmogPage = 0; tmogFilter = 'all'; wpnFamily = null; wpnClass = null; tmogArmor = null; tmogSlot = null;
   S.tmogSection = sec; saveSettings();
   document.querySelectorAll('#tmog-sections .vtab').forEach(b => b.classList.toggle('on', b.dataset.t === sec));
   $('tmog-search').placeholder = sec === 'weapons' ? 'Search weapons…' : 'Search sets…';
@@ -1768,20 +1782,41 @@ function renderTmogFilters() {
   const rows = tmogSetState();
   const counts = { all: rows.length, complete: 0, partial: 0, unstarted: 0 };
   rows.forEach(r => { if (counts[r.state] != null) counts[r.state]++; });
-  const state = [
+  let state = [
     ['all', 'All'], ['complete', '✓ Complete'], ['partial', 'In progress'], ['unstarted', 'Unclaimed'],
   ].map(([k, l]) => `<button class="vtab ${tmogFilter === k ? 'on' : ''}" onclick="tmogFilter='${k}';tmogPage=0;renderTmogFilters();renderTmogGrid()">${l} · ${counts[k] ?? 0}</button>`).join('');
   const haveAc = (tmogData.sets || []).some(x => x.ac);
   const byAc = {};
   (tmogData.sets || []).forEach(x => { if (x.ac) byAc[x.ac] = (byAc[x.ac] || 0) + 1; });
   const armor = haveAc ? '<span style="flex-basis:100%;height:0"></span>' + ARMOR_CLASSES.filter(a => byAc[a]).map(a =>
-    `<button class="vtab ${tmogArmor === a ? 'on' : ''}" style="padding:4px 11px;font-size:11px" onclick="tmogArmor=tmogArmor==='${a}'?null:'${a}';tmogPage=0;renderTmogFilters();renderTmogGrid()">${a} · ${byAc[a]}</button>`).join('')
-    + (Object.keys(byAc).some(a => !ARMOR_CLASSES.includes(a)) ? `<button class="vtab ${tmogArmor === '__other' ? 'on' : ''}" style="padding:4px 11px;font-size:11px" onclick="tmogArmor=tmogArmor==='__other'?null:'__other';tmogPage=0;renderTmogFilters();renderTmogGrid()">Other · ${Object.entries(byAc).filter(([a]) => !ARMOR_CLASSES.includes(a)).reduce((n, [, v]) => n + v, 0)}</button>` : '')
+    `<button class="vtab ${tmogArmor === a ? 'on' : ''}" style="padding:4px 11px;font-size:11px" onclick="tmogArmor=tmogArmor==='${a}'?null:'${a}';tmogSlot=null;tmogPage=0;renderTmogFilters();renderTmogGrid()">${a} · ${byAc[a]}</button>`).join('')
+    + (Object.keys(byAc).some(a => !ARMOR_CLASSES.includes(a)) ? `<button class="vtab ${tmogArmor === '__other' ? 'on' : ''}" style="padding:4px 11px;font-size:11px" onclick="tmogArmor=tmogArmor==='__other'?null:'__other';tmogSlot=null;tmogPage=0;renderTmogFilters();renderTmogGrid()">Other · ${Object.entries(byAc).filter(([a]) => !ARMOR_CLASSES.includes(a)).reduce((n, [, v]) => n + v, 0)}</button>` : '')
     : '';
   const sort = `<button class="vtab" style="margin-left:8px;padding:4px 11px;font-size:11px" onclick="tmogSort=tmogSort==='closest'?'az':tmogSort==='az'?'largest':'closest';renderTmogFilters();renderTmogGrid()">Sort · ${tmogSort === 'closest' ? 'Closest' : tmogSort === 'az' ? 'A-Z' : 'Largest'}</button>`;
-  $('tmog-filters').innerHTML = state + sort + armor;
+  let slots = '';
+  if (tmogArmor && ARMOR_CLASSES.includes(tmogArmor)) {
+    if (atlas === null) loadAtlas().then(() => { renderTmogFilters(); renderTmogGrid(); });
+    const inner = atlas && Object.keys(atlas).length ? TMOG_ARMOR_SLOTS.map(([k, l]) => {
+      const n = (atlas[k] || []).filter(x => x.c === tmogArmor).length;
+      if (!n) return '';
+      return `<button class="vtab ${tmogSlot === k ? 'on' : ''}" style="padding:3px 10px;font-size:10.5px" onclick="tmogSlot=tmogSlot==='${k}'?null:'${k}';tmogPage=0;renderTmogFilters();renderTmogGrid()">${l} · ${n.toLocaleString('en-US')}</button>`;
+    }).join('') : '<span class="hintline" style="align-self:center">unrolling the Great Atlas…</span>';
+    slots = '<span style="flex-basis:100%;height:0"></span><span class="hintline" style="align-self:center;letter-spacing:.14em;text-transform:uppercase;font-size:9px">Slots</span>' + inner;
+    if (tmogSlot && atlas && atlas[tmogSlot]) {
+      const have = new Set(tmogMine.appearances || []);
+      const pieces = atlas[tmogSlot].filter(x => x.c === tmogArmor);
+      const kept = pieces.filter(x => have.has(x.a)).length;
+      state = [['all', `All · ${pieces.length.toLocaleString('en-US')}`], ['complete', `✓ Kept · ${kept}`], ['unstarted', `Unclaimed · ${(pieces.length - kept).toLocaleString('en-US')}`]]
+        .map(([k, l]) => `<button class="vtab ${tmogFilter === k ? 'on' : ''}" onclick="tmogFilter='${k}';tmogPage=0;renderTmogFilters();renderTmogGrid()">${l}</button>`).join('');
+    }
+  }
+  $('tmog-filters').innerHTML = state + sort + armor + slots;
 }
+const TMOG_ARMOR_SLOTS = [
+  ['HEAD', 'Head'], ['SHOULDER', 'Shoulder'], ['CLOAK', 'Cloak'], ['CHEST', 'Chest'],
+  ['WRIST', 'Wrist'], ['HAND', 'Hands'], ['WAIST', 'Waist'], ['LEGS', 'Legs'], ['FEET', 'Feet']];
 function renderTmogGrid() {
+  if (tmogSlot && tmogArmor && ARMOR_CLASSES.includes(tmogArmor)) { renderTmogPieces(); return; }
   const body = $('tmog-body');
   let rows = tmogSetState().filter(r => r.m > 0);
   if (tmogFilter !== 'all') rows = rows.filter(r => r.state === tmogFilter);
@@ -1906,6 +1941,62 @@ async function tmogLb(setId) {
       <span class="have">${have.has(a) ? '<span class="good">✓</span>' : '<span style="color:var(--muted)">☾</span>'}</span>
     </div>`;
   }).join('');
+}
+
+function renderTmogPieces() {
+  const body = $('tmog-body');
+  if (!atlas || !atlas[tmogSlot]) {
+    body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">Unrolling the Great Atlas…</div></div>';
+    return;
+  }
+  const have = new Set(tmogMine.appearances || []);
+  let rows = atlas[tmogSlot].filter(x => x.c === tmogArmor);
+  if (tmogFilter === 'complete') rows = rows.filter(x => have.has(x.a));
+  else if (tmogFilter === 'unstarted') rows = rows.filter(x => !have.has(x.a));
+  const q = ($('tmog-search').value || '').toLowerCase();
+  if (q) rows = rows.filter(x => (x.n || '').toLowerCase().includes(q));
+  if (tmogSort === 'az') rows.sort((a, b) => (a.n || '').localeCompare(b.n || ''));
+  else rows.sort((a, b) => (have.has(b.a) ? 1 : 0) - (have.has(a.a) ? 1 : 0) || (a.n || '').localeCompare(b.n || ''));
+  const PAGE = 96;
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE));
+  if (tmogPage >= pages) tmogPage = pages - 1;
+  const pageRows = rows.slice(tmogPage * PAGE, (tmogPage + 1) * PAGE);
+  body.innerHTML = rows.length ? `
+    <div class="setgrid">${pageRows.map(x => `
+      <div class="setcard glass ${have.has(x.a) ? 'done' : ''}" role="button" tabindex="0" onclick="tmogPieceLb('${tmogSlot}',${x.a})">
+        ${x.i ? `<img src="/api/icon/${x.i}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div style="width:40px"></div>'}
+        <div class="sm">
+          <div class="sn">${esc(x.n)}</div>
+          <div class="sc"><span class="sv">${have.has(x.a) ? '✓ kept' : '☾ unclaimed'}</span></div>
+        </div>
+      </div>`).join('')}</div>
+    ${pager(rows.length, PAGE, tmogPage, 'tmogPage', 'renderTmogGrid')}`
+    : '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">No looks here</div></div>';
+}
+const PIECE_SLOT_TYPE = { HEAD: 1, SHOULDER: 3, BODY: 4, CHEST: 5, WAIST: 6, LEGS: 7, FEET: 8, WRIST: 9, HAND: 10, CLOAK: 16, TABARD: 19 };
+function tmogPieceLb(key, aid) {
+  const x = (atlas[key] || []).find(w => w.a === aid);
+  if (!x) return;
+  const have = new Set(tmogMine.appearances || []);
+  $('lb-hero').innerHTML = x.i ? `<img class="iconic" src="/api/icon/${x.i}" alt="">` : `<div class="ph">${esc((x.n || '?')[0])}</div>`;
+  $('lb-name').textContent = x.n;
+  const lbl = (TMOG_ARMOR_SLOTS.find(([k]) => k === key) || [key, key])[1];
+  $('lb-chips').innerHTML = [
+    x.c ? `<span class="chip"><span class="v">${esc(x.c)}</span></span>` : '',
+    `<span class="chip"><span class="v">${esc(lbl)}</span></span>`,
+    have.has(x.a) ? '<span class="chip kept-chip"><span class="v">✓ Kept</span></span>'
+                  : '<span class="chip miss-chip"><span class="v">☾ The hunt continues</span></span>',
+  ].join('');
+  const dEl = $('lb-desc'); dEl.style.display = 'none'; dEl.innerHTML = '';
+  $('lb-guide').onclick = () => openGuide(x.n);
+  $('lb-extra').innerHTML = ''; $('lb-count').textContent = '';
+  lbPool = [];
+  document.querySelectorAll('.lb-nav').forEach(b => b.style.display = 'none');
+  tmogPieces = x.d ? [{ slot_type: PIECE_SLOT_TYPE[key] || 5, disp: x.d }] : [];
+  if (tmogPieces.length) {
+    $('lb-extra').innerHTML = `<button class="lb3d-btn" style="position:static;transform:none;animation:btnpulse 2.6s ease-in-out infinite" onclick="lbFit()">⚜ Fit on a model</button>`;
+  }
+  $('lb-back').classList.add('open');
 }
 
 /* ---------- THE OUTFIT STUDIO ---------- */
