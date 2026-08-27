@@ -118,3 +118,13 @@ Curveballs caught and shipped, all field-verified, all released:
   nav 1-8, board name click-through, profit guide links, reputation filter.
 Lore ledger: 1,500 points. CRUSADE CONTINUES: round 2 planned (week-reset countdown on Board,
 gear-row guide links, last-seen sort, hotkey legend in Settings, easy-marks reroll, dynamic title).
+
+## SIX BANNERS + THE GREAT ATLAS (2026-08-27, braced mid-march) — v1.13.0 RELEASED
+"Do 1 to 7" from the feature menu. SHIPPED: My-Look-3D (character's real transmog on their true
+race/gender mannequin — /api/charlook), Achievement Hunter (Progress tab, 40 closest, ach_reqs
+grow-cache), Tonight's Best Targets planner (War Board), token alert + Deal Sniper, Brag card
+forge (Pillow, Settings -> Bragging Rights), milestone toasts. Build cmd now needs
+--hidden-import PIL.* . PENDING: #2 OUTFIT STUDIO — the Great Atlas sweep (build_armorlooks,
+~39k endpoints, per-slot incremental saves in data/armorlooks.json, RESUMABLE: re-run skips
+finished slots) marches in background; when complete -> build Studio (third Transmog section,
+per-slot pickers, save/load outfits) -> ship v1.14.0. Fourteen releases so far (v1.1.0-v1.13.0).

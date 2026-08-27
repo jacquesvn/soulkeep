@@ -1,0 +1,58 @@
+armorlooks/HEAD: 3308 named (of 5088)
+Traceback (most recent call last):
+  File "C:\Python314\Lib\http\client.py", line 584, in _get_chunk_left
+    chunk_left = self._read_next_chunk_size()
+  File "C:\Python314\Lib\http\client.py", line 551, in _read_next_chunk_size
+    return int(line, 16)
+ValueError: invalid literal for int() with base 16: b''
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\http\client.py", line 602, in _read_chunked
+    while (chunk_left := self._get_chunk_left()) is not None:
+                         ~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\http\client.py", line 586, in _get_chunk_left
+    raise IncompleteRead(b'')
+http.client.IncompleteRead: IncompleteRead(0 bytes read)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import sys; sys.stdout.reconfigure(encoding='utf-8'); import staticdata; staticdata.build_armorlooks('eu')
+                                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\Jacques Code\WoW Roster\staticdata.py", line 443, in build_armorlooks
+    rows = _many(refs, one, workers=8)
+  File "D:\Jacques Code\WoW Roster\staticdata.py", line 40, in _many
+    for r in pool.map(fn, items):
+             ~~~~~~~~^^^^^^^^^^^
+  File "C:\Python314\Lib\concurrent\futures\_base.py", line 639, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Python314\Lib\concurrent\futures\_base.py", line 311, in _result_or_cancel
+    return fut.result(timeout)
+           ~~~~~~~~~~^^^^^^^^^
+  File "C:\Python314\Lib\concurrent\futures\_base.py", line 450, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\concurrent\futures\_base.py", line 395, in __get_result
+    raise self._exception
+  File "C:\Python314\Lib\concurrent\futures\thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "C:\Python314\Lib\concurrent\futures\thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "D:\Jacques Code\WoW Roster\staticdata.py", line 435, in one
+    d = wowapi._get(region, f"/data/wow/item-appearance/{a['id']}", ns)
+  File "D:\Jacques Code\WoW Roster\wowapi.py", line 74, in _get
+    return json.load(r)
+           ~~~~~~~~~^^^
+  File "C:\Python314\Lib\json\__init__.py", line 298, in load
+    return loads(fp.read(),
+                 ~~~~~~~^^
+  File "C:\Python314\Lib\http\client.py", line 478, in read
+    return self._read_chunked(amt)
+           ~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Python314\Lib\http\client.py", line 614, in _read_chunked
+    raise IncompleteRead(b''.join(value)) from exc
+http.client.IncompleteRead: IncompleteRead(789 bytes read)
