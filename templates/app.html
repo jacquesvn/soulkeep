@@ -644,6 +644,7 @@ button{font-family:Barlow,system-ui,sans-serif}
       <div class="vtabs" id="prog-tabs">
         <button class="vtab on" data-t="charts" onclick="progTab('charts')">Charts</button>
         <button class="vtab" data-t="reps" onclick="progTab('reps')">Reputations</button>
+        <button class="vtab" data-t="ach" onclick="progTab('ach')">Achievements</button>
       </div>
       <div id="prog-body"></div>
     </section>
@@ -708,6 +709,11 @@ button{font-family:Barlow,system-ui,sans-serif}
           <button class="sw" id="sw-refresh" role="switch" aria-checked="true" aria-label="Auto refresh" onclick="toggle('autoRefresh',this)"><i></i></button>
         </div>
         <div class="dr-sync" id="dr-sync">Last sync · —</div>
+        <div class="set-row">
+          <div><div class="set-l">Token alert</div><div class="set-d">Toast when the WoW Token drops below this gold</div></div>
+          <input id="token-alert" placeholder="e.g. 300000" style="width:90px;background:rgba(237,233,255,.06);border:1px solid rgba(237,233,255,.12);color:var(--ink);border-radius:999px;padding:5px 11px;font:500 12px Barlow,sans-serif"
+                 onchange="S.tokenAlert=parseInt(this.value.replace(/\D/g,''),10)||null;saveSettings()">
+        </div>
       </div>
       <div>
         <div class="dr-sect">Game Data (addon)</div>
@@ -727,6 +733,13 @@ button{font-family:Barlow,system-ui,sans-serif}
         <div class="set-row">
           <div><div class="set-l">3D model cache</div><div class="set-d" id="zam-size">…</div></div>
           <button class="pill-btn" style="flex:0 0 auto" onclick="zamClear(this)">Clear</button>
+        </div>
+      </div>
+      <div>
+        <div class="dr-sect">Bragging Rights</div>
+        <div class="set-row">
+          <div><div class="set-l">Brag card</div><div class="set-d">Forge a share-image of your account's glory</div></div>
+          <button class="pill-btn" style="flex:0 0 auto" id="brag-btn" onclick="forgeBrag(this)">⚒ Forge</button>
         </div>
       </div>
       <div>
@@ -764,7 +777,7 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp
 const num = n => (n == null ? '—' : Number(n).toLocaleString('en-US'));
 const ekey = e => `${e.region}/${e.realm}/${e.name}`;
 
-function saveSettings() { try { localStorage.setItem('wr-settings', JSON.stringify({ theme: S.theme, showSlumber: S.showSlumber, motion: S.motion, autoRefresh: S.autoRefresh, collapsed: S.collapsed, sbMode: S.sbMode, sort: S.sort, v2: S.v2, collKind: S.collKind, tmogSection: S.tmogSection })); } catch (e) {} }
+function saveSettings() { try { localStorage.setItem('wr-settings', JSON.stringify({ theme: S.theme, showSlumber: S.showSlumber, motion: S.motion, autoRefresh: S.autoRefresh, collapsed: S.collapsed, sbMode: S.sbMode, sort: S.sort, v2: S.v2, collKind: S.collKind, tmogSection: S.tmogSection, tokenAlert: S.tokenAlert })); } catch (e) {} }
 
 function sbSetCollapsed(vis) {  // purely visual — S.collapsed only changes in static mode
   $('app').classList.toggle('sb-collapsed', vis);
@@ -1097,6 +1110,7 @@ function renderDetail() {
       </div>
     </div>
     <div class="hero-stats">
+      <div class="hs" style="align-self:center"><button class="pill-btn" style="flex:0 0 auto" onclick="charLook3d()" title="Your character, your transmog, in 3D">⚜ My look in 3D</button></div>
       <div class="hs"><div class="stat-label">Item Level</div><div class="v c-gold">${c.ilvl ?? '—'}</div></div>
       <div class="hs"><div class="stat-label">Mythic+</div><div class="v c-teal">${c.mplus_rating ?? '—'}</div></div>
       <div class="hs"><div class="stat-label">Raid</div><div class="v c-raid">${c.raid || '—'}</div></div>
@@ -1163,6 +1177,39 @@ function renderDetail() {
     </div>
   </div>`;
   loadDetailExtras(c);
+}
+
+/* ---------- your character in 3D ---------- */
+async function charLook3d() {
+  const c = currentDetail();
+  if (!c) return;
+  const e = c.entry;
+  $('lb-hero').innerHTML = '<div class="ph" style="padding:60px 0;text-align:center;font-size:30px">⚜</div>';
+  $('lb-name').textContent = c.name;
+  $('lb-chips').innerHTML = '<span class="chip"><span class="v">summoning their true look…</span></span>';
+  const dEl = $('lb-desc'); dEl.style.display = 'none';
+  $('lb-guide').onclick = () => openGuide(c.name + ' ' + (c.realm || ''));
+  $('lb-extra').innerHTML = ''; $('lb-count').textContent = '';
+  lbPool = []; document.querySelectorAll('.lb-nav').forEach(b => b.style.display = 'none');
+  $('lb-back').classList.add('open');
+  try {
+    const j = await (await fetch(`/api/charlook/${e.region}/${e.realm}/${e.name}`)).json();
+    if (!$('lb-back').classList.contains('open')) return;
+    if (j.error || !(j.items || []).length) { $('lb-chips').innerHTML = '<span class="chip miss-chip"><span class="v">their look could not be summoned</span></span>'; return; }
+    const race = RACES.find(r => (j.race || '').includes(r[0])) || RACES[0];
+    const chrId = (j.gender === 'FEMALE') ? race[2] : race[1];
+    const CHAR_SLOT = { HEAD: 1, SHOULDER: 3, SHIRT: 4, CHEST: 5, WAIST: 6, LEGS: 7, FEET: 8,
+      WRIST: 9, HANDS: 10, BACK: 16, TABARD: 19, MAIN_HAND: 21, OFF_HAND: 22 };
+    const items = j.items.filter(x => CHAR_SLOT[x.slot_type]).map(x => CHAR_SLOT[x.slot_type] + ':' + x.disp).join(',');
+    $('lb-hero').innerHTML = `<iframe class="lb3d" style="height:430px" src="/mv?d=${chrId}&t=16&items=${items}" title="Their true look — drag to turn"></iframe>
+      <button class="mv-expand" title="Grand view" onclick="mvExpand()">⛶</button>`;
+    $('lb-chips').innerHTML = [
+      `<span class="chip"><span class="v">${esc(j.race || '')}</span></span>`,
+      c.spec ? `<span class="chip"><span class="v">${esc(c.spec)} ${esc(c.class)}</span></span>` : '',
+      '<span class="chip kept-chip"><span class="v">⚜ as transmogged</span></span>',
+    ].join('');
+    $('lb-extra').innerHTML = '<span class="hintline">drag to turn · scroll to zoom</span>';
+  } catch (err) { $('lb-chips').innerHTML = '<span class="chip miss-chip"><span class="v">the mirror clouded — try again</span></span>'; }
 }
 
 /* ---------- detail extras: upgrade finder + M+ season ---------- */
@@ -1329,7 +1376,27 @@ function renderBoard() {
         <div class="wcell"><span class="wlabel">Export</span><span class="wval" style="color:var(--muted)">${g ? agoStr(g.ts) : '—'}</span></div>
       </div>
     </div>`;
-  }).join('') + `<div class="hintline" style="margin-top:14px">Vault slots fill as you play; the board reads your addon exports + this week's runs from the API. Log an alt out to refresh their column.</div>`;
+  }).join('') + `<div class="panel" style="margin-top:16px">
+      <div class="p-eyebrow" style="margin-bottom:10px">Tonight's Best Targets · one run, many alts</div>
+      <div id="planner-body" class="hintline">consulting the war maps…</div>
+    </div>
+    <div class="hintline" style="margin-top:14px">Vault slots fill as you play; the board reads your addon exports + this week's runs from the API. Log an alt out to refresh their column.</div>`;
+  loadPlanner();
+}
+async function loadPlanner() {
+  try {
+    const j = await (await fetch('/api/planner')).json();
+    const el = $('planner-body');
+    if (!el) return;
+    el.classList.remove('hintline');
+    el.innerHTML = (j.rows || []).length ? j.rows.slice(0, 5).map(r => `
+      <div class="run" style="align-items:flex-start">
+        <span style="flex:0 0 34px" class="k good">${r.score}⚔</span>
+        <span style="min-width:150px;font-weight:600">${esc(r.instance)}</span>
+        <span class="s" style="margin-left:auto;text-align:right;white-space:normal">${r.chars.map(c => `<b style="color:var(--ink)">${esc(c.name)}</b> <span style="color:var(--muted)">(${c.slots.map(esc).join(', ')})</span>`).join(' · ')}</span>
+      </div>`).join('')
+      : '<div class="hintline">No upgrade overlaps found — the army is well geared, or the journal cache is missing.</div>';
+  } catch (e) {}
 }
 
 /* ---------- COLLECTIONS: The Hunt ---------- */
@@ -1940,6 +2007,10 @@ async function renderEconomy() {
           <div id="movers-body" class="hintline">…</div>
         </div>
         <div class="panel">
+          <div class="p-eyebrow" style="margin-bottom:10px">Deal Sniper</div>
+          <div id="deals-body" class="hintline">…</div>
+        </div>
+        <div class="panel">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
             <div class="p-eyebrow">Price Watch</div>
             <div class="searchpill" style="margin-left:auto"><input id="watch-q" placeholder="Add item…" onkeydown="if(event.key==='Enter')watchSearch()"></div>
@@ -1955,6 +2026,8 @@ async function renderEconomy() {
   tokenChart();
   loadMovers();
   if (ah.ts && !profitBusy) econProfit();
+  if (S.tokenAlert && t && t.price / 10000 <= S.tokenAlert) showToast(`WoW Token at ${goldStr(t.price)} — under your ${S.tokenAlert.toLocaleString('en-US')}g alert!`, 'gold');
+  loadDeals();
   (econ.watches || []).forEach(async w => {
     try {
       const j = await (await fetch('/api/economy/pricehistory?id=' + w.id)).json();
@@ -1980,6 +2053,18 @@ async function loadMovers() {
       <div class="run"><img class="iic" src="/api/icon/${m.id}" alt="" loading="lazy" onerror="this.style.display='none'"><span>${esc(m.name)}</span>
         <span class="s"><span class="${m.pct >= 0 ? 'good' : 'bad'}">${m.pct >= 0 ? '▲' : '▼'}${Math.abs(m.pct)}%</span> · ${goldStr(m.cur)}</span></div>`).join('')
       : '<div class="hintline">Appears when prices actually move between two AH refreshes.</div>';
+  } catch (e) {}
+}
+async function loadDeals() {
+  try {
+    const j = await (await fetch('/api/economy/deals')).json();
+    const el = $('deals-body');
+    if (!el) return;
+    el.classList.remove('hintline');
+    el.innerHTML = (j.rows || []).length ? j.rows.slice(0, 8).map(m => `
+      <div class="run"><img class="iic" src="/api/icon/${m.id}" alt="" loading="lazy" onerror="this.style.display='none'"><span>${esc(m.name)}</span>
+        <span class="s"><span class="good">▼${m.pct}%</span> vs avg · ${goldStr(m.cur)}</span></div>`).join('')
+      : '<div class="hintline">Deals appear when items list well under their historical average (needs a few AH refreshes of history).</div>';
   } catch (e) {}
 }
 function profitTable() {
@@ -2047,6 +2132,7 @@ function progTab(k) {
 async function renderProgress() {
   const body = $('prog-body');
   if (progKind === 'reps') return renderReps();
+  if (progKind === 'ach') return renderAch();
   if (!histRows) {
     body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">Opening the ledger…</div></div>';
     try { histRows = (await (await fetch('/api/history')).json()).rows; } catch (e) { histRows = []; }
@@ -2065,6 +2151,25 @@ async function renderProgress() {
   const fmt = progMetric === 'gold' ? (v => Math.round(v).toLocaleString('en-US') + 'g') : (v => Math.round(v).toLocaleString('en-US'));
   if (pts.length >= 2) drawChart($('prog-chart'), pts, fmt);
   else $('prog-chart').innerHTML = '<div class="hintline">' + (pts.length ? 'one point so far (' + fmt(pts[0].y) + ') — a line needs two; keep playing' : 'no data for this metric yet') + '</div>';
+}
+let achRows = null;
+async function renderAch() {
+  const body = $('prog-body');
+  if (!achRows) {
+    body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">Weighing your deeds…</div></div>';
+    try { achRows = (await (await fetch('/api/achievements')).json()).rows || []; } catch (e) { achRows = []; }
+  }
+  body.innerHTML = achRows.length ? `
+    <div class="p-eyebrow" style="margin-bottom:12px">Closest to glory — finish these first</div>
+    <div class="panel tblwrap"><table class="tbl">
+      <tr><th>Achievement</th><th style="width:34%">Progress</th><th class="num"></th><th></th></tr>
+      ${achRows.map(r => `<tr>
+        <td>${esc(r.name)}</td>
+        <td><div class="pbar gold"><i style="width:${r.pct}%"></i></div></td>
+        <td class="num" style="color:var(--muted)">${r.done.toLocaleString('en-US')} / ${r.total.toLocaleString('en-US')}</td>
+        <td style="width:26px"><span class="guide" style="cursor:pointer;color:var(--glow)" title="Wowhead guide" onclick="openGuide('${esc(r.name).replace(/'/g, "\\'")}')">↗</span></td>
+      </tr>`).join('')}
+    </table></div>` : '<div class="hintline">No near-complete achievements found (or none awake to read them from).</div>';
 }
 let repQ = '';
 async function renderReps() {
@@ -2137,6 +2242,40 @@ function drawChart(el, pts, fmtY) {
   svg.addEventListener('mouseleave', () => { tip.style.display = 'none'; chx.style.display = chd.style.display = 'none'; });
 }
 
+/* ---------- brag card ---------- */
+async function forgeBrag(btn) {
+  btn.disabled = true; btn.textContent = 'forging…';
+  try {
+    const aw = chars.filter(awake);
+    const top = [...aw].sort((a, b) => (b.ilvl || 0) - (a.ilvl || 0))[0] || {};
+    const stats = [
+      { label: 'Souls kept', value: chars.length, tone: 'violet' },
+      { label: 'Champion', value: (top.name || '—') + (top.ilvl ? ' · ' + top.ilvl : ''), tone: 'ink' },
+      { label: 'Gold', value: (() => { const h = Object.values(gdata.chars || {}).reduce((a, g) => a + (g.gold || 0), 0); return h ? goldStr(h) : '—'; })(), tone: 'gold' },
+    ];
+    if (collMine && collIndex.mounts) {
+      stats.push({ label: 'Mounts', value: `${(collMine.mounts || []).length} / ${collIndex.mounts.length}`, tone: 'teal' });
+      stats.push({ label: 'Pets', value: `${(collMine.pets || []).length} / ${collIndex.pets.length}`, tone: 'teal' });
+      stats.push({ label: 'Toys', value: `${(collMine.toys || []).length} / ${collIndex.toys.length}`, tone: 'teal' });
+    }
+    if (tmogMine && tmogData) {
+      const totals = Object.values(tmogData.slot_totals || {}).reduce((a, b) => a + b, 0);
+      const mineAll = (tmogMine.appearances || []).length;
+      stats.push({ label: 'Wardrobe', value: Math.round(mineAll / Math.max(1, totals) * 100) + '%', tone: 'violet' });
+      stats.push({ label: 'Full sets', value: (tmogMine.sets || []).length, tone: 'violet' });
+    }
+    if (typeof armory !== 'undefined' && armory && armory.length && tmogMine) {
+      const have = new Set(tmogMine.appearances || []);
+      stats.push({ label: 'Weapon looks', value: armory.filter(w => have.has(w.a)).length, tone: 'gold' });
+    }
+    await fetch('/api/brag', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stats, footer: 'forged by Soulkeep · ' + new Date().toLocaleDateString() }) });
+    btn.textContent = '⚒ Forged!';
+  } catch (e) { btn.textContent = 'the forge failed'; }
+  btn.disabled = false;
+  setTimeout(() => { btn.textContent = '⚒ Forge'; }, 3000);
+}
+
 /* ---------- static data status ---------- */
 async function loadZam() {
   try {
@@ -2168,9 +2307,61 @@ async function sdBuild() {
 }
 
 /* ---------- settings drawer ---------- */
-function openSettings() { $('drawer').classList.add('open'); $('backdrop').classList.add('open'); $('nav-settings').classList.add('active'); loadAccount(); loadGamedata(); loadStatic(); loadZam(); }
+function openSettings() { $('drawer').classList.add('open'); $('backdrop').classList.add('open'); $('nav-settings').classList.add('active'); loadAccount(); loadGamedata(); loadStatic(); loadZam(); const ta = $('token-alert'); if (ta && S.tokenAlert) ta.value = S.tokenAlert; }
 function closeSettings() { $('drawer').classList.remove('open'); $('backdrop').classList.remove('open'); $('nav-settings').classList.remove('active'); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSettings(); });
+
+/* ---------- milestone toasts ---------- */
+function showToast(msg, tone) {
+  let host = $('toast-host');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'toast-host';
+    host.style.cssText = 'position:absolute;top:64px;left:50%;transform:translateX(-50%);z-index:7;display:flex;flex-direction:column;gap:8px;align-items:center;max-width:92vw';
+    $('app').appendChild(host);
+  }
+  const t = document.createElement('div');
+  t.className = 'updbar';
+  t.style.position = 'static';
+  t.style.transform = 'none';
+  t.innerHTML = `<span class="ic">${tone === 'gold' ? '✦' : '☄'}</span><span>${msg}</span>
+    <button class="rm-btn" style="position:static;opacity:.7;flex:0 0 auto" onclick="this.parentElement.remove()">✕</button>`;
+  host.appendChild(t);
+  setTimeout(() => t.remove(), 20000);
+}
+async function checkMilestones() {
+  try {
+    const rows = (await (await fetch('/api/history')).json()).rows;
+    const seenKey = 'wr-milestones';
+    let seen = {};
+    try { seen = JSON.parse(localStorage.getItem(seenKey) || '{}'); } catch (e) {}
+    const byChar = {};
+    rows.forEach(r => { (byChar[r.k] = byChar[r.k] || []).push(r); });
+    const fired = [];
+    for (const [k, list] of Object.entries(byChar)) {
+      if (list.length < 2) continue;
+      const prev = list[list.length - 2], cur = list[list.length - 1];
+      const name = k.split('-')[0];
+      const marks = [
+        ['ilvl', 25, v => `${name} climbed past ilvl ${v}!`],
+        ['mplus', 250, v => `${name} broke ${v} Mythic+ rating!`],
+        ['mounts', 25, v => `The stable reached ${v} mounts!`],
+      ];
+      for (const [f, step, msg] of marks) {
+        if (cur[f] == null || prev[f] == null) continue;
+        const a = Math.floor(prev[f] / step), b = Math.floor(cur[f] / step);
+        if (b > a) {
+          const id = `${k}:${f}:${b}`;
+          if (!seen[id]) { seen[id] = 1; fired.push(msg(b * step)); }
+        }
+      }
+    }
+    if (fired.length) {
+      localStorage.setItem(seenKey, JSON.stringify(seen));
+      fired.slice(0, 3).forEach(m => showToast(m, 'gold'));
+    }
+  } catch (e) {}
+}
 
 /* ---------- update banner ---------- */
 let updInfo = null;
@@ -2266,6 +2457,7 @@ if (qsBoot.has('imported')) {
 loadAccount();
 loadGamedata();
 checkUpdate();
+setTimeout(checkMilestones, 12000);
 setInterval(checkUpdate, 6 * 3600 * 1000);  // long-running keeps still hear the horn
 loadRoster(true);
 </script>

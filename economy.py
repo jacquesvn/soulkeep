@@ -214,6 +214,41 @@ def movers(limit=12):
     out.sort(key=lambda x: -abs(x["pct"]))
     return out[:limit]
 
+# ---------- deal sniper: current price far under historical average ----------
+def deals(limit=12, min_samples=3, min_discount=25):
+    hist = {}
+    try:
+        for line in open(PRICE_HIST, encoding="utf-8"):
+            r = json.loads(line)
+            hist.setdefault(r["id"], []).append((r["ts"], r["p"]))
+    except OSError:
+        return []
+    names = {x["id"]: x["name"] for x in watches()}
+    rec = staticdata.load("recipes") or {}
+    for r in rec.values():
+        ids = r.get("crafted_ids") or ([r["crafted_id"]] if r.get("crafted_id") else [])
+        for i in ids:
+            names.setdefault(i, r.get("name"))
+    out = []
+    for iid, rows in hist.items():
+        ts = sorted({t for t, _ in rows})
+        if len(ts) < min_samples:
+            continue
+        by = dict(rows)
+        cur = by.get(ts[-1])
+        past = [by[t] for t in ts[:-1] if by.get(t)]
+        if not cur or not past:
+            continue
+        avg = sum(past) / len(past)
+        if avg <= 0:
+            continue
+        pct = round((avg - cur) / avg * 100, 1)
+        if pct >= min_discount:
+            out.append({"id": iid, "name": names.get(iid) or f"item {iid}",
+                        "cur": cur, "avg": int(avg), "pct": pct})
+    out.sort(key=lambda x: -x["pct"])
+    return out[:limit]
+
 # ---------- profit engine ----------
 def profit_for(known_recipe_ids, char_label):
     """Join a character's known recipes against the recipe cache + AH prices."""

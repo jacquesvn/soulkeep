@@ -416,6 +416,41 @@ def augment_tmog_classes(region="eu"):
     _save("tmog", t)
     _log(f"set classes: {sum(1 for x in sets if x.get('ac'))}/{len(sets)}")
 
+ARMOR_LOOK_SLOTS = ["HEAD", "SHOULDER", "BODY", "CHEST", "ROBE", "WAIST", "LEGS",
+                    "FEET", "WRIST", "HAND", "CLOAK", "TABARD"]
+
+def build_armorlooks(region="eu"):
+    """The Great Atlas: every armor appearance in the game, per slot, for the Outfit
+    Studio. ~39k endpoints — saves after every slot and skips completed slots on re-run."""
+    ns = f"static-{region}"
+    atlas = load("armorlooks") or {}
+    for slot in ARMOR_LOOK_SLOTS:
+        if atlas.get(slot):
+            _log(f"armorlooks/{slot}: already {len(atlas[slot])}, skipping")
+            continue
+        idx = wowapi._get(region, f"/data/wow/item-appearance/slot/{slot}", ns)
+        refs = idx.get("appearances") or []
+        BUILD["step"] = f"atlas {slot}"
+        def one(a):
+            d = wowapi._get(region, f"/data/wow/item-appearance/{a['id']}", ns)
+            if d.get("_error") or not d.get("item_display_info_id"):
+                return None
+            its = d.get("items") or []
+            if not its:
+                return None
+            return {"a": a["id"], "d": d["item_display_info_id"], "n": its[0].get("name"),
+                    "i": its[0].get("id"), "c": (d.get("item_subclass") or {}).get("name")}
+        rows = _many(refs, one, workers=8)
+        seen, out = set(), []
+        for r in rows:
+            if r["n"] and r["n"] not in seen:
+                seen.add(r["n"])
+                out.append(r)
+        atlas[slot] = out
+        _save("armorlooks", atlas)
+        _log(f"armorlooks/{slot}: {len(out)} named (of {len(refs)})")
+    _log("armorlooks: ATLAS COMPLETE")
+
 def build_season(region="eu"):
     BUILD["step"] = "season"
     dyn = f"dynamic-{region}"
@@ -431,7 +466,7 @@ def build_all(region="eu"):
         return
     BUILD.update(running=True, log=[])
     try:
-        for fn in (build_season, build_mounts, build_toys, build_journal, build_recipes, augment_recipes, build_pets, augment_media, augment_pets_3d, build_tmog, augment_toys_use, build_armory, augment_armory_items, augment_tmog_classes):
+        for fn in (build_season, build_mounts, build_toys, build_journal, build_recipes, augment_recipes, build_pets, augment_media, augment_pets_3d, build_tmog, augment_toys_use, build_armory, augment_armory_items, augment_tmog_classes, build_armorlooks):
             try:
                 fn(region)
             except Exception as e:

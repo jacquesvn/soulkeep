@@ -3,7 +3,7 @@ which pulls live character data from /api/roster. Run:  python app.py  (or the p
 import json, os, secrets, shutil, socket, sys, threading, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-VERSION = "1.12.0"
+VERSION = "1.13.0"
 REPO = "jacquesvn/soulkeep"  # update banner watches this repo's latest release
 import webview
 from flask import Flask, render_template, request, jsonify, redirect, send_file
@@ -231,7 +231,7 @@ def api_addon_install():
 def api_static(name):
     if name == "status":
         return jsonify(staticdata.status())
-    if name not in ("mounts", "pets", "toys", "journal", "recipes", "season", "tmog", "weapons"):
+    if name not in ("mounts", "pets", "toys", "journal", "recipes", "season", "tmog", "weapons", "armorlooks"):
         return jsonify({"error": "unknown"}), 404
     return jsonify({"data": staticdata.load(name)})
 
@@ -307,6 +307,123 @@ def api_tmog_appearance(aid):
             pass
     return jsonify(_TMOG_APPS[k])
 
+# ---------- brag cards ----------
+@app.route("/api/brag", methods=["POST"])
+def api_brag():
+    """Forge a Midnight-styled share card from live account stats; opens in the viewer."""
+    from PIL import Image, ImageDraw, ImageFilter, ImageFont
+    d = request.get_json(force=True, silent=True) or {}
+    W, H = 1200, 630
+    img = Image.new("RGB", (W, H), (7, 6, 14))
+    dr = ImageDraw.Draw(img)
+    # nebula
+    neb = Image.new("RGB", (W, H), (7, 6, 14))
+    nd = ImageDraw.Draw(neb)
+    nd.ellipse((W - 500, -260, W + 220, 300), fill=(24, 14, 44))
+    nd.ellipse((-260, H - 320, 320, H + 260), fill=(16, 12, 34))
+    neb = neb.filter(ImageFilter.GaussianBlur(120))
+    img = Image.blend(img, neb, 0.85)
+    dr = ImageDraw.Draw(img)
+    import random
+    random.seed(61)
+    for _ in range(90):
+        x, y = random.randint(0, W), random.randint(0, H)
+        r = random.choice((1, 1, 2))
+        col = random.choice([(237, 233, 255), (199, 125, 255), (243, 199, 102)])
+        dr.ellipse((x - r, y - r, x + r, y + r), fill=col)
+    # soulstone
+    cx, cy, r = 150, 150, 62
+    glow = Image.new("RGB", (W, H), (0, 0, 0))
+    gd2 = ImageDraw.Draw(glow)
+    gd2.ellipse((cx - r - 26, cy - r - 26, cx + r + 26, cy + r + 26), fill=(120, 60, 190))
+    glow = glow.filter(ImageFilter.GaussianBlur(30))
+    img = Image.blend(img, glow, 0.35) if False else img
+    dr.ellipse((cx - r - 3, cy - r - 3, cx + r + 3, cy + r + 3), outline=(199, 125, 255), width=3)
+    dr.ellipse((cx - r, cy - r, cx + r, cy + r), fill=(11, 10, 24))
+    dr.ellipse((cx - 26, cy - 6, cx + 14, cy + 34), fill=(60, 150, 128))
+    def font(sz, bold=False, serif=False):
+        try:
+            if serif:
+                return ImageFont.truetype("C:/Windows/Fonts/georgiab.ttf" if bold else "C:/Windows/Fonts/georgia.ttf", sz)
+            return ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf" if bold else "C:/Windows/Fonts/arial.ttf", sz)
+        except OSError:
+            return ImageFont.load_default()
+    dr.text((250, 96), "SOULKEEP", font=font(64, True, True), fill=(237, 233, 255))
+    dr.text((254, 176), "E V E R Y   S O U L ,   K E P T", font=font(20), fill=(167, 159, 200))
+    y = 300
+    stats = d.get("stats") or []
+    colx = [70, 470, 850]
+    accents = {"gold": (243, 199, 102), "teal": (111, 224, 192), "violet": (199, 125, 255), "ink": (237, 233, 255)}
+    for i, st in enumerate(stats[:9]):
+        x = colx[i % 3]
+        yy = y + (i // 3) * 100
+        dr.text((x, yy), str(st.get("label", "")).upper(), font=font(17), fill=(167, 159, 200))
+        dr.text((x, yy + 26), str(st.get("value", "")), font=font(44, True), fill=accents.get(st.get("tone"), accents["ink"]))
+    dr.text((70, H - 50), d.get("footer", "forged by Soulkeep"), font=font(18), fill=(120, 112, 150))
+    out = os.path.join(APPDIR, "bragcard.png")
+    img.save(out)
+    try:
+        os.startfile(out)
+    except OSError:
+        pass
+    return jsonify({"ok": True, "path": out})
+
+# ---------- your character in 3D ----------
+ITEM_DISP = os.path.join(APPDIR, "item_disp.json")
+_ITEM_DISP = None
+VISIBLE_SLOTS = {"HEAD", "SHOULDER", "BACK", "CHEST", "SHIRT", "TABARD", "WRIST",
+                 "HANDS", "WAIST", "LEGS", "FEET", "MAIN_HAND", "OFF_HAND"}
+
+def item_display_id(region, item_id):
+    """item -> its first appearance's display id, grow-cached."""
+    global _ITEM_DISP
+    if _ITEM_DISP is None:
+        try:
+            _ITEM_DISP = json.load(open(ITEM_DISP, encoding="utf-8"))
+        except (OSError, ValueError):
+            _ITEM_DISP = {}
+    k = str(item_id)
+    if k in _ITEM_DISP:
+        return _ITEM_DISP[k]
+    d = wowapi._get(region, f"/data/wow/item/{item_id}", f"static-{region}")
+    disp = None
+    apps = d.get("appearances") or []
+    if apps and apps[0].get("id"):
+        a = wowapi._get(region, f"/data/wow/item-appearance/{apps[0]['id']}", f"static-{region}")
+        disp = a.get("item_display_info_id")
+    _ITEM_DISP[k] = disp
+    try:
+        json.dump(_ITEM_DISP, open(ITEM_DISP, "w", encoding="utf-8"))
+    except OSError:
+        pass
+    return disp
+
+@app.route("/api/charlook/<region>/<realm>/<name>")
+def api_charlook(region, realm, name):
+    ns = f"profile-{region}"
+    base = wowapi._charbase(region, realm, name)
+    prof = wowapi._get(region, base, ns)
+    eq = wowapi._get(region, base + "/equipment", ns)
+    if prof.get("_error") or eq.get("_error"):
+        return jsonify({"error": "unavailable"}), 502
+    jobs = []
+    for it in (eq.get("equipped_items") or []):
+        st = (it.get("slot") or {}).get("type")
+        if st not in VISIBLE_SLOTS:
+            continue
+        tm = (it.get("transmog") or {}).get("item") or {}
+        iid = tm.get("id") or (it.get("item") or {}).get("id")
+        if iid:
+            jobs.append((st, iid))
+    out = []
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        for (st, _), disp in zip(jobs, pool.map(lambda j: item_display_id(region, j[1]), jobs)):
+            if disp:
+                out.append({"slot_type": st, "disp": disp})
+    return jsonify({"race": (prof.get("race") or {}).get("name"),
+                    "gender": ((prof.get("gender") or {}).get("type") or "MALE"),
+                    "items": out})
+
 # ---------- economy ----------
 @app.route("/api/economy/summary")
 def api_econ_summary():
@@ -352,6 +469,104 @@ def api_icon(iid):
 @app.route("/api/economy/movers")
 def api_econ_movers():
     return jsonify({"rows": economy.movers()})
+
+@app.route("/api/economy/deals")
+def api_econ_deals():
+    return jsonify({"rows": economy.deals()})
+
+ACH_REQS = os.path.join(APPDIR, "ach_reqs.json")
+_ACH_REQS = None
+
+@app.route("/api/achievements")
+def api_achievements():
+    """Closest-to-done achievements for the account (first awake character)."""
+    global _ACH_REQS
+    c = first_awake()
+    if not c:
+        return jsonify({"error": "no awake character"}), 404
+    e = c["entry"]
+    j = wowapi._get(e["region"], wowapi._charbase(e["region"], e["realm"], e["name"]) + "/achievements",
+                    f"profile-{e['region']}")
+    if j.get("_error"):
+        return jsonify({"error": j["_error"]}), 502
+    if _ACH_REQS is None:
+        try:
+            _ACH_REQS = json.load(open(ACH_REQS, encoding="utf-8"))
+        except (OSError, ValueError):
+            _ACH_REQS = {}
+    ratio_rows, amount_rows = [], []
+    for a in (j.get("achievements") or []):
+        if a.get("completed_timestamp"):
+            continue
+        crit = a.get("criteria") or {}
+        name = (a.get("achievement") or {}).get("name")
+        aid = (a.get("achievement") or {}).get("id")
+        if not name or not aid:
+            continue
+        kids = crit.get("child_criteria") or []
+        if kids:
+            done = sum(1 for k in kids if k.get("is_completed"))
+            if 0 < done < len(kids):
+                ratio_rows.append({"id": aid, "name": name, "done": done, "total": len(kids),
+                                   "pct": round(done / len(kids) * 100)})
+        elif crit.get("amount"):
+            amount_rows.append({"id": aid, "name": name, "amount": crit["amount"]})
+    # resolve required amounts for the most-progressed amount-type ones (cached)
+    amount_rows.sort(key=lambda x: -x["amount"])
+    resolved = []
+    budget = 60
+    for r in amount_rows:
+        k = str(r["id"])
+        if k not in _ACH_REQS:
+            if budget <= 0:
+                continue
+            budget -= 1
+            d = wowapi._get(e["region"], f"/data/wow/achievement/{r['id']}", f"static-{e['region']}")
+            req = None
+            cr = (d.get("criteria") or {})
+            req = cr.get("amount") or ((cr.get("child_criteria") or [{}])[0].get("amount") if cr.get("child_criteria") else None)
+            _ACH_REQS[k] = req
+        req = _ACH_REQS.get(k)
+        if req and req > 1 and r["amount"] < req:
+            resolved.append({"id": r["id"], "name": r["name"], "done": r["amount"], "total": req,
+                             "pct": round(min(99, r["amount"] / req * 100))})
+    try:
+        json.dump(_ACH_REQS, open(ACH_REQS, "w", encoding="utf-8"))
+    except OSError:
+        pass
+    rows = sorted(ratio_rows + resolved, key=lambda x: -x["pct"])[:40]
+    return jsonify({"rows": rows, "char": c.get("name")})
+
+@app.route("/api/planner")
+def api_planner():
+    """Which dungeon serves the most alts: weakest slots per awake char x journal drops."""
+    cached = json.load(open(CACHE, encoding="utf-8")).get("chars", []) if os.path.exists(CACHE) else []
+    journal = staticdata.load("journal") or []
+    SLOT_MAP = {"Shoulders": ["Shoulder"], "Ring 1": ["Finger"], "Ring 2": ["Finger"],
+                "Trinket 1": ["Trinket"], "Trinket 2": ["Trinket"], "Wrist": ["Wrist"],
+                "Main Hand": ["One-Hand", "Two-Hand", "Main Hand", "Ranged"],
+                "Off Hand": ["Off Hand", "Held In Off-hand", "One-Hand", "Shield"]}
+    by_inst = {}
+    for c in cached:
+        if c.get("error") or not c.get("gear"):
+            continue
+        weakest = sorted([g for g in c["gear"] if g.get("ilvl") and g.get("slot") not in ("Shirt", "Tabard", "Neck", "Back")],
+                         key=lambda g: g["ilvl"])[:3]
+        for w in weakest:
+            wants = SLOT_MAP.get(w["slot"], [w["slot"]])
+            for j in journal:
+                if j.get("slot") in wants and j.get("kind") == "dungeon":
+                    key2 = j["instance"]
+                    ent = by_inst.setdefault(key2, {})
+                    ck = c["name"]
+                    ent.setdefault(ck, set()).add(w["slot"])
+    rows = []
+    for inst, chars_map in by_inst.items():
+        rows.append({"instance": inst,
+                     "chars": [{"name": n, "slots": sorted(sl)} for n, sl in sorted(chars_map.items())],
+                     "score": len(chars_map)})
+    rows.sort(key=lambda r: -r["score"])
+    return jsonify({"rows": rows[:8]})
 
 @app.route("/api/economy/profit")
 def api_econ_profit():
