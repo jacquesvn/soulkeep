@@ -379,6 +379,24 @@ def build_armory(region="eu"):
     _save("weapons", out)
     _log(f"armory: {len(out)} named weapon appearances (from {len(refs)} raw)")
 
+def augment_armory_items(region="eu"):
+    """Add the representative item id to each armory entry (for icons)."""
+    ns = f"static-{region}"
+    w = load("weapons") or []
+    BUILD["step"] = "armory icons"
+    def one(x):
+        if x.get("i"):
+            return None
+        d = wowapi._get(region, f"/data/wow/item-appearance/{x['a']}", ns)
+        its = d.get("items") or []
+        return (x["a"], its[0].get("id")) if its else None
+    got = dict(r for r in _many(w, one) if r)
+    for x in w:
+        if x["a"] in got:
+            x["i"] = got[x["a"]]
+    _save("weapons", w)
+    _log(f"armory icons: {sum(1 for x in w if x.get('i'))}/{len(w)}")
+
 def build_season(region="eu"):
     BUILD["step"] = "season"
     dyn = f"dynamic-{region}"
@@ -394,7 +412,7 @@ def build_all(region="eu"):
         return
     BUILD.update(running=True, log=[])
     try:
-        for fn in (build_season, build_mounts, build_toys, build_journal, build_recipes, augment_recipes, build_pets, augment_media, augment_pets_3d, build_tmog, augment_toys_use, build_armory):
+        for fn in (build_season, build_mounts, build_toys, build_journal, build_recipes, augment_recipes, build_pets, augment_media, augment_pets_3d, build_tmog, augment_toys_use, build_armory, augment_armory_items):
             try:
                 fn(region)
             except Exception as e:
