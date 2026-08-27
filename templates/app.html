@@ -1451,18 +1451,34 @@ function renderTmogGrid() {
     ${pager(rows.length, PAGE, tmogPage, 'tmogPage', 'renderTmogGrid')}`
     : '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">No sets here</div></div>';
 }
+const RACES = [
+  ['Human', 1, 2], ['Orc', 3, 4], ['Dwarf', 5, 6], ['Night Elf', 7, 8], ['Undead', 9, 10],
+  ['Tauren', 11, 12], ['Gnome', 13, 14], ['Troll', 15, 16], ['Goblin', 17, 18],
+  ['Blood Elf', 19, 20], ['Draenei', 21, 22], ['Worgen', 43, 44], ['Pandaren', 47, 48],
+  ['Nightborne', 53, 54], ['Highmountain', 55, 56], ['Void Elf', 57, 58],
+  ['Lightforged', 59, 60], ['Zandalari', 61, 62], ['Kul Tiran', 63, 64],
+  ['Dark Iron', 67, 68], ['Vulpera', 69, 70], ["Mag'har", 71, 72],
+  ['Mechagnome', 73, 74], ['Dracthyr', 89, 89]];
+let fitRace = 0, fitGender = 0;
 const TMOG_SLOT = { HEAD: 1, SHOULDER: 3, BODY: 4, CHEST: 5, ROBE: 5, WAIST: 6, LEGS: 7,
   FEET: 8, WRIST: 9, HAND: 10, HANDS: 10, CLOAK: 16, BACK: 16, TABARD: 19,
   MAIN_HAND: 21, OFF_HAND: 22, ONE_HAND: 21, TWO_HAND: 21, RANGED: 26 };
 let tmogPieces = [];
-function lbFit(chrId) {
+function lbFit() {
   const items = tmogPieces
     .filter(x => x.disp && TMOG_SLOT[x.slot_type])
     .map(x => TMOG_SLOT[x.slot_type] + ':' + x.disp).join(',');
   if (!items) return;
+  const r = RACES[fitRace];
+  const chrId = fitGender === 0 ? r[1] : r[2];
   $('lb-hero').innerHTML = `<iframe class="lb3d" style="height:400px" src="/mv?d=${chrId}&t=16&items=${items}" title="Dressing room - drag to turn, scroll to zoom"></iframe>`;
-  $('lb-extra').innerHTML = `<span class="hintline">drag to turn · scroll to zoom</span>
-    <button class="pill-btn" style="flex:0 0 auto;padding:6px 11px" onclick="lbFit(${chrId === 1 ? 2 : 1})">${chrId === 1 ? '♀ her' : '♂ him'}</button>`;
+  $('lb-extra').innerHTML = `
+    <select class="qa-region" style="border:1px solid rgba(237,233,255,.09);border-radius:999px;padding:6px 12px;text-transform:none"
+            onchange="fitRace=parseInt(this.value,10);lbFit()">
+      ${RACES.map((x, i) => `<option value="${i}" ${i === fitRace ? 'selected' : ''}>${esc(x[0])}</option>`).join('')}
+    </select>
+    <button class="pill-btn" style="flex:0 0 auto;padding:6px 12px" onclick="fitGender=1-fitGender;lbFit()">${fitGender === 0 ? '♂' : '♀'}</button>
+    <span class="hintline">drag to turn · scroll to zoom</span>`;
 }
 async function tmogLb(setId) {
   const r = tmogSetState().find(x => x.id === setId);
@@ -1489,7 +1505,7 @@ async function tmogLb(setId) {
   if (!$('lb-back').classList.contains('open')) return;
   tmogPieces = pieces.filter(x => x.d).map(x => ({ slot_type: x.d.slot_type, disp: x.d.disp }));
   if (tmogPieces.some(x => x.disp && TMOG_SLOT[x.slot_type])) {
-    $('lb-extra').innerHTML = `<button class="lb3d-btn" style="position:static;transform:none;animation:btnpulse 2.6s ease-in-out infinite" onclick="lbFit(1)">⚜ Fit on a model</button>`;
+    $('lb-extra').innerHTML = `<button class="lb3d-btn" style="position:static;transform:none;animation:btnpulse 2.6s ease-in-out infinite" onclick="lbFit()">⚜ Fit on a model</button>`;
   }
   dEl.innerHTML = pieces.map(({ a, d }) => {
     const it = d && (d.items || [])[0];

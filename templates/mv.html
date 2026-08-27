@@ -5,9 +5,25 @@
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script>window.WH = { debug: () => {}, WebP: { getImageExtension: () => '.webp' } };</script>
 <script src="/zam/viewer/viewer.min.js"></script>
-<style>html,body{margin:0;background:transparent;overflow:hidden}#mv{width:100vw;height:100vh}</style>
+<style>
+html,body{margin:0;background:transparent;overflow:hidden}
+#mv{width:100vw;height:100vh}
+#loader{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  color:#A79FC8;font:500 12px Barlow,system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase;
+  background:transparent;pointer-events:none;transition:opacity .45s ease;}
+#loader.gone{opacity:0;}
+.disc{width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 42% 40%, #0B0A18 55%, #241A52);
+  border:1px solid rgba(177,92,255,.55);position:relative;animation:corona 2.2s ease-in-out infinite;}
+.disc::after{content:"";position:absolute;left:24%;top:34%;width:50%;height:50%;border-radius:50%;
+  background:radial-gradient(circle at 50% 60%, rgba(111,224,192,.8), rgba(111,224,192,.15) 60%, transparent 75%);
+  filter:blur(1px);animation:soulpulse 1.8s ease-in-out infinite;}
+@keyframes corona{0%,100%{box-shadow:0 0 12px 2px rgba(177,92,255,.4)}50%{box-shadow:0 0 24px 7px rgba(199,125,255,.7)}}
+@keyframes soulpulse{0%,100%{opacity:.5;transform:scale(.9)}50%{opacity:1;transform:scale(1.08)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+</style>
 </head><body>
 <div id="mv"></div>
+<div id="loader"><div class="disc"></div><span id="ltext">summoning the model…</span></div>
 <script>
   // ?d=<modelId>&t=<modelType: 8 npc/creature, 16 character>&items=slot:displayId,slot:displayId
   const q = new URLSearchParams(location.search);
@@ -19,9 +35,11 @@
   });
   window.report = { made: false };
   try {
+    const aspect = (window.innerWidth > 0 && window.innerHeight > 0)
+      ? window.innerWidth / window.innerHeight : 600 / 400;
     const opts = {
       container: jQuery('#mv'), type: 2, contentPath: window.CONTENT_PATH,
-      aspect: window.innerWidth / Math.max(1, window.innerHeight), hd: true,
+      aspect: aspect, hd: true,
       models: { type: mt, id: id }
     };
     if (items.length) opts.items = items;
@@ -29,5 +47,19 @@
     window.report.made = true;
     window.report.items = items.length;
   } catch (e) { window.report.err = String(e); }
+
+  // the beacon: pulse until the actor stands, mourn if it never comes
+  const t0 = Date.now();
+  const watch = setInterval(() => {
+    const r = window.viewer && window.viewer.renderer;
+    if (r && (r.actors || []).length > 0) {
+      clearInterval(watch);
+      setTimeout(() => document.getElementById('loader').classList.add('gone'), 600);
+    } else if (Date.now() - t0 > 30000 || (window.report && window.report.err)) {
+      clearInterval(watch);
+      document.querySelector('#loader .disc').style.display = 'none';
+      document.getElementById('ltext').textContent = 'the aether resists — model unavailable';
+    }
+  }, 250);
 </script>
 </body></html>
