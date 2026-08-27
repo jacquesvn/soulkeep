@@ -1133,6 +1133,7 @@ function renderDetail() {
       <div class="hs"><div class="stat-label">Mythic+</div><div class="v c-teal">${c.mplus_rating ?? '—'}</div></div>
       <div class="hs"><div class="stat-label">Raid</div><div class="v c-raid">${c.raid || '—'}</div></div>
       ${g && g.gold != null ? `<div class="hs"><div class="stat-label">Gold</div><div class="v c-gold">${goldStr(g.gold)}</div></div>` : ''}
+      ${g && g.played ? `<div class="hs"><div class="stat-label">Played</div><div class="v" style="color:var(--glow)">${playedStr(g.played)}</div></div>` : ''}
     </div>
   </div>
   <div class="dgrid">
@@ -1345,6 +1346,11 @@ function goldStr(copper) {
   return Math.floor(copper / 10000).toLocaleString('en-US') + 'g';
 }
 const VAULT_LABEL = { 1: 'Mythic+', 3: 'Raid', 5: 'Delves?', 6: 'World' };
+function playedStr(sec) {
+  if (!sec) return null;
+  const d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600);
+  return d > 0 ? `${d}d ${h}h` : `${h}h ${Math.floor(sec % 3600 / 60)}m`;
+}
 function agoStr(ts) {
   if (!ts) return '—';
   const m = Math.round((Date.now() / 1000 - ts) / 60);
@@ -1391,6 +1397,7 @@ function renderBoard() {
         <div class="wcell"><span class="wlabel">Keys this week</span><span class="wval ${weekRuns ? 'good' : ''}">${weekRuns ? weekRuns + ' run' + (weekRuns > 1 ? 's' : '') + ' · best +' + bestKey : 'none'}</span></div>
         <div class="wcell"><span class="wlabel">Lockouts</span><span class="wval">${g && g.lockouts && g.lockouts.length ? g.lockouts.map(l => esc(l.name) + ' ' + l.done + '/' + l.total).join(' · ') : '—'}</span></div>
         <div class="wcell"><span class="wlabel">Gold</span><span class="wval gold-t">${g && g.gold != null ? goldStr(g.gold) : '—'}</span></div>
+        ${g && g.played ? `<div class="wcell"><span class="wlabel">Played</span><span class="wval" style="color:var(--glow)">${playedStr(g.played)}</span></div>` : ''}
         <div class="wcell"><span class="wlabel">Export</span><span class="wval" style="color:var(--muted)">${g ? agoStr(g.ts) : '—'}</span></div>
       </div>
     </div>`;

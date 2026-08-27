@@ -4,6 +4,17 @@
 local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("PLAYER_LOGOUT")
+f:RegisterEvent("TIME_PLAYED_MSG")
+
+-- /played capture: request quietly, catch the reply, never spam chat
+local expectingPlayed = false
+local function requestPlayed()
+  expectingPlayed = true
+  local orig = ChatFrame_DisplayTimePlayed
+  ChatFrame_DisplayTimePlayed = function() end
+  RequestTimePlayed()
+  C_Timer.After(1.5, function() ChatFrame_DisplayTimePlayed = orig end)
+end
 
 local function collect()
   WoWRosterExportDB = WoWRosterExportDB or {}
@@ -48,6 +59,7 @@ local function collect()
   -- never let an early-login snapshot (data not loaded yet) clobber good values with zeros
   local prior = WoWRosterExportDB[name .. "-" .. realm]
   if prior then
+    if prior.played and not d.played then d.played = prior.played end
     if (d.gold or 0) == 0 and (prior.gold or 0) > 0 then d.gold = prior.gold end
     if (d.ilvl or 0) == 0 and (prior.ilvl or 0) > 0 then d.ilvl = prior.ilvl end
     if #d.currencies == 0 and prior.currencies and #prior.currencies > 0 then d.currencies = prior.currencies end
@@ -56,9 +68,20 @@ local function collect()
   WoWRosterExportDB[name .. "-" .. realm] = d
 end
 
-f:SetScript("OnEvent", function(_, ev)
+f:SetScript("OnEvent", function(_, ev, arg1)
+  if ev == "TIME_PLAYED_MSG" then
+    if expectingPlayed and arg1 and arg1 > 0 then
+      expectingPlayed = false
+      local key = UnitName("player") .. "-" .. GetRealmName()
+      if WoWRosterExportDB and WoWRosterExportDB[key] then
+        WoWRosterExportDB[key].played = arg1
+      end
+    end
+    return
+  end
   if ev == "PLAYER_ENTERING_WORLD" then
     C_Timer.After(10, function() pcall(collect) end)   -- let vault/currency data load in
+    C_Timer.After(12, function() pcall(requestPlayed) end)
     C_Timer.After(60, function() pcall(collect) end)   -- and once more when fully settled
   else
     pcall(collect)
