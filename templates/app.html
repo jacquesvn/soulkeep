@@ -1382,6 +1382,18 @@ function resetCountdown() {
   const ms = reset - now, h = Math.floor(ms / 3600000), d = Math.floor(h / 24);
   return d > 0 ? `${d}d ${h % 24}h` : `${h}h ${Math.floor(ms / 60000) % 60}m`;
 }
+function keptLedger() {
+  const allG = Object.values(gdata.chars || {});
+  const tot = allG.reduce((a, g) => a + (g.played || 0), 0);
+  if (!tot) return '';
+  const n = allG.filter(g => g.played).length;
+  const miss = allG.length - n;
+  return `<div class="panel" style="margin-top:14px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
+    <span class="wlabel">⌛ Time kept</span>
+    <span class="wval" style="font-size:22px;color:var(--glow)">${playedStr(tot)}</span>
+    <span class="hintline">across ${n} soul${n > 1 ? 's' : ''}${miss ? ` · ${miss} uncounted — log them out once` : ''}</span>
+  </div>`;
+}
 function renderBoard() {
   const aw = chars.filter(awake);
   const body = $('board-body');
@@ -1405,6 +1417,7 @@ function renderBoard() {
       <div class="p-eyebrow" style="margin-bottom:10px">Tonight's Best Targets · one run, many alts</div>
       <div id="planner-body" class="hintline">consulting the war maps…</div>
     </div>
+    ${keptLedger()}
     <div class="hintline" style="margin-top:14px">Vault slots fill as you play; the board reads your addon exports + this week's runs from the API. Log an alt out to refresh their column.</div>`;
   loadPlanner();
 }
@@ -2444,8 +2457,10 @@ async function forgeBrag(btn) {
       const have = new Set(tmogMine.appearances || []);
       stats.push({ label: 'Weapon looks', value: armory.filter(w => have.has(w.a)).length, tone: 'gold' });
     }
+    const totKept = Object.values(gdata.chars || {}).reduce((a, g) => a + (g.played || 0), 0);
+    const kept = totKept >= 86400 ? Math.floor(totKept / 86400) + ' days kept' : null;
     await fetch('/api/brag', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stats, footer: 'forged by Soulkeep · ' + new Date().toLocaleDateString() }) });
+      body: JSON.stringify({ stats, kept, footer: 'forged by Soulkeep · ' + new Date().toLocaleDateString() }) });
     btn.textContent = '⚒ Forged!';
   } catch (e) { btn.textContent = 'the forge failed'; }
   btn.disabled = false;

@@ -3,7 +3,7 @@ which pulls live character data from /api/roster. Run:  python app.py  (or the p
 import json, os, secrets, shutil, socket, sys, threading, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-VERSION = "1.14.1"
+VERSION = "1.15.0"
 REPO = "jacquesvn/soulkeep"  # update banner watches this repo's latest release
 import webview
 from flask import Flask, render_template, request, jsonify, redirect, send_file
@@ -350,6 +350,8 @@ def api_brag():
             return ImageFont.load_default()
     dr.text((250, 96), "SOULKEEP", font=font(64, True, True), fill=(237, 233, 255))
     dr.text((254, 176), "E V E R Y   S O U L ,   K E P T", font=font(20), fill=(167, 159, 200))
+    if d.get("kept"):
+        dr.text((254, 212), str(d["kept"]).upper(), font=font(30, True), fill=(243, 199, 102))
     y = 300
     stats = d.get("stats") or []
     colx = [70, 470, 850]
