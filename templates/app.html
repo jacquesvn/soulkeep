@@ -355,6 +355,22 @@ button{font-family:Barlow,system-ui,sans-serif}
   background:#0B0A18;box-shadow:0 40px 120px -40px rgba(0,0,0,.9), 0 0 90px -20px rgba(177,92,255,.5);}
 .mvfull .lb-x{top:18px;right:22px;}
 
+/* ---------- the outfit studio ---------- */
+.sturow{display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid rgba(177,92,255,.07);}
+.sturow .sl{flex:0 0 66px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+.sturow input{flex:1;min-width:0;background:rgba(237,233,255,.05);border:1px solid rgba(237,233,255,.1);
+  color:var(--ink);border-radius:999px;padding:5px 11px;font:500 12px Barlow,sans-serif;}
+.stuchip{display:flex;align-items:center;gap:6px;max-width:46%;min-width:0;}
+.stuchip img{width:24px;height:24px;border-radius:6px;border:1px solid rgba(199,125,255,.3);flex:0 0 auto;}
+.stuchip .nm{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.stuchip .rm-btn{position:static;opacity:.6;width:20px;height:20px;flex:0 0 auto;}
+.stu-mann{position:relative;}
+.stu-mann iframe{width:100%;height:480px;border:0;display:block;background:#0B0A18;border-radius:14px;}
+.outfit-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(237,233,255,.05);
+  border:1px solid rgba(237,233,255,.1);border-radius:999px;padding:4px 6px 4px 12px;font-size:11.5px;margin:0 6px 6px 0;}
+.outfit-pill b{cursor:pointer;}
+.outfit-pill .rm-btn{position:static;opacity:.6;width:18px;height:18px;}
+
 /* ---------- trophy lightbox ---------- */
 .lb-back{position:fixed;inset:0;z-index:10;background:rgba(7,6,14,.78);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:24px;}
 .lb-back.open{display:flex;}
@@ -619,6 +635,7 @@ button{font-family:Barlow,system-ui,sans-serif}
       <div class="vtabs" id="tmog-sections" style="margin-bottom:14px">
         <button class="vtab on" data-t="sets" id="sec-sets" onclick="tmogSetSection('sets')">⚜ Sets</button>
         <button class="vtab" data-t="weapons" id="sec-weapons" onclick="tmogSetSection('weapons')">⚔ Weapons</button>
+        <button class="vtab" data-t="studio" id="sec-studio" onclick="tmogSetSection('studio')">⚒ Studio</button>
       </div>
       <div id="tmog-hero"></div>
       <div id="tmog-controls" class="stickybar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -626,6 +643,7 @@ button{font-family:Barlow,system-ui,sans-serif}
         <div class="searchpill" style="margin-left:auto"><input id="tmog-search" placeholder="Search sets…" oninput="tmogPage=0;renderTmogSection()"></div>
       </div>
       <div id="tmog-body"></div>
+      <div id="studio-body" style="display:none"></div>
     </section>
 
     <section id="view-economy" style="display:none">
@@ -1556,11 +1574,14 @@ function tmogSetSection(sec) {
   S.tmogSection = sec; saveSettings();
   document.querySelectorAll('#tmog-sections .vtab').forEach(b => b.classList.toggle('on', b.dataset.t === sec));
   $('tmog-search').placeholder = sec === 'weapons' ? 'Search weapons…' : 'Search sets…';
+  $('tmog-controls').style.display = sec === 'studio' ? 'none' : '';
   // (placeholder + pills follow the section)
   $('tmog-search').value = '';
   renderTmogSection();
 }
 function renderTmogSection() {
+  $('studio-body').style.display = tmogSection === 'studio' ? '' : 'none';
+  if (tmogSection === 'studio') { renderStudio(); return; }
   if (tmogSection === 'weapons') { renderWpnHall(); return; }
   renderTmogFilters(); renderTmogGrid();
 }
@@ -1652,6 +1673,7 @@ function wpnLb(aid) {
 const SLOT_PRETTY = t => (t || '').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 function tmogSyncSectionPills() {
   document.querySelectorAll('#tmog-sections .vtab').forEach(b => b.classList.toggle('on', b.dataset.t === tmogSection));
+  $('tmog-controls').style.display = tmogSection === 'studio' ? 'none' : '';
   $('tmog-search').placeholder = tmogSection === 'weapons' ? 'Search weapons…' : 'Search sets…';
 }
 async function loadTransmog() {
@@ -1676,6 +1698,7 @@ function renderTmog() {
     if (typeof armory !== 'undefined' && armory && armory.length) $('sec-weapons').textContent = `⚔ Weapons · ${armory.length.toLocaleString('en-US')}`;
     else { loadArmory().then(() => { if (armory.length) $('sec-weapons').textContent = `⚔ Weapons · ${armory.length.toLocaleString('en-US')}`; }); }
   }
+  if (tmogSection === 'studio') { $('studio-body').style.display = ''; renderStudio(); return; }
   if (tmogSection === 'weapons') { renderWpnHall(); return; }
   if (!tmogData) { $('tmog-body').innerHTML = '<div class="hintline">The transmog atlas isn\u2019t built yet — Settings → Static Game Data → Rebuild.</div>'; $('tmog-hero').innerHTML = ''; return; }
   const totals = tmogData.slot_totals || {};
@@ -1860,6 +1883,152 @@ async function tmogLb(setId) {
       <span class="have">${have.has(a) ? '<span class="good">✓</span>' : '<span style="color:var(--muted)">☾</span>'}</span>
     </div>`;
   }).join('');
+}
+
+/* ---------- THE OUTFIT STUDIO ---------- */
+let atlas = null, studioOutfit = {}, studioWeapon = null, studioTimer = null;
+const STUDIO_SLOTS = [
+  ['HEAD', 'Head', 1], ['SHOULDER', 'Shoulder', 3], ['CLOAK', 'Cloak', 16],
+  ['CHEST', 'Chest', 5], ['BODY', 'Shirt', 4], ['TABARD', 'Tabard', 19],
+  ['WRIST', 'Wrist', 9], ['HAND', 'Hands', 10], ['WAIST', 'Waist', 6],
+  ['LEGS', 'Legs', 7], ['FEET', 'Feet', 8]];
+async function loadAtlas() {
+  if (atlas !== null) return;
+  atlas = {};
+  try {
+    const j = await (await fetch('/api/static/armorlooks')).json();
+    atlas = j.data || {};
+    if (atlas.CHEST && atlas.ROBE) atlas.CHEST = atlas.CHEST.concat(atlas.ROBE);  // robes render in the chest slot
+  } catch (e) {}
+}
+async function renderStudio() {
+  $('tmog-hero').innerHTML = ''; $('tmog-filters').innerHTML = '';
+  const body = $('studio-body');
+  body.style.display = '';
+  $('tmog-body').innerHTML = '';
+  if (atlas === null) body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">Unrolling the Great Atlas…</div></div>';
+  await Promise.all([loadAtlas(), loadArmory()]);
+  if (!Object.keys(atlas).length) { body.innerHTML = '<div class="hintline">The armor atlas isn\u2019t built — Settings → Static Game Data → Rebuild.</div>'; return; }
+  const have = new Set((tmogMine && tmogMine.appearances) || []);
+  const rows = STUDIO_SLOTS.map(([key, label]) => {
+    const pick = studioOutfit[key];
+    return `<div class="sturow">
+      <span class="sl">${label}</span>
+      <input list="stu-dl-${key}" placeholder="search ${(atlas[key] || []).length.toLocaleString('en-US')} looks…" autocomplete="off"
+             oninput="studioSuggest('${key}', this.value)" onchange="studioPick('${key}', this.value); this.value=''">
+      <datalist id="stu-dl-${key}"></datalist>
+      ${pick ? `<span class="stuchip">
+        ${pick.i ? `<img src="/api/icon/${pick.i}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : ''}
+        <span class="nm" title="${esc(pick.n)}">${esc(pick.n)}</span>
+        <span>${have.has(pick.a) ? '<span class="good" title="You own this look">✓</span>' : '<span style="color:var(--muted)" title="Not collected">☾</span>'}</span>
+        <button class="rm-btn" title="Remove" onclick="delete studioOutfit['${key}'];renderStudio()">✕</button>
+      </span>` : '<span class="hintline" style="font-size:10.5px">—</span>'}
+    </div>`;
+  }).join('');
+  const saved = studioSaved();
+  body.innerHTML = `<div class="dgrid" style="grid-template-columns:1fr 1.1fr">
+    <div class="dcol">
+      <div class="panel">
+        <div class="p-eyebrow" style="margin-bottom:10px">Compose the Look</div>
+        ${rows}
+        <div class="sturow" style="border-bottom:0">
+          <span class="sl">Weapon</span>
+          <input list="wpn-list" placeholder="search ${(armory || []).length.toLocaleString('en-US')} weapons…" autocomplete="off"
+                 oninput="armorySuggest(this.value)" onchange="const w=(armory||[]).find(x=>x.n===this.value); if(w){studioWeapon=w;renderStudio();} this.value=''">
+          ${studioWeapon ? `<span class="stuchip">
+            ${studioWeapon.i ? `<img src="/api/icon/${studioWeapon.i}" alt="">` : ''}
+            <span class="nm">${esc(studioWeapon.n)}</span>
+            <button class="rm-btn" onclick="studioWeapon=null;renderStudio()">✕</button></span>` : '<span class="hintline" style="font-size:10.5px">—</span>'}
+        </div>
+      </div>
+      <div class="panel">
+        <div class="p-eyebrow" style="margin-bottom:10px">Outfit Chest</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <input id="outfit-name" placeholder="name this outfit…" style="flex:1;background:rgba(237,233,255,.05);border:1px solid rgba(237,233,255,.1);color:var(--ink);border-radius:999px;padding:6px 12px;font:500 12px Barlow,sans-serif">
+          <button class="pill-btn" style="flex:0 0 auto" onclick="studioSave()">Save</button>
+        </div>
+        <div>${Object.keys(saved).length ? Object.keys(saved).map(n => `
+          <span class="outfit-pill"><b onclick="studioLoad('${esc(n).replace(/'/g, "\\'")}')" title="Wear it">${esc(n)}</b>
+          <button class="rm-btn" title="Discard" onclick="studioDelete('${esc(n).replace(/'/g, "\\'")}')">✕</button></span>`).join('')
+          : '<span class="hintline">Saved outfits appear here.</span>'}</div>
+      </div>
+    </div>
+    <div class="panel stu-mann" id="stu-mann">
+      <div class="hintline" style="text-align:center;padding:80px 0">pick a piece — the mannequin awaits</div>
+    </div>
+  </div>`;
+  studioRefit();
+}
+function studioSuggest(key, q) {
+  const dl = $('stu-dl-' + key);
+  if (!dl || !q || q.length < 2) { if (dl) dl.innerHTML = ''; return; }
+  const ql = q.toLowerCase();
+  dl.innerHTML = (atlas[key] || []).filter(x => (x.n || '').toLowerCase().includes(ql)).slice(0, 30)
+    .map(x => `<option value="${esc(x.n)}"></option>`).join('');
+}
+function studioPick(key, name) {
+  const x = (atlas[key] || []).find(w => w.n === name);
+  if (!x) return;
+  studioOutfit[key] = x;
+  renderStudio();
+}
+function studioItems() {
+  const parts = [];
+  for (const [key, , slot] of STUDIO_SLOTS) {
+    if (studioOutfit[key]) parts.push(slot + ':' + studioOutfit[key].d);
+  }
+  if (studioWeapon) parts.push((WPN_SLOT[studioWeapon.s] || 21) + ':' + studioWeapon.d);
+  return parts;
+}
+function studioRefit() {
+  clearTimeout(studioTimer);
+  studioTimer = setTimeout(() => {
+    const parts = studioItems();
+    const mann = $('stu-mann');
+    if (!mann) return;
+    if (!parts.length) return;
+    const r = RACES[fitRace];
+    const chrId = fitGender === 0 ? r[1] : r[2];
+    mann.innerHTML = `
+      <iframe class="lb3d" style="height:480px" src="/mv?d=${chrId}&t=16&items=${parts.join(',')}" title="The composition — drag to turn"></iframe>
+      <button class="mv-expand" title="Grand view" onclick="mvExpand()">⛶</button>
+      <div class="fitbar">
+        <select onchange="fitRace=parseInt(this.value,10);studioRefit()" title="Race">
+          ${RACES.map((x, i) => `<option value="${i}" ${i === fitRace ? 'selected' : ''}>${esc(x[0])}</option>`).join('')}
+        </select>
+        <button class="gbtn" title="Swap body" onclick="fitGender=1-fitGender;studioRefit()">${fitGender === 0 ? '♂' : '♀'}</button>
+      </div>`;
+  }, 350);
+}
+function studioSaved() {
+  try { return JSON.parse(localStorage.getItem('wr-outfits') || '{}'); } catch (e) { return {}; }
+}
+function studioSave() {
+  const name = ($('outfit-name').value || '').trim();
+  if (!name || !Object.keys(studioOutfit).length) return;
+  const saved = studioSaved();
+  saved[name] = { slots: Object.fromEntries(Object.entries(studioOutfit).map(([k, v]) => [k, v.a])),
+                  weapon: studioWeapon ? studioWeapon.a : null };
+  try { localStorage.setItem('wr-outfits', JSON.stringify(saved)); } catch (e) {}
+  $('outfit-name').value = '';
+  renderStudio();
+}
+function studioLoad(name) {
+  const o = studioSaved()[name];
+  if (!o) return;
+  studioOutfit = {};
+  for (const [k, aid] of Object.entries(o.slots || {})) {
+    const x = (atlas[k] || []).find(w => w.a === aid);
+    if (x) studioOutfit[k] = x;
+  }
+  studioWeapon = o.weapon ? (armory || []).find(w => w.a === o.weapon) || null : null;
+  renderStudio();
+}
+function studioDelete(name) {
+  const saved = studioSaved();
+  delete saved[name];
+  try { localStorage.setItem('wr-outfits', JSON.stringify(saved)); } catch (e) {}
+  renderStudio();
 }
 
 /* ---------- trophy lightbox ---------- */
