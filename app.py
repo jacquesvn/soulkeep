@@ -3,7 +3,7 @@ which pulls live character data from /api/roster. Run:  python app.py  (or the p
 import json, os, secrets, shutil, socket, sys, threading, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-VERSION = "1.7.0"
+VERSION = "1.8.0"
 REPO = "jacquesvn/soulkeep"  # update banner watches this repo's latest release
 import webview
 from flask import Flask, render_template, request, jsonify, redirect, send_file
@@ -231,7 +231,7 @@ def api_addon_install():
 def api_static(name):
     if name == "status":
         return jsonify(staticdata.status())
-    if name not in ("mounts", "pets", "toys", "journal", "recipes", "season", "tmog"):
+    if name not in ("mounts", "pets", "toys", "journal", "recipes", "season", "tmog", "weapons"):
         return jsonify({"error": "unknown"}), 404
     return jsonify({"data": staticdata.load(name)})
 
@@ -407,6 +407,51 @@ def api_version():
     return jsonify({"current": VERSION, "latest": _VER["latest"], "update": update, "url": _VER["url"]})
 
 ZAMCACHE = os.path.join(APPDIR, "zamcache")
+ZAM_CAP = 500 * 1024 * 1024  # prune the model cache past this, down to half
+
+def zam_size():
+    total = 0
+    for root, _, files in os.walk(ZAMCACHE):
+        for f in files:
+            try:
+                total += os.path.getsize(os.path.join(root, f))
+            except OSError:
+                pass
+    return total
+
+def zam_prune():
+    """At startup: if the model hoard exceeds the cap, cull the oldest-touched files."""
+    try:
+        entries = []
+        for root, _, files in os.walk(ZAMCACHE):
+            for f in files:
+                fp = os.path.join(root, f)
+                try:
+                    st = os.stat(fp)
+                    entries.append((st.st_atime, st.st_size, fp))
+                except OSError:
+                    pass
+        total = sum(e[1] for e in entries)
+        if total <= ZAM_CAP:
+            return
+        entries.sort()  # oldest-accessed first
+        for _, size, fp in entries:
+            try:
+                os.remove(fp)
+                total -= size
+            except OSError:
+                pass
+            if total <= ZAM_CAP // 2:
+                break
+    except Exception:
+        pass
+
+@app.route("/api/zamcache", methods=["GET", "DELETE"])
+def api_zamcache():
+    if request.method == "DELETE":
+        shutil.rmtree(ZAMCACHE, ignore_errors=True)
+        return jsonify({"ok": True, "bytes": 0})
+    return jsonify({"bytes": zam_size()})
 
 @app.route("/zam/<path:path>")
 def zam_proxy(path):
@@ -482,6 +527,7 @@ def pick_port():
     return 0
 
 if __name__ == "__main__":
+    threading.Thread(target=zam_prune, daemon=True).start()
     port = pick_port()
     AUTH["port"] = port
     # 0.0.0.0 so a phone on the same WiFi can open the app (Settings shows the URL)

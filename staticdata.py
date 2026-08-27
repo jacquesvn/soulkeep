@@ -346,6 +346,39 @@ def build_tmog(region="eu"):
     _save("tmog", {"sets": list(rows.values()), "slot_totals": totals})
     _log(f"tmog: {len(rows)} sets | slot totals: {sum(totals.values())} appearances across {len(totals)} slots")
 
+ARMORY_SLOTS = ["WEAPON", "TWOHWEAPON", "SHIELD", "RANGED", "RANGEDRIGHT", "HOLDABLE",
+                "WEAPONMAINHAND", "WEAPONOFFHAND"]
+
+def build_armory(region="eu"):
+    """Every weapon/shield/off-hand appearance in the game: name + display id, for the
+    dressing room's weapon rack."""
+    ns = f"static-{region}"
+    refs = []
+    for slot in ARMORY_SLOTS:
+        d = wowapi._get(region, f"/data/wow/item-appearance/slot/{slot}", ns)
+        for a in (d.get("appearances") or []):
+            refs.append((slot, a.get("id")))
+    BUILD["step"] = "armory"
+    def one(pair):
+        slot, aid = pair
+        d = wowapi._get(region, f"/data/wow/item-appearance/{aid}", ns)
+        if d.get("_error") or not d.get("item_display_info_id"):
+            return None
+        its = d.get("items") or []
+        if not its:
+            return None
+        return {"a": aid, "d": d["item_display_info_id"], "n": its[0].get("name"),
+                "s": slot, "c": (d.get("item_subclass") or {}).get("name")}
+    rows = _many(refs, one)
+    seen, out = set(), []
+    for r in rows:  # many items share names across ranks; keep first per (name, slot)
+        k = (r["n"], r["s"])
+        if r["n"] and k not in seen:
+            seen.add(k)
+            out.append(r)
+    _save("weapons", out)
+    _log(f"armory: {len(out)} named weapon appearances (from {len(refs)} raw)")
+
 def build_season(region="eu"):
     BUILD["step"] = "season"
     dyn = f"dynamic-{region}"
@@ -361,7 +394,7 @@ def build_all(region="eu"):
         return
     BUILD.update(running=True, log=[])
     try:
-        for fn in (build_season, build_mounts, build_toys, build_journal, build_recipes, augment_recipes, build_pets, augment_media, augment_pets_3d, build_tmog, augment_toys_use):
+        for fn in (build_season, build_mounts, build_toys, build_journal, build_recipes, augment_recipes, build_pets, augment_media, augment_pets_3d, build_tmog, augment_toys_use, build_armory):
             try:
                 fn(region)
             except Exception as e:

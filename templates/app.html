@@ -315,6 +315,14 @@ button{font-family:Barlow,system-ui,sans-serif}
 .setcard.done{border-color:rgba(111,224,192,.3);}
 .setcard.done .sv{color:var(--good);}
 .piece{display:flex;align-items:center;gap:10px;padding:5px 6px;margin:0 -6px;border-radius:8px;font-size:12.5px;border-bottom:1px solid rgba(177,92,255,.07);}
+.skelrow{display:flex;align-items:center;gap:10px;padding:6px;margin:0 -6px;}
+.skel{border-radius:7px;background:linear-gradient(100deg, rgba(237,233,255,.05) 30%, rgba(177,92,255,.16) 50%, rgba(237,233,255,.05) 70%);
+  background-size:220% 100%;animation:shimmer 1.4s ease-in-out infinite;}
+@keyframes shimmer{from{background-position:130% 0}to{background-position:-90% 0}}
+.skel.ic{width:26px;height:26px;flex:0 0 auto;}
+.skel.sl{width:58px;height:10px;}
+.skel.nm{flex:1;height:11px;max-width:62%;}
+.skel.ck{width:14px;height:14px;border-radius:50%;margin-left:auto;}
 .piece img{width:26px;height:26px;border-radius:6px;background:var(--raised);}
 .piece .pslot{flex:0 0 64px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
 .piece .have{margin-left:auto;font-size:12px;}
@@ -342,6 +350,18 @@ button{font-family:Barlow,system-ui,sans-serif}
 .lb-count{font-size:10.5px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-left:auto;}
 .kept-chip{background:rgba(111,224,192,.14);border:1px solid rgba(111,224,192,.4);color:var(--good);}
 .lb3d{width:100%;height:340px;border:0;display:block;background:#0B0A18;}
+.fitbar{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:3;
+  display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:center;max-width:94%;
+  background:rgba(11,10,24,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border:1px solid rgba(199,125,255,.35);border-radius:999px;padding:7px 10px;
+  box-shadow:0 8px 30px -10px rgba(0,0,0,.7), 0 0 34px -10px rgba(177,92,255,.45);}
+.fitbar select, .fitbar input{background:rgba(237,233,255,.06);border:1px solid rgba(237,233,255,.12);
+  color:var(--ink);border-radius:999px;padding:5px 11px;font:500 12px Barlow,sans-serif;}
+.fitbar select option{background:#141028;color:var(--ink);}
+.fitbar input{width:130px;}
+.fitbar .gbtn{background:rgba(237,233,255,.06);border:1px solid rgba(237,233,255,.12);color:var(--ink);
+  border-radius:999px;padding:5px 11px;font:600 12px Barlow,sans-serif;cursor:pointer;}
+.fitbar .gbtn:hover{background:rgba(177,92,255,.25);}
 .lb3d-btn{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:2;
   background:linear-gradient(135deg, var(--deep), var(--violet));color:#FBF6FF;
   border:1px solid rgba(199,125,255,.6);border-radius:999px;padding:10px 22px;
@@ -651,6 +671,10 @@ button{font-family:Barlow,system-ui,sans-serif}
           <button class="pill-btn" style="flex:0 0 auto" id="sd-build" onclick="sdBuild()">Rebuild</button>
         </div>
         <div class="set-d" id="sd-log" style="line-height:1.5"></div>
+        <div class="set-row">
+          <div><div class="set-l">3D model cache</div><div class="set-d" id="zam-size">…</div></div>
+          <button class="pill-btn" style="flex:0 0 auto" onclick="zamClear(this)">Clear</button>
+        </div>
       </div>
       <div>
         <div class="dr-sect">Phone (same WiFi)</div>
@@ -1464,21 +1488,50 @@ const TMOG_SLOT = { HEAD: 1, SHOULDER: 3, BODY: 4, CHEST: 5, ROBE: 5, WAIST: 6, 
   FEET: 8, WRIST: 9, HAND: 10, HANDS: 10, CLOAK: 16, BACK: 16, TABARD: 19,
   MAIN_HAND: 21, OFF_HAND: 22, ONE_HAND: 21, TWO_HAND: 21, RANGED: 26 };
 let tmogPieces = [];
+let armory = null, fitWeapon = null;
+const WPN_SLOT = { WEAPON: 21, TWOHWEAPON: 21, WEAPONMAINHAND: 21,
+                   SHIELD: 22, HOLDABLE: 22, WEAPONOFFHAND: 22,
+                   RANGED: 26, RANGEDRIGHT: 26 };
+async function loadArmory() {
+  if (armory !== null) return;
+  armory = [];
+  try { armory = (await (await fetch('/api/static/weapons')).json()).data || []; } catch (e) {}
+}
+function armorySuggest(q) {
+  const dl = $('wpn-list');
+  if (!dl || !q || q.length < 2) { if (dl) dl.innerHTML = ''; return; }
+  const ql = q.toLowerCase();
+  dl.innerHTML = armory.filter(w => (w.n || '').toLowerCase().includes(ql)).slice(0, 30)
+    .map(w => `<option value="${esc(w.n)}"></option>`).join('');
+}
+function armoryPick(name) {
+  const w = armory.find(x => x.n === name);
+  if (!w) return;
+  fitWeapon = w;
+  lbFit();
+}
 function lbFit() {
-  const items = tmogPieces
+  const parts = tmogPieces
     .filter(x => x.disp && TMOG_SLOT[x.slot_type])
-    .map(x => TMOG_SLOT[x.slot_type] + ':' + x.disp).join(',');
-  if (!items) return;
+    .map(x => TMOG_SLOT[x.slot_type] + ':' + x.disp);
+  if (fitWeapon) parts.push((WPN_SLOT[fitWeapon.s] || 21) + ':' + fitWeapon.d);
+  if (!parts.length) return;
+  loadArmory();
   const r = RACES[fitRace];
   const chrId = fitGender === 0 ? r[1] : r[2];
-  $('lb-hero').innerHTML = `<iframe class="lb3d" style="height:400px" src="/mv?d=${chrId}&t=16&items=${items}" title="Dressing room - drag to turn, scroll to zoom"></iframe>`;
-  $('lb-extra').innerHTML = `
-    <select class="qa-region" style="border:1px solid rgba(237,233,255,.09);border-radius:999px;padding:6px 12px;text-transform:none"
-            onchange="fitRace=parseInt(this.value,10);lbFit()">
-      ${RACES.map((x, i) => `<option value="${i}" ${i === fitRace ? 'selected' : ''}>${esc(x[0])}</option>`).join('')}
-    </select>
-    <button class="pill-btn" style="flex:0 0 auto;padding:6px 12px" onclick="fitGender=1-fitGender;lbFit()">${fitGender === 0 ? '♂' : '♀'}</button>
-    <span class="hintline">drag to turn · scroll to zoom</span>`;
+  $('lb-hero').innerHTML = `
+    <iframe class="lb3d" style="height:430px" src="/mv?d=${chrId}&t=16&items=${parts.join(',')}" title="Dressing room - drag to turn, scroll to zoom"></iframe>
+    <div class="fitbar">
+      <select onchange="fitRace=parseInt(this.value,10);lbFit()" title="Race">
+        ${RACES.map((x, i) => `<option value="${i}" ${i === fitRace ? 'selected' : ''}>${esc(x[0])}</option>`).join('')}
+      </select>
+      <button class="gbtn" title="Swap body" onclick="fitGender=1-fitGender;lbFit()">${fitGender === 0 ? '♂' : '♀'}</button>
+      <input list="wpn-list" placeholder="⚔ weapon…" title="Arm the model" value="${fitWeapon ? esc(fitWeapon.n) : ''}"
+             oninput="armorySuggest(this.value)" onchange="armoryPick(this.value)">
+      <datalist id="wpn-list"></datalist>
+      ${fitWeapon ? '<button class="gbtn" title="Disarm" onclick="fitWeapon=null;lbFit()">✕</button>' : ''}
+    </div>`;
+  $('lb-extra').innerHTML = '<span class="hintline">drag to turn · scroll to zoom</span>';
 }
 async function tmogLb(setId) {
   const r = tmogSetState().find(x => x.id === setId);
@@ -1492,7 +1545,9 @@ async function tmogLb(setId) {
                            : '<span class="chip miss-chip"><span class="v">☾ The hunt continues</span></span>',
   ].join('');
   const dEl = $('lb-desc');
-  dEl.style.display = ''; dEl.innerHTML = '<div class="hintline">fetching the pieces…</div>';
+  dEl.style.display = '';
+  dEl.innerHTML = '<div class="hintline" style="margin-bottom:6px">assembling the set…</div>' +
+    r.apps.map(() => `<div class="skelrow"><div class="skel ic"></div><div class="skel sl"></div><div class="skel nm"></div><div class="skel ck"></div></div>`).join('');
   $('lb-guide').onclick = () => openGuide(r.name);
   $('lb-extra').innerHTML = ''; $('lb-count').textContent = '';
   lbPool = [];
@@ -1825,6 +1880,19 @@ function drawChart(el, pts, fmtY) {
 }
 
 /* ---------- static data status ---------- */
+async function loadZam() {
+  try {
+    const j = await (await fetch('/api/zamcache')).json();
+    $('zam-size').textContent = j.bytes > 1048576 ? (j.bytes / 1048576).toFixed(1) + ' MB on disk — auto-pruned past 500 MB'
+      : Math.round(j.bytes / 1024) + ' KB on disk — auto-pruned past 500 MB';
+  } catch (e) {}
+}
+async function zamClear(btn) {
+  btn.disabled = true;
+  try { await fetch('/api/zamcache', { method: 'DELETE' }); } catch (e) {}
+  btn.disabled = false;
+  loadZam();
+}
 async function loadStatic() {
   try {
     const s = await (await fetch('/api/static/status')).json();
@@ -1842,7 +1910,7 @@ async function sdBuild() {
 }
 
 /* ---------- settings drawer ---------- */
-function openSettings() { $('drawer').classList.add('open'); $('backdrop').classList.add('open'); $('nav-settings').classList.add('active'); loadAccount(); loadGamedata(); loadStatic(); }
+function openSettings() { $('drawer').classList.add('open'); $('backdrop').classList.add('open'); $('nav-settings').classList.add('active'); loadAccount(); loadGamedata(); loadStatic(); loadZam(); }
 function closeSettings() { $('drawer').classList.remove('open'); $('backdrop').classList.remove('open'); $('nav-settings').classList.remove('active'); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSettings(); });
 
