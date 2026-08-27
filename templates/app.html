@@ -220,9 +220,23 @@ button{font-family:Barlow,system-ui,sans-serif}
 .vtitle{margin:0;font-family:Cinzel,serif;font-weight:600;font-size:34px;letter-spacing:.1em;line-height:1;background:linear-gradient(180deg, var(--ink), rgba(237,233,255,.6));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
 .app[data-theme="dawn"] .vtitle{background:linear-gradient(180deg, var(--ink), rgba(36,26,82,.6));-webkit-background-clip:text;background-clip:text;}
 .vtabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
-.vtab{background:rgba(237,233,255,.05);border:1px solid rgba(237,233,255,.09);color:var(--muted);border-radius:999px;padding:7px 15px;font:500 12.5px Barlow,sans-serif;cursor:pointer;letter-spacing:.03em;transition:background .15s,color .15s,box-shadow .2s;}
-.vtab:hover{color:var(--ink);background:rgba(177,92,255,.1);box-shadow:0 0 18px -4px rgba(177,92,255,.5)}
-.vtab.on{background:linear-gradient(135deg, var(--deep), var(--violet));color:#FBF6FF;border-color:rgba(199,125,255,.5);box-shadow:0 0 20px -5px rgba(177,92,255,.65);}
+.vtab{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(180deg,rgba(237,233,255,.07),rgba(237,233,255,.02));
+  border:1px solid rgba(237,233,255,.11);color:var(--muted);border-radius:999px;padding:7px 15px;
+  font:600 11.5px 'Barlow Condensed',Barlow,sans-serif;letter-spacing:.08em;text-transform:uppercase;font-variant-numeric:tabular-nums;
+  cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+  transition:background .15s,color .15s,box-shadow .2s,border-color .15s,transform .15s;}
+.vtab::before{content:"";width:5px;height:5px;border-radius:50%;background:rgba(237,233,255,.14);flex:0 0 auto;transition:background .2s,box-shadow .2s;}
+.vtab:hover{color:var(--ink);border-color:rgba(177,92,255,.4);background:linear-gradient(180deg,rgba(177,92,255,.16),rgba(177,92,255,.05));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 0 18px -4px rgba(177,92,255,.5);transform:translateY(-1px);}
+.vtab:focus-visible{outline:2px solid rgba(199,125,255,.65);outline-offset:2px;}
+.vtab.on{background:linear-gradient(160deg,var(--deep) 0%,#5B2AA6 58%,#7A3FD0 100%);color:#FBF6FF;border-color:rgba(199,125,255,.55);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 0 20px -5px rgba(177,92,255,.7);}
+.vtab.on::before{background:var(--good);box-shadow:0 0 8px 1px rgba(111,224,192,.8);}
+.app[data-theme="dawn"] .vtab{background:linear-gradient(180deg,rgba(36,26,82,.06),rgba(36,26,82,.02));border-color:rgba(36,26,82,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.5);}
+.app[data-theme="dawn"] .vtab:hover{background:rgba(122,47,214,.10);}
+.app[data-theme="dawn"] .vtab.on{background:linear-gradient(160deg,#5B21B0,#8A4BE0);}
+.app[data-theme="dawn"] .vtab::before{background:rgba(36,26,82,.18);}
+.app[data-theme="dawn"] .vtab.on::before{background:#0FA37F;box-shadow:0 0 8px 1px rgba(15,163,127,.7);}
 .tbl{width:100%;border-collapse:collapse;font-size:13px;}
 .tbl th{text-align:left;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:500;padding:6px 10px;border-bottom:1px solid var(--line);}
 .tbl td{padding:7px 10px;border-bottom:1px solid rgba(177,92,255,.07);vertical-align:middle;}
@@ -305,8 +319,22 @@ button{font-family:Barlow,system-ui,sans-serif}
 .slotbar .pbar{flex:1;}
 .slotbar .sv{font:600 11px 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;color:var(--muted);flex:0 0 auto;}
 .setgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;}
-.setcard{display:flex;align-items:center;gap:12px;border-radius:14px;padding:10px 13px;cursor:pointer;border:1px solid rgba(237,233,255,.07);transition:transform .15s, border-color .15s;}
-.setcard:hover{transform:translateY(-2px);border-color:rgba(199,125,255,.45);}
+.setcard{display:flex;align-items:center;gap:12px;border-radius:14px;padding:10px 13px;cursor:pointer;border:1px solid rgba(237,233,255,.07);transition:transform .15s, border-color .15s, box-shadow .2s;}
+.setcard:hover{transform:translateY(-2px);border-color:rgba(199,125,255,.45);box-shadow:0 0 20px -6px rgba(177,92,255,.5);}
+.piecegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:10px;}
+.ptile{position:relative;border-radius:12px;cursor:pointer;padding:13px 6px 9px;display:flex;flex-direction:column;align-items:center;gap:8px;
+  background:linear-gradient(180deg,rgba(237,233,255,.05),rgba(237,233,255,.015));border:1px solid rgba(237,233,255,.07);
+  transition:transform .15s,border-color .15s,box-shadow .2s;animation:pageIn .35s cubic-bezier(.25,.8,.3,1) both;}
+.ptile:hover{transform:translateY(-2px);border-color:rgba(177,92,255,.5);box-shadow:0 0 20px -6px rgba(177,92,255,.55);}
+.ptile img{width:56px;height:56px;border-radius:10px;border:1px solid rgba(237,233,255,.14);box-shadow:0 0 14px -4px rgba(177,92,255,.35);}
+.ptile.miss img{filter:grayscale(.85) brightness(.7);transition:filter .2s;}
+.ptile.miss:hover img{filter:grayscale(.1) brightness(.95);}
+.ptile .pn{font-size:10.5px;line-height:1.25;color:var(--muted);text-align:center;max-height:2.6em;overflow:hidden;}
+.ptile.kept .pn{color:var(--ink);}
+.ptile.kept{border-color:rgba(111,224,192,.28);}
+.pseal{position:absolute;top:6px;right:6px;font:700 10px Barlow,sans-serif;color:#0B0A18;width:17px;height:17px;border-radius:999px;
+  display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--good),#9FF0D8);box-shadow:0 0 10px -2px rgba(111,224,192,.7);}
+.app.no-motion .ptile{animation:none}
 .setcard img{width:40px;height:40px;border-radius:9px;border:1px solid rgba(199,125,255,.3);flex:0 0 auto;background:var(--raised);}
 .setcard .sm{flex:1;min-width:0;}
 .setcard .sn{font-size:12.5px;line-height:1.25;max-height:2.5em;overflow:hidden;}
@@ -401,7 +429,7 @@ button{font-family:Barlow,system-ui,sans-serif}
 .fitbar select{max-width:112px;}
 .fitbar select option{background:#141028;color:var(--ink);}
 .fitbar input{width:112px;}
-.fitbar .gbtn{background:rgba(237,233,255,.06);border:1px solid rgba(237,233,255,.12);color:var(--ink);
+.fitbar .gbtn{background:linear-gradient(180deg,rgba(237,233,255,.09),rgba(237,233,255,.03));border:1px solid rgba(237,233,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.07);color:var(--ink);
   border-radius:999px;padding:4px 9px;font:600 11px Barlow,sans-serif;cursor:pointer;flex:0 0 auto;}
 .fitbar .gbtn:hover{background:rgba(177,92,255,.25);box-shadow:0 0 14px -3px rgba(177,92,255,.6);}
 .lb3d-btn{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:2;
@@ -635,9 +663,9 @@ button{font-family:Barlow,system-ui,sans-serif}
         <button class="vtab" data-t="studio" id="sec-studio" onclick="tmogSetSection('studio')">⚒ Studio</button>
       </div>
       <div id="tmog-hero"></div>
-      <div id="tmog-controls" class="stickybar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <div id="tmog-controls" class="stickybar" style="display:flex;gap:12px 14px;flex-wrap:wrap;align-items:center">
         <div class="vtabs" id="tmog-filters" style="margin:0"></div>
-        <div class="searchpill" style="margin-left:auto"><input id="tmog-search" placeholder="Search sets…" oninput="tmogPage=0;renderTmogSection()"></div>
+        <div class="searchpill" style="margin-left:auto;flex:1 1 230px;min-width:190px"><input id="tmog-search" placeholder="Search sets…" oninput="tmogPage=0;renderTmogSection()" style="width:100%"></div>
       </div>
       <div id="tmog-body"></div>
       <div id="studio-body" style="display:none"></div>
@@ -1963,13 +1991,11 @@ function renderTmogPieces() {
   if (tmogPage >= pages) tmogPage = pages - 1;
   const pageRows = rows.slice(tmogPage * PAGE, (tmogPage + 1) * PAGE);
   body.innerHTML = rows.length ? `
-    <div class="setgrid">${pageRows.map(x => `
-      <div class="setcard glass ${have.has(x.a) ? 'done' : ''}" role="button" tabindex="0" onclick="tmogPieceLb('${tmogSlot}',${x.a})">
-        ${x.i ? `<img src="/api/icon/${x.i}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div style="width:40px"></div>'}
-        <div class="sm">
-          <div class="sn">${esc(x.n)}</div>
-          <div class="sc"><span class="sv">${have.has(x.a) ? '✓ kept' : '☾ unclaimed'}</span></div>
-        </div>
+    <div class="piecegrid">${pageRows.map((x, i) => `
+      <div class="ptile ${have.has(x.a) ? 'kept' : 'miss'}" role="button" tabindex="0" title="${esc(x.n)}" style="animation-delay:${(i % 24) * 16}ms" onclick="tmogPieceLb('${tmogSlot}',${x.a})">
+        ${have.has(x.a) ? '<span class="pseal">✓</span>' : ''}
+        ${x.i ? `<img src="/api/icon/${x.i}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div style="width:56px;height:56px"></div>'}
+        <div class="pn">${esc(x.n)}</div>
       </div>`).join('')}</div>
     ${pager(rows.length, PAGE, tmogPage, 'tmogPage', 'renderTmogGrid')}`
     : '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">No looks here</div></div>';
