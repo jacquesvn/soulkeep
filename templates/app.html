@@ -864,7 +864,13 @@ async function loadRoster(initial) {
   renderRoster(); renderChrome(); applySettings();
   if (view === 'detail') renderDetail();
 }
-function refresh() { loadRoster(false); }
+function refresh() {
+  loadRoster(false);
+  loadGamedata().then(() => {   // fresh addon exports (gold/vault/played) without a restart
+    if (view === 'board') renderBoard();
+    else if (view === 'detail') renderDetail();
+  });
+}
 
 /* ---------- derived ---------- */
 function awake(c) { return !c.error; }
