@@ -549,6 +549,7 @@ button{font-family:Barlow,system-ui,sans-serif}
               <option value="ilvl">Sort · Item level</option>
               <option value="mplus">Sort · M+ rating</option>
               <option value="class">Sort · Class</option>
+              <option value="seen">Sort · Last seen</option>
             </select>
           </div>
           <div class="qa">
@@ -694,6 +695,13 @@ button{font-family:Barlow,system-ui,sans-serif}
         </div>
       </div>
       <div>
+        <div class="dr-sect">Keyboard</div>
+        <div class="set-d" style="line-height:2">
+          <b style="color:var(--ink)">1–8</b> jump between halls &nbsp;·&nbsp; <b style="color:var(--ink)">/</b> search
+          <br><b style="color:var(--ink)">← →</b> page characters &nbsp;·&nbsp; <b style="color:var(--ink)">Esc</b> close panels
+        </div>
+      </div>
+      <div>
         <div class="dr-sect">Data</div>
         <div class="set-row">
           <div><div class="set-l">Auto refresh</div><div class="set-d">Poll the Battle.net API hourly</div></div>
@@ -836,6 +844,7 @@ function visibleChars() {
   if (S.sort === 'ilvl')  list = [...list].sort((a, b) => (b.ilvl || 0) - (a.ilvl || 0));
   if (S.sort === 'mplus') list = [...list].sort((a, b) => (b.mplus_rating || 0) - (a.mplus_rating || 0));
   if (S.sort === 'class') list = [...list].sort((a, b) => (a.class || '~').localeCompare(b.class || '~'));
+  if (S.sort === 'seen') list = [...list].sort((a, b) => (b.last_login || 0) - (a.last_login || 0));
   return list;
 }
 function setSort(v) { S.sort = v; saveSettings(); renderRoster(); }
@@ -995,6 +1004,7 @@ async function removeChar(ev, k, btn) {
 const VIEWS = ['roster', 'detail', 'board', 'collections', 'transmog', 'economy', 'progress'];
 function setView(v) {
   view = v;
+  if (v !== 'detail') document.title = 'Soulkeep';
   for (const x of VIEWS) {
     $('view-' + x).style.display = x === v ? '' : 'none';
     const nav = $('nav-' + x), tab = $('tab-' + x);
@@ -1039,13 +1049,15 @@ function renderDetail() {
   const g = gd(c);  // companion-addon data for this character, if exported
   const awl = chars.filter(awake);
   const pos = awl.findIndex(x => ekey(x.entry) === ekey(c.entry));
+  document.title = 'Soulkeep — ' + (c.name || '');
   const posEl = $('detail-pos');
   if (posEl) posEl.textContent = awl.length > 1 ? `${pos + 1} / ${awl.length}` : '';
   const VAULT_T = VAULT_LABEL;
   const thresholds = [1000, 1500, 2000, 2500, 3000, 3500];
   const pct = Math.min(100, (c.mplus_rating || 0) / 3500 * 100).toFixed(1);
   const gear = (c.gear || []).map(g => `
-    <div class="gear-row">
+    <div class="gear-row" role="button" tabindex="0" style="cursor:pointer" title="Open the Wowhead guide"
+         onclick="openGuide('${esc(g.name).replace(/'/g, "\\'")}')">
       <span class="g-slot">${esc(g.slot)}</span>
       <span class="g-name" style="color:${g.qcol}">${esc(g.name)}</span>
       ${g.ench ? '<span class="g-ench" title="Enchanted">✦</span>' : ''}
@@ -1289,11 +1301,21 @@ function vaultSegs(acts) {
         `<div class="seg ${r.progress >= r.threshold ? 'm' : ''}" title="${r.progress}/${r.threshold}"></div>`).join('')}</div></div>`;
   }).join('');
 }
+function resetCountdown() {
+  const now = new Date();
+  const reset = new Date(now);
+  reset.setUTCHours(4, 0, 0, 0);
+  let days = (3 - now.getUTCDay() + 7) % 7;   // 3 = Wednesday
+  if (days === 0 && now >= reset) days = 7;
+  reset.setUTCDate(reset.getUTCDate() + days);
+  const ms = reset - now, h = Math.floor(ms / 3600000), d = Math.floor(h / 24);
+  return d > 0 ? `${d}d ${h % 24}h` : `${h}h ${Math.floor(ms / 60000) % 60}m`;
+}
 function renderBoard() {
   const aw = chars.filter(awake);
   const body = $('board-body');
   if (!aw.length) { body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">No souls awake</div></div>'; return; }
-  body.innerHTML = aw.map((c, i) => {
+  body.innerHTML = `<div class="hintline" style="margin-bottom:12px;letter-spacing:.14em;text-transform:uppercase;font-size:10px">⏳ Weekly reset in <b style="color:var(--gold);font-family:'Barlow Condensed';font-size:12px">${resetCountdown()}</b> · EU · Wednesday 04:00 UTC</div>` + aw.map((c, i) => {
     const g = gd(c);
     const weekRuns = (c.runs || []).length;
     const bestKey = weekRuns ? Math.max(...c.runs.map(r => r.key)) : null;
@@ -1366,13 +1388,18 @@ function renderRings() {
   }).join('');
 }
 
+let easyRoll = 0;
 function renderEasy() {
   const st = collStats(collKind);
   const pool = st.missObt.filter(x => EASY_SRC.has(x.src));
-  const d = new Date(), seed = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
-  const picks = [...pool].sort((a, b) => ((a.id * 2654435761 ^ seed) >>> 0) - ((b.id * 2654435761 ^ seed) >>> 0)).slice(0, 8);
+  const d = new Date(), seed = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate() + easyRoll * 7919;
+  const h = x => (((x ^ seed) * 2654435761) ^ ((x ^ seed) >>> 13)) >>> 0;
+  const picks = [...pool].sort((a, b) => h(a.id) - h(b.id)).slice(0, 8);
   $('easy-marks').innerHTML = picks.length ? `
-    <div class="p-eyebrow" style="margin-bottom:10px">Easy Marks · gettable this week — today's picks</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <div class="p-eyebrow" style="margin:0">Easy Marks · gettable this week — today's picks</div>
+      <button class="vtab" style="padding:3px 10px;font-size:10.5px" title="Different picks" onclick="easyRoll++;renderEasy()">↻ reroll</button>
+    </div>
     <div class="easyrow">${picks.map(x => `
       <div class="easycard glass" role="button" tabindex="0" title="A closer look" onclick="lbOpenId(${x.id}, [${picks.map(y => y.id).join(',')}])">
         ${tileArt(x)}

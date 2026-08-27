@@ -312,6 +312,7 @@ def get_character(region, realm, name):
         "ilvl": p.get("equipped_item_level"), "ilvl_avg": p.get("average_item_level"),
         "achievement_points": p.get("achievement_points"),
         "last_seen": _ago(p.get("last_login_timestamp")),
+        "last_login": p.get("last_login_timestamp"),
         "mplus_rating": round(rating) if rating else None,
         "raid": raid_str, "raid_name": raid_name, "raid_rows": raid_rows,
         "professions": [x["name"] for x in prof_rows], "prof_rows": prof_rows,
