@@ -12,13 +12,9 @@ html,body{margin:0;background:transparent;overflow:hidden}
   color:#A79FC8;font:500 12px Barlow,system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase;
   background:transparent;pointer-events:none;transition:opacity .45s ease;}
 #loader.gone{opacity:0;}
-.disc{width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 42% 40%, #0B0A18 55%, #241A52);
-  border:1px solid rgba(177,92,255,.55);position:relative;animation:corona 2.2s ease-in-out infinite;}
-.disc::after{content:"";position:absolute;left:24%;top:34%;width:50%;height:50%;border-radius:50%;
-  background:radial-gradient(circle at 50% 60%, rgba(111,224,192,.8), rgba(111,224,192,.15) 60%, transparent 75%);
-  filter:blur(1px);animation:soulpulse 1.8s ease-in-out infinite;}
-@keyframes corona{0%,100%{box-shadow:0 0 12px 2px rgba(177,92,255,.4)}50%{box-shadow:0 0 24px 7px rgba(199,125,255,.7)}}
-@keyframes soulpulse{0%,100%{opacity:.5;transform:scale(.9)}50%{opacity:1;transform:scale(1.08)}}
+.disc{width:52px;height:52px;background:url('/icon-192.png') center/contain no-repeat;
+  animation:sigilbreathe 2.2s ease-in-out infinite;}
+@keyframes sigilbreathe{0%,100%{filter:drop-shadow(0 0 3px rgba(177,92,255,.4))}50%{filter:drop-shadow(0 0 11px rgba(199,125,255,.75))}}
 @media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
 </style>
 </head><body>

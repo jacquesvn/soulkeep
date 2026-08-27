@@ -3,7 +3,7 @@ which pulls live character data from /api/roster. Run:  python app.py  (or the p
 import json, os, secrets, shutil, socket, sys, threading, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-VERSION = "1.15.0"
+VERSION = "1.16.0"
 REPO = "jacquesvn/soulkeep"  # update banner watches this repo's latest release
 import webview
 from flask import Flask, render_template, request, jsonify, redirect, send_file
@@ -331,16 +331,10 @@ def api_brag():
         r = random.choice((1, 1, 2))
         col = random.choice([(237, 233, 255), (199, 125, 255), (243, 199, 102)])
         dr.ellipse((x - r, y - r, x + r, y + r), fill=col)
-    # soulstone
-    cx, cy, r = 150, 150, 62
-    glow = Image.new("RGB", (W, H), (0, 0, 0))
-    gd2 = ImageDraw.Draw(glow)
-    gd2.ellipse((cx - r - 26, cy - r - 26, cx + r + 26, cy + r + 26), fill=(120, 60, 190))
-    glow = glow.filter(ImageFilter.GaussianBlur(30))
-    img = Image.blend(img, glow, 0.35) if False else img
-    dr.ellipse((cx - r - 3, cy - r - 3, cx + r + 3, cy + r + 3), outline=(199, 125, 255), width=3)
-    dr.ellipse((cx - r, cy - r, cx + r, cy + r), fill=(11, 10, 24))
-    dr.ellipse((cx - 26, cy - 6, cx + 14, cy + 34), fill=(60, 150, 128))
+    # the sigil, forged fresh from the Soulforge
+    from soulforge import draw_sigil
+    sig = draw_sigil(236)
+    img.paste(sig, (32, 32), sig)
     def font(sz, bold=False, serif=False):
         try:
             if serif:

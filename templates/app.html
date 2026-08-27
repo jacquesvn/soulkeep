@@ -39,14 +39,10 @@ button{font-family:Barlow,system-ui,sans-serif}
 .nebula{position:absolute;inset:0;pointer-events:none;opacity:var(--starop);
   background:radial-gradient(720px 460px at 78% -8%, rgba(177,92,255,.32), transparent 62%),radial-gradient(520px 400px at 12% 32%, rgba(122,47,214,.26), transparent 65%),radial-gradient(620px 420px at 96% 62%, rgba(243,199,102,.10), transparent 65%),radial-gradient(640px 460px at 30% 108%, rgba(36,26,82,.85), transparent 70%);}
 .wisps{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:calc(var(--starop) * .9);}
-.disc{position:relative;}
-.disc::after{content:"";position:absolute;left:22%;top:34%;width:52%;height:52%;border-radius:50%;
-  background:radial-gradient(circle at 50% 60%, rgba(111,224,192,.75), rgba(111,224,192,.18) 55%, transparent 75%);
-  filter:blur(1px);animation:soulpulse 4.5s ease-in-out infinite;}
+.disc{position:relative;background:url('/icon-512.png') center/contain no-repeat;}
 @keyframes soulpulse{0%,100%{opacity:.55;transform:scale(.92)}50%{opacity:.95;transform:scale(1.06)}}
 .app.no-motion .stars{animation:none}
 .app.no-motion .disc{animation:none}
-.app.no-motion .disc::after{animation:none}
 
 /* ---------- sidebar ---------- */
 .sidebar{position:relative;z-index:2;width:228px;flex:0 0 228px;display:flex;flex-direction:column;border-right:1px solid var(--line);
@@ -68,7 +64,8 @@ button{font-family:Barlow,system-ui,sans-serif}
 .app.sb-hover .sidebar:hover{box-shadow:24px 0 60px -30px rgba(0,0,0,.7);}
 .app.sb-hover #collapse-btn{display:none;}
 .crest-row{display:flex;align-items:center;gap:11px;padding:22px 18px 18px;}
-.disc{border-radius:50%;background:radial-gradient(circle at 42% 40%, #0B0A18 55%, #241A52);border:1px solid rgba(177,92,255,.5);animation:corona 6s ease-in-out infinite;}
+.disc{animation:sigilbreathe 6s ease-in-out infinite;}
+@keyframes sigilbreathe{0%,100%{filter:drop-shadow(0 0 3px rgba(177,92,255,.35))}50%{filter:drop-shadow(0 0 9px rgba(199,125,255,.65))}}
 .disc-26{width:26px;height:26px}
 .wordmark{font-family:Cinzel,serif;font-weight:700;font-size:15px;letter-spacing:.14em;}
 .wordsub{font-size:9.5px;letter-spacing:.28em;color:var(--muted);text-transform:uppercase;}
