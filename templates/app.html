@@ -337,6 +337,12 @@ button{font-family:Barlow,system-ui,sans-serif}
 .wpncard .wc{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:3px;}
 .wpncard.kept{border-color:rgba(111,224,192,.3);}
 
+.mv-expand{position:absolute;right:10px;bottom:10px;z-index:3;width:32px;height:32px;
+  display:grid;place-items:center;background:rgba(11,10,24,.72);backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);border:1px solid rgba(199,125,255,.35);border-radius:9px;
+  color:var(--ink);font-size:15px;cursor:pointer;transition:background .15s, transform .15s;}
+.mv-expand:hover{background:rgba(177,92,255,.35);transform:scale(1.08);}
+
 /* ---------- grand view (expanded 3D) ---------- */
 .mvfull{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;
   background:rgba(7,6,14,.9);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
@@ -1497,7 +1503,7 @@ function wpnLb(aid) {
   const w = (armory || []).find(x => x.a === aid);
   if (!w) return;
   const kept = new Set(tmogMine.appearances || []).has(aid);
-  $('lb-hero').innerHTML = `<iframe class="lb3d" style="height:360px" src="/mv?d=${w.d}&t=1" title="Weapon model — drag to turn, scroll to zoom"></iframe>`;
+  $('lb-hero').innerHTML = `<iframe class="lb3d" style="height:360px" src="/mv?d=${w.d}&t=1" title="Weapon model — drag to turn, scroll to zoom"></iframe><button class="mv-expand" title="Grand view" onclick="mvExpand()">⛶</button>`;
   $('lb-name').textContent = w.n;
   $('lb-chips').innerHTML = [
     `<span class="chip"><span class="v">${esc(w.c || w.s)}</span></span>`,
@@ -1506,7 +1512,7 @@ function wpnLb(aid) {
   ].join('');
   const dEl = $('lb-desc'); dEl.style.display = 'none'; dEl.textContent = '';
   $('lb-guide').onclick = () => openGuide(w.n);
-  $('lb-extra').innerHTML = `<span class="hintline">drag to turn · scroll to zoom</span> <button class="pill-btn" style="flex:0 0 auto;padding:5px 10px" title="Grand view" onclick="mvExpand()">⛶</button>`;
+  $('lb-extra').innerHTML = `<span class="hintline">drag to turn · scroll to zoom</span>`;
   $('lb-count').textContent = '';
   lbPool = [];
   document.querySelectorAll('.lb-nav').forEach(b => b.style.display = 'none');
@@ -1647,6 +1653,7 @@ function lbFit() {
   const chrId = fitGender === 0 ? r[1] : r[2];
   $('lb-hero').innerHTML = `
     <iframe class="lb3d" style="height:430px" src="/mv?d=${chrId}&t=16&items=${parts.join(',')}" title="Dressing room - drag to turn, scroll to zoom"></iframe>
+    <button class="mv-expand" title="Grand view" onclick="mvExpand()">⛶</button>
     <div class="fitbar">
       <select onchange="fitRace=parseInt(this.value,10);lbFit()" title="Race">
         ${RACES.map((x, i) => `<option value="${i}" ${i === fitRace ? 'selected' : ''}>${esc(x[0])}</option>`).join('')}
@@ -1656,7 +1663,6 @@ function lbFit() {
              oninput="armorySuggest(this.value)" onchange="armoryPick(this.value)">
       <datalist id="wpn-list"></datalist>
       ${fitWeapon ? '<button class="gbtn" title="Disarm" onclick="fitWeapon=null;lbFit()">✕</button>' : ''}
-      <button class="gbtn" title="Grand view" onclick="mvExpand()">⛶</button>
     </div>`;
   $('lb-extra').innerHTML = '<span class="hintline">drag to turn · scroll to zoom</span>';
 }
@@ -1763,8 +1769,8 @@ function mvCollapse() {
   full.querySelector('iframe')?.remove();
 }
 function lb3d(dispId) {
-  $('lb-hero').innerHTML = `<iframe class="lb3d" src="/mv?d=${dispId}" title="3D model — drag to turn, scroll to zoom"></iframe>`;
-  $('lb-extra').innerHTML = '<span class="hintline">drag to turn · scroll to zoom</span> <button class="pill-btn" style="flex:0 0 auto;padding:5px 10px" title="Grand view" onclick="mvExpand()">⛶</button>';
+  $('lb-hero').innerHTML = `<iframe class="lb3d" src="/mv?d=${dispId}" title="3D model — drag to turn, scroll to zoom"></iframe><button class="mv-expand" title="Grand view" onclick="mvExpand()">⛶</button>`;
+  $('lb-extra').innerHTML = '<span class="hintline">drag to turn · scroll to zoom</span>';
 }
 function lbNav(d) { if (!lbPool.length) return; lbIdx = (lbIdx + d + lbPool.length) % lbPool.length; lbRender(); }
 function lbClose() { $('lb-back').classList.remove('open'); }
