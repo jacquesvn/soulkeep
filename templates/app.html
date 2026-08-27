@@ -1797,20 +1797,21 @@ function renderTmogFilters() {
   if (tmogArmor && ARMOR_CLASSES.includes(tmogArmor)) {
     if (atlas === null) loadAtlas().then(() => { renderTmogFilters(); renderTmogGrid(); });
     const inner = atlas && Object.keys(atlas).length ? TMOG_ARMOR_SLOTS.map(([k, l]) => {
-      const n = (atlas[k] || []).filter(x => x.c === tmogArmor).length;
+      const n = (atlas[k] || []).filter(x => k === 'CLOAK' || x.c === tmogArmor).length;
       if (!n) return '';
       return `<button class="vtab ${tmogSlot === k ? 'on' : ''}" style="padding:3px 10px;font-size:10.5px" onclick="tmogSlot=tmogSlot==='${k}'?null:'${k}';tmogPage=0;renderTmogFilters();renderTmogGrid()">${l} · ${n.toLocaleString('en-US')}</button>`;
     }).join('') : '<span class="hintline" style="align-self:center">unrolling the Great Atlas…</span>';
     slots = '<span style="flex-basis:100%;height:0"></span><span class="hintline" style="align-self:center;letter-spacing:.14em;text-transform:uppercase;font-size:9px">Slots</span>' + inner;
     if (tmogSlot && atlas && atlas[tmogSlot]) {
       const have = new Set(tmogMine.appearances || []);
-      const pieces = atlas[tmogSlot].filter(x => x.c === tmogArmor);
+      const pieces = atlas[tmogSlot].filter(x => tmogSlot === 'CLOAK' || x.c === tmogArmor);
       const kept = pieces.filter(x => have.has(x.a)).length;
       state = [['all', `All · ${pieces.length.toLocaleString('en-US')}`], ['complete', `✓ Kept · ${kept}`], ['unstarted', `Unclaimed · ${(pieces.length - kept).toLocaleString('en-US')}`]]
         .map(([k, l]) => `<button class="vtab ${tmogFilter === k ? 'on' : ''}" onclick="tmogFilter='${k}';tmogPage=0;renderTmogFilters();renderTmogGrid()">${l}</button>`).join('');
     }
   }
   $('tmog-filters').innerHTML = state + sort + armor + slots;
+  $('tmog-search').placeholder = (tmogSlot && tmogArmor) ? 'Search looks…' : 'Search sets…';
 }
 const TMOG_ARMOR_SLOTS = [
   ['HEAD', 'Head'], ['SHOULDER', 'Shoulder'], ['CLOAK', 'Cloak'], ['CHEST', 'Chest'],
@@ -1950,7 +1951,7 @@ function renderTmogPieces() {
     return;
   }
   const have = new Set(tmogMine.appearances || []);
-  let rows = atlas[tmogSlot].filter(x => x.c === tmogArmor);
+  let rows = atlas[tmogSlot].filter(x => tmogSlot === 'CLOAK' || x.c === tmogArmor);
   if (tmogFilter === 'complete') rows = rows.filter(x => have.has(x.a));
   else if (tmogFilter === 'unstarted') rows = rows.filter(x => !have.has(x.a));
   const q = ($('tmog-search').value || '').toLowerCase();
