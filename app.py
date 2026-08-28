@@ -3,7 +3,7 @@ which pulls live character data from /api/roster. Run:  python app.py  (or the p
 import json, os, secrets, shutil, socket, sys, threading, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-VERSION = "1.23.7"
+VERSION = "1.24.0"
 REPO = "jacquesvn/soulkeep"  # update banner watches this repo's latest release
 import webview
 from flask import Flask, render_template, request, jsonify, redirect, send_file
@@ -103,6 +103,30 @@ def api_roster():
         pass
     snapshot_history(chars)
     return jsonify({"chars": chars})
+
+# ---------- official instance artwork (journal tile), grow-cached ----------
+INSTART = os.path.join(APPDIR, "instart.json")
+_INSTART = None
+
+@app.route("/api/instart/<int:jid>")
+def api_instart(jid):
+    global _INSTART
+    if _INSTART is None:
+        try:
+            _INSTART = json.load(open(INSTART, encoding="utf-8"))
+        except (OSError, ValueError):
+            _INSTART = {}
+    url = _INSTART.get(str(jid))
+    if not url:
+        m = wowapi._get(AUTH["region"], f"/data/wow/media/journal-instance/{jid}", f"static-{AUTH['region']}")
+        url = next((a.get("value") for a in (m.get("assets") or []) if a.get("key") == "tile"), None)
+        if url:
+            _INSTART[str(jid)] = url
+            try:
+                json.dump(_INSTART, open(INSTART, "w", encoding="utf-8"))
+            except OSError:
+                pass
+    return redirect(url) if url else (jsonify({"error": "no art"}), 404)
 
 # ---------- progress history (the Time Machine's ledger) ----------
 HISTORY = os.path.join(APPDIR, "history.jsonl")

@@ -195,6 +195,15 @@ button{font-family:Barlow,system-ui,sans-serif}
 .run .k{font:600 13px 'Barlow Condensed',sans-serif;color:var(--good);flex:0 0 32px;}
 .run .s{margin-left:auto;font:500 12px 'Barlow Condensed',sans-serif;color:var(--muted);}
 .raid-name{font-family:Cinzel,serif;font-size:15px;margin-bottom:14px;}
+.raidpanel{position:relative;overflow:hidden;}
+.raidart{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;opacity:0;
+  transition:opacity .8s ease;pointer-events:none;}
+.raidart.lit{opacity:.26;}
+.raidfade{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(90deg, color-mix(in srgb, var(--panel) 88%, transparent) 18%, color-mix(in srgb, var(--panel) 30%, transparent) 70%, color-mix(in srgb, var(--panel) 74%, transparent)),linear-gradient(180deg, transparent 40%, color-mix(in srgb, var(--bg) 55%, transparent));}
+.raidbody{position:relative;z-index:1;}
+.hallthumb{width:34px;height:20px;object-fit:cover;border-radius:4px;flex:0 0 auto;opacity:.85;border:1px solid rgba(237,233,255,.10);}
+.planthumb{width:44px;height:26px;object-fit:cover;border-radius:6px;flex:0 0 auto;margin-right:2px;border:1px solid rgba(237,233,255,.10);}
 .raid-rows{display:flex;flex-direction:column;gap:10px;}
 .rr-head{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;}
 .rr-head .n{font-family:'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums;}
@@ -1174,7 +1183,8 @@ function renderDetail() {
       <div class="segs">${Array.from({ length: r.total }, (_, i) => `<div class="seg ${i < r.n ? segCls[r.diff] : ''}"></div>`).join('')}</div>
     </div>`).join('');
   const histRows = (c.raid_hist || []).filter(h => h.name !== c.raid_name).slice().reverse().map(h => `
-    <div style="display:flex;gap:8px;align-items:baseline;font-size:12.5px">
+    <div style="display:flex;gap:8px;align-items:center;font-size:12.5px">
+      <img class="hallthumb" data-inst="${esc(h.name)}" alt="" style="display:none" onload="this.style.display=''" onerror="this.remove()">
       <span style="color:var(--muted);font-size:10px;letter-spacing:.06em;min-width:112px;flex:0 0 auto">${esc(h.exp || '')}</span>
       <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(h.name)}</span>
       <span style="margin-left:auto;flex:0 0 auto;font-variant-numeric:tabular-nums;color:${h.n >= h.total ? 'var(--good)' : 'var(--ink)'}">${h.n}/${h.total}${esc(h.diff || '')}</span>
@@ -1216,7 +1226,10 @@ function renderDetail() {
         ${gear ? `<div class="gear-grid">${gear}</div>` : '<div class="empty-s" style="color:var(--muted)">No equipment data.</div>'}
       </div>
       ${((c.raid_rows || []).length || (c.raid_hist || []).length) ? `
-      <div class="panel">
+      <div class="panel raidpanel" id="raidpanel">
+        <img class="raidart" id="raidart" alt="" onload="this.classList.add('lit')" onerror="this.remove()">
+        <div class="raidfade"></div>
+        <div class="raidbody">
         <div class="p-eyebrow" style="margin-bottom:4px">Raid${c.raid_season ? ' · ' + esc(c.raid_season) : ''}</div>
         ${(c.raid_rows || []).length ? `
         <div class="raid-name">${esc(c.raid_name || '')}</div>
@@ -1228,6 +1241,7 @@ function renderDetail() {
           <summary class="hintline" style="cursor:pointer;letter-spacing:.12em;text-transform:uppercase;font-size:10px;list-style-position:inside">⚔ Hall of Ages · ${(c.raid_hist || []).filter(h => h.name !== c.raid_name).length} raids of old</summary>
           <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px">${histRows}</div>
         </details>` : ''}
+        </div>
       </div>` : ''}
       ${(c.mounts != null || c.pets != null) ? `
       <div class="coll-grid">
@@ -1277,6 +1291,7 @@ function renderDetail() {
     </div>
   </div>`;
   loadDetailExtras(c);
+  decorateRaidArt(c);
 }
 
 /* ---------- your character in 3D ---------- */
@@ -1427,6 +1442,25 @@ function goldStr(copper) {
   return Math.floor(copper / 10000).toLocaleString('en-US') + 'g';
 }
 const VAULT_LABEL = { 1: 'Mythic+', 3: 'Raid', 5: 'Delves?', 6: 'World' };
+let curTier = null;
+async function loadCurTier() {
+  if (curTier) return curTier;
+  try { curTier = (await (await fetch('/api/static/current')).json()).data || {}; } catch (e) { curTier = {}; }
+  return curTier;
+}
+async function decorateRaidArt(c) {
+  const t = await loadCurTier();
+  const ids = t.instance_ids || {};
+  const art = $('raidart');
+  if (art) {
+    const name = c.raid_name || (t.raids || []).slice(-1)[0];
+    if (ids[name]) art.src = '/api/instart/' + ids[name]; else art.remove();
+  }
+  document.querySelectorAll('.hallthumb[data-inst]').forEach(img => {
+    const id = ids[img.dataset.inst];
+    if (id) img.src = '/api/instart/' + id; else img.remove();
+  });
+}
 function playedStr(sec) {
   if (!sec) return null;
   const d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600);
@@ -1508,8 +1542,11 @@ async function loadPlanner() {
     const el = $('planner-body');
     if (!el) return;
     el.classList.remove('hintline');
+    const tArt = await loadCurTier();
+    const iids = tArt.instance_ids || {};
     el.innerHTML = (j.rows || []).length ? j.rows.slice(0, 5).map(r => `
-      <div class="run" style="align-items:flex-start">
+      <div class="run" style="align-items:center">
+        ${iids[r.instance] ? `<img class="planthumb" src="/api/instart/${iids[r.instance]}" alt="" onerror="this.remove()">` : ''}
         <span style="flex:0 0 34px" class="k good">${r.score}⚔</span>
         <span style="min-width:150px;font-weight:600">${esc(r.instance)}</span>
         <span class="s" style="margin-left:auto;text-align:right;white-space:normal">${r.chars.map(c => `<b style="color:var(--ink)">${esc(c.name)}</b> <span style="color:var(--muted)">(${c.slots.map(esc).join(', ')})</span>`).join(' · ')}</span>

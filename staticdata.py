@@ -475,8 +475,17 @@ def build_current(region="eu"):
     real = [t for t in tiers if t.get("name") != "Current Season" and t.get("id")]
     if real:
         exp = max(real, key=lambda t: t["id"]).get("name")  # journal ids grow with release
-    _save("current", {"expansion": exp, "raids": raids, "world": raids[0] if raids else None})
-    _log(f"current: {exp} — {len(raids)} season raids")
+    # name -> journal-instance id, every dungeon and raid ever (for official tile art)
+    inst_ids = {}
+    for t in real:
+        det = wowapi._get(region, f"/data/wow/journal-expansion/{t['id']}", ns)
+        for kind in ("dungeons", "raids"):
+            for r in (det.get(kind) or []):
+                if r.get("name") and r.get("id"):
+                    inst_ids[r["name"]] = r["id"]
+    _save("current", {"expansion": exp, "raids": raids, "world": raids[0] if raids else None,
+                      "instance_ids": inst_ids})
+    _log(f"current: {exp} — {len(raids)} season raids, {len(inst_ids)} instances mapped")
 
 def build_all(region="eu"):
     if BUILD["running"]:
