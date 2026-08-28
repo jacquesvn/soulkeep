@@ -2930,6 +2930,7 @@ if (qsBoot.has('imported')) {
 loadAccount();
 loadGamedata();
 checkUpdate();
+setInterval(checkUpdate, 6 * 3600 * 1000);  // long-running keeps learn of new builds too
 setTimeout(checkMilestones, 12000);
 setInterval(checkUpdate, 6 * 3600 * 1000);  // long-running keeps still hear the horn
 loadRoster(true);
