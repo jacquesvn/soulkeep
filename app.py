@@ -3,7 +3,7 @@ which pulls live character data from /api/roster. Run:  python app.py  (or the p
 import json, os, secrets, shutil, socket, sys, threading, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-VERSION = "1.23.0"
+VERSION = "1.23.1"
 REPO = "jacquesvn/soulkeep"  # update banner watches this repo's latest release
 import webview
 from flask import Flask, render_template, request, jsonify, redirect, send_file

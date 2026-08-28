@@ -218,7 +218,10 @@ button{font-family:Barlow,system-ui,sans-serif}
 .vtitle{margin:0;font-family:Cinzel,serif;font-weight:600;font-size:34px;letter-spacing:.1em;line-height:1;background:linear-gradient(180deg, var(--ink), rgba(237,233,255,.6));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
 .app[data-theme="dawn"] .vtitle{background:linear-gradient(180deg, var(--ink), rgba(36,26,82,.6));-webkit-background-clip:text;background-clip:text;}
 .vtabs{display:flex;gap:2px 4px;margin-bottom:18px;flex-wrap:wrap;align-items:center;
-  padding:3px 6px;background:rgba(237,233,255,.028);border:1px solid rgba(237,233,255,.055);border-radius:12px;}
+  padding:3px 6px;border-radius:12px;
+  background:linear-gradient(180deg,rgba(120,63,208,.13),rgba(36,26,82,.10));
+  border:1px solid rgba(177,92,255,.17);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 0 22px -10px rgba(177,92,255,.35);}
 .vtab{position:relative;display:inline-flex;align-items:center;background:none;border:none;color:var(--muted);border-radius:8px;
   padding:8px 13px 11px;font:600 11.5px 'Barlow Condensed',Barlow,sans-serif;letter-spacing:.08em;text-transform:uppercase;font-variant-numeric:tabular-nums;
   cursor:pointer;transition:color .15s,background .15s;}
@@ -230,7 +233,7 @@ button{font-family:Barlow,system-ui,sans-serif}
 .vtab:focus-visible{outline:2px solid rgba(199,125,255,.65);outline-offset:-2px;}
 .vtab.on{color:#FBF6FF;background:rgba(177,92,255,.10);}
 .vtab.on::after{opacity:1;transform:scaleX(1);}
-.app[data-theme="dawn"] .vtabs{background:rgba(36,26,82,.05);border-color:rgba(36,26,82,.10);}
+.app[data-theme="dawn"] .vtabs{background:linear-gradient(180deg,rgba(122,47,214,.09),rgba(122,47,214,.03));border-color:rgba(122,47,214,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.55);}
 .app[data-theme="dawn"] .vtab.on{color:var(--ink);background:rgba(122,47,214,.10);}
 .app[data-theme="dawn"] .vtab::after{background:linear-gradient(90deg,#7A2FD6,#0FA37F);box-shadow:0 0 8px rgba(122,47,214,.5);}
 .tbl{width:100%;border-collapse:collapse;font-size:13px;}
