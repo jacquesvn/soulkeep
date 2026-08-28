@@ -3,7 +3,7 @@ which pulls live character data from /api/roster. Run:  python app.py  (or the p
 import json, os, secrets, shutil, socket, sys, threading, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-VERSION = "1.22.0"
+VERSION = "1.22.1"
 REPO = "jacquesvn/soulkeep"  # update banner watches this repo's latest release
 import webview
 from flask import Flask, render_template, request, jsonify, redirect, send_file
@@ -774,8 +774,18 @@ def pick_port():
             continue
     return 0
 
+def ah_autorefresh():
+    """On launch: refresh the AH snapshot in the background if it woke up stale (>1h)."""
+    try:
+        s = economy.summary()
+        if time.time() - ((s or {}).get("ts") or 0) > 3600:
+            economy.refresh_ah_async()
+    except Exception:
+        pass
+
 if __name__ == "__main__":
     threading.Thread(target=zam_prune, daemon=True).start()
+    threading.Thread(target=ah_autorefresh, daemon=True).start()
     port = pick_port()
     AUTH["port"] = port
     # 0.0.0.0 so a phone on the same WiFi can open the app (Settings shows the URL)
