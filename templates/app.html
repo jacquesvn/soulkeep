@@ -1651,7 +1651,7 @@ function renderEasy() {
 const _cf = "collPage=0;renderFilters();renderCollGrid()";
 function renderFilters() {
   const st = collStats(collKind);
-  const pool = collShowOwned ? st.obt.filter(x => st.mine.has(x.id)) : st.missObt;
+  const pool = collShowOwned ? st.index.filter(x => st.mine.has(x.id)) : st.missObt;  // the trophy hall shows ALL kept, shop relics included
   const bySrc = {};
   pool.forEach(x => { bySrc[x.src || 'Unknown'] = (bySrc[x.src || 'Unknown'] || 0) + 1; });
   const tops = Object.entries(bySrc).sort((a, b) => b[1] - a[1]).slice(0, 7);
@@ -1695,7 +1695,7 @@ function renderCollGrid() {
   let pool;
   if (collFilter === '__limited') pool = collShowOwned ? st.lim.filter(x => st.mine.has(x.id)) : st.missLim;
   else {
-    pool = collShowOwned ? st.obt.filter(x => st.mine.has(x.id)) : st.missObt;
+    pool = collShowOwned ? st.index.filter(x => st.mine.has(x.id)) : st.missObt;
     if (collFilter) pool = pool.filter(x => (x.src || 'Unknown') === collFilter);
   }
   if (collKind === 'pets' && petType) pool = pool.filter(x => x.type === petType);
