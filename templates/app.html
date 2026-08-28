@@ -219,24 +219,22 @@ button{font-family:Barlow,system-ui,sans-serif}
 .vhead{margin-bottom:22px;animation:pageIn .4s cubic-bezier(.25,.8,.3,1) both;}
 .vtitle{margin:0;font-family:Cinzel,serif;font-weight:600;font-size:34px;letter-spacing:.1em;line-height:1;background:linear-gradient(180deg, var(--ink), rgba(237,233,255,.6));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
 .app[data-theme="dawn"] .vtitle{background:linear-gradient(180deg, var(--ink), rgba(36,26,82,.6));-webkit-background-clip:text;background-clip:text;}
-.vtabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
-.vtab{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(180deg,rgba(237,233,255,.07),rgba(237,233,255,.02));
-  border:1px solid rgba(237,233,255,.11);color:var(--muted);border-radius:999px;padding:7px 15px;
-  font:600 11.5px 'Barlow Condensed',Barlow,sans-serif;letter-spacing:.08em;text-transform:uppercase;font-variant-numeric:tabular-nums;
-  cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
-  transition:background .15s,color .15s,box-shadow .2s,border-color .15s,transform .15s;}
-.vtab::before{content:"";width:5px;height:5px;border-radius:50%;background:rgba(237,233,255,.14);flex:0 0 auto;transition:background .2s,box-shadow .2s;}
-.vtab:hover{color:var(--ink);border-color:rgba(177,92,255,.4);background:linear-gradient(180deg,rgba(177,92,255,.16),rgba(177,92,255,.05));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 0 18px -4px rgba(177,92,255,.5);transform:translateY(-1px);}
-.vtab:focus-visible{outline:2px solid rgba(199,125,255,.65);outline-offset:2px;}
-.vtab.on{background:linear-gradient(160deg,var(--deep) 0%,#5B2AA6 58%,#7A3FD0 100%);color:#FBF6FF;border-color:rgba(199,125,255,.55);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 0 20px -5px rgba(177,92,255,.7);}
-.vtab.on::before{background:var(--good);box-shadow:0 0 8px 1px rgba(111,224,192,.8);}
-.app[data-theme="dawn"] .vtab{background:linear-gradient(180deg,rgba(36,26,82,.06),rgba(36,26,82,.02));border-color:rgba(36,26,82,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.5);}
-.app[data-theme="dawn"] .vtab:hover{background:rgba(122,47,214,.10);}
-.app[data-theme="dawn"] .vtab.on{background:linear-gradient(160deg,#5B21B0,#8A4BE0);}
-.app[data-theme="dawn"] .vtab::before{background:rgba(36,26,82,.18);}
-.app[data-theme="dawn"] .vtab.on::before{background:#0FA37F;box-shadow:0 0 8px 1px rgba(15,163,127,.7);}
+.vtabs{display:flex;gap:2px 4px;margin-bottom:18px;flex-wrap:wrap;align-items:center;
+  padding:3px 6px;background:rgba(237,233,255,.028);border:1px solid rgba(237,233,255,.055);border-radius:12px;}
+.vtab{position:relative;display:inline-flex;align-items:center;background:none;border:none;color:var(--muted);border-radius:8px;
+  padding:8px 13px 11px;font:600 11.5px 'Barlow Condensed',Barlow,sans-serif;letter-spacing:.08em;text-transform:uppercase;font-variant-numeric:tabular-nums;
+  cursor:pointer;transition:color .15s,background .15s;}
+.vtab::after{content:"";position:absolute;left:11px;right:11px;bottom:5px;height:2px;border-radius:2px;
+  background:linear-gradient(90deg,var(--violet),var(--good));box-shadow:0 0 10px rgba(177,92,255,.7);
+  opacity:0;transform:scaleX(.35);transition:opacity .18s,transform .22s cubic-bezier(.25,.8,.3,1);}
+.vtab:hover{color:var(--ink);background:rgba(177,92,255,.07);}
+.vtab:hover::after{opacity:.35;transform:scaleX(.7);}
+.vtab:focus-visible{outline:2px solid rgba(199,125,255,.65);outline-offset:-2px;}
+.vtab.on{color:#FBF6FF;background:rgba(177,92,255,.10);}
+.vtab.on::after{opacity:1;transform:scaleX(1);}
+.app[data-theme="dawn"] .vtabs{background:rgba(36,26,82,.05);border-color:rgba(36,26,82,.10);}
+.app[data-theme="dawn"] .vtab.on{color:var(--ink);background:rgba(122,47,214,.10);}
+.app[data-theme="dawn"] .vtab::after{background:linear-gradient(90deg,#7A2FD6,#0FA37F);box-shadow:0 0 8px rgba(122,47,214,.5);}
 .tbl{width:100%;border-collapse:collapse;font-size:13px;}
 .tbl th{text-align:left;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:500;padding:6px 10px;border-bottom:1px solid var(--line);}
 .tbl td{padding:7px 10px;border-bottom:1px solid rgba(177,92,255,.07);vertical-align:middle;}
@@ -1548,7 +1546,7 @@ function renderEasy() {
   $('easy-marks').innerHTML = picks.length ? `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
       <div class="p-eyebrow" style="margin:0">Easy Marks · gettable this week — today's picks</div>
-      <button class="vtab" style="padding:3px 10px;font-size:10.5px" title="Different picks" onclick="easyRoll++;renderEasy()">↻ reroll</button>
+      <button class="vtab" style="font-size:10.5px" title="Different picks" onclick="easyRoll++;renderEasy()">↻ reroll</button>
     </div>
     <div class="easyrow">${picks.map(x => `
       <div class="easycard glass" role="button" tabindex="0" title="A closer look" onclick="lbOpenId(${x.id}, [${picks.map(y => y.id).join(',')}])">
@@ -1577,7 +1575,7 @@ function renderFilters() {
     pool.forEach(x => { if (x.type) types[x.type] = (types[x.type] || 0) + 1; });
     $('coll-filters').innerHTML += '<div style="flex-basis:100%;height:0"></div>' +
       Object.entries(types).sort((a, b) => b[1] - a[1]).map(([t, n]) =>
-        `<button class="vtab ${petType === t ? 'on' : ''}" style="padding:4px 11px;font-size:11px" onclick="petType=petType==='${t.replace(/'/g, "\'")}'?null:'${t.replace(/'/g, "\'")}';renderFilters();renderCollGrid()">${esc(t)} · ${n}</button>`).join('');
+        `<button class="vtab ${petType === t ? 'on' : ''}" style="font-size:11px" onclick="petType=petType==='${t.replace(/'/g, "\'")}'?null:'${t.replace(/'/g, "\'")}';renderFilters();renderCollGrid()">${esc(t)} · ${n}</button>`).join('');
   }
 }
 
@@ -1697,7 +1695,7 @@ function renderWpnFilters() {
     (armory || []).filter(w => WPN_FAMILY[wpnFamily].includes(w.s)).forEach(w => { if (w.c) byC[w.c] = (byC[w.c] || 0) + 1; });
     classes = '<div style="flex-basis:100%;height:0"></div>' +
       Object.entries(byC).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([c, n]) =>
-        `<button class="vtab ${wpnClass === c ? 'on' : ''}" style="padding:4px 11px;font-size:11px" onclick="wpnClass=wpnClass==='${c.replace(/'/g, "\'")}'?null:'${c.replace(/'/g, "\'")}';tmogPage=0;renderWpnFilters();renderWpnGrid()">${esc(c)} · ${n}</button>`).join('');
+        `<button class="vtab ${wpnClass === c ? 'on' : ''}" style="font-size:11px" onclick="wpnClass=wpnClass==='${c.replace(/'/g, "\'")}'?null:'${c.replace(/'/g, "\'")}';tmogPage=0;renderWpnFilters();renderWpnGrid()">${esc(c)} · ${n}</button>`).join('');
   }
   $('tmog-filters').innerHTML = fams + classes;
 }
@@ -1817,17 +1815,17 @@ function renderTmogFilters() {
   const byAc = {};
   (tmogData.sets || []).forEach(x => { if (x.ac) byAc[x.ac] = (byAc[x.ac] || 0) + 1; });
   const armor = haveAc ? '<span style="flex-basis:100%;height:0"></span>' + ARMOR_CLASSES.filter(a => byAc[a]).map(a =>
-    `<button class="vtab ${tmogArmor === a ? 'on' : ''}" style="padding:4px 11px;font-size:11px" onclick="tmogArmor=tmogArmor==='${a}'?null:'${a}';tmogSlot=null;tmogPage=0;renderTmogFilters();renderTmogGrid()">${a} · ${byAc[a]}</button>`).join('')
-    + (Object.keys(byAc).some(a => !ARMOR_CLASSES.includes(a)) ? `<button class="vtab ${tmogArmor === '__other' ? 'on' : ''}" style="padding:4px 11px;font-size:11px" onclick="tmogArmor=tmogArmor==='__other'?null:'__other';tmogSlot=null;tmogPage=0;renderTmogFilters();renderTmogGrid()">Other · ${Object.entries(byAc).filter(([a]) => !ARMOR_CLASSES.includes(a)).reduce((n, [, v]) => n + v, 0)}</button>` : '')
+    `<button class="vtab ${tmogArmor === a ? 'on' : ''}" style="font-size:11px" onclick="tmogArmor=tmogArmor==='${a}'?null:'${a}';tmogSlot=null;tmogPage=0;renderTmogFilters();renderTmogGrid()">${a} · ${byAc[a]}</button>`).join('')
+    + (Object.keys(byAc).some(a => !ARMOR_CLASSES.includes(a)) ? `<button class="vtab ${tmogArmor === '__other' ? 'on' : ''}" style="font-size:11px" onclick="tmogArmor=tmogArmor==='__other'?null:'__other';tmogSlot=null;tmogPage=0;renderTmogFilters();renderTmogGrid()">Other · ${Object.entries(byAc).filter(([a]) => !ARMOR_CLASSES.includes(a)).reduce((n, [, v]) => n + v, 0)}</button>` : '')
     : '';
-  const sort = `<button class="vtab" style="margin-left:8px;padding:4px 11px;font-size:11px" onclick="tmogSort=tmogSort==='closest'?'az':tmogSort==='az'?'largest':'closest';renderTmogFilters();renderTmogGrid()">Sort · ${tmogSort === 'closest' ? 'Closest' : tmogSort === 'az' ? 'A-Z' : 'Largest'}</button>`;
+  const sort = `<button class="vtab" style="margin-left:8px;font-size:11px" onclick="tmogSort=tmogSort==='closest'?'az':tmogSort==='az'?'largest':'closest';renderTmogFilters();renderTmogGrid()">Sort · ${tmogSort === 'closest' ? 'Closest' : tmogSort === 'az' ? 'A-Z' : 'Largest'}</button>`;
   let slots = '';
   if (tmogArmor && ARMOR_CLASSES.includes(tmogArmor)) {
     if (atlas === null) loadAtlas().then(() => { renderTmogFilters(); renderTmogGrid(); });
     const inner = atlas && Object.keys(atlas).length ? TMOG_ARMOR_SLOTS.map(([k, l]) => {
       const n = (atlas[k] || []).filter(x => k === 'CLOAK' || x.c === tmogArmor).length;
       if (!n) return '';
-      return `<button class="vtab ${tmogSlot === k ? 'on' : ''}" style="padding:3px 10px;font-size:10.5px" onclick="tmogSlot=tmogSlot==='${k}'?null:'${k}';tmogPage=0;renderTmogFilters();renderTmogGrid()">${l} · ${n.toLocaleString('en-US')}</button>`;
+      return `<button class="vtab ${tmogSlot === k ? 'on' : ''}" style="font-size:10.5px" onclick="tmogSlot=tmogSlot==='${k}'?null:'${k}';tmogPage=0;renderTmogFilters();renderTmogGrid()">${l} · ${n.toLocaleString('en-US')}</button>`;
     }).join('') : '<span class="hintline" style="align-self:center">unrolling the Great Atlas…</span>';
     slots = '<span style="flex-basis:100%;height:0"></span><span class="hintline" style="align-self:center;letter-spacing:.14em;text-transform:uppercase;font-size:9px">Slots</span>' + inner;
     if (tmogSlot && atlas && atlas[tmogSlot]) {
@@ -2381,8 +2379,8 @@ function profitTable() {
   if (!profitRows || !profitRows.length) return '<div class="hintline">No priceable recipes yet — refresh the AH, and check the recipe cache in Settings.</div>';
   const crafters = [...new Set(profitRows.map(r => r.char))];
   $('profit-pills').innerHTML = crafters.length > 1 ? [
-    `<button class="vtab ${profitCrafter === null ? 'on' : ''}" style="padding:4px 11px;font-size:11px" onclick="profitCrafter=null;$('profit-body').innerHTML=profitTable()">All</button>`,
-    ...crafters.map(ch => `<button class="vtab ${profitCrafter === ch ? 'on' : ''}" style="padding:4px 11px;font-size:11px" onclick="profitCrafter='${esc(ch)}';$('profit-body').innerHTML=profitTable()">${esc(ch)}</button>`)
+    `<button class="vtab ${profitCrafter === null ? 'on' : ''}" style="font-size:11px" onclick="profitCrafter=null;$('profit-body').innerHTML=profitTable()">All</button>`,
+    ...crafters.map(ch => `<button class="vtab ${profitCrafter === ch ? 'on' : ''}" style="font-size:11px" onclick="profitCrafter='${esc(ch)}';$('profit-body').innerHTML=profitTable()">${esc(ch)}</button>`)
   ].join('') : '';
   const rows = profitCrafter ? profitRows.filter(r => r.char === profitCrafter) : profitRows;
   return `<table class="tbl"><tr><th></th><th>Recipe</th><th>Crafter</th><th class="num">Sale</th><th class="num">Cost</th><th class="num">Margin</th><th></th></tr>
