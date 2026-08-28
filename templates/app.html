@@ -257,6 +257,32 @@ button{font-family:Barlow,system-ui,sans-serif}
 .huntrow:hover{background:rgba(177,92,255,.07);}
 .mchip{background:rgba(237,233,255,.05);border:1px solid rgba(237,233,255,.06);border-radius:999px;padding:3px 10px;font-size:11.5px;color:var(--muted);}
 .searchpill{display:flex;align-items:center;background:rgba(237,233,255,.04);border:1px solid rgba(237,233,255,.09);border-radius:999px;overflow:hidden;}
+.ddwrap{position:relative;display:inline-block;}
+.ddbtn{display:inline-flex;align-items:center;gap:8px;background:rgba(237,233,255,.035);border:1px solid rgba(237,233,255,.09);
+  border-radius:10px;padding:8px 12px;cursor:pointer;
+  font:600 11.5px 'Barlow Condensed',Barlow,sans-serif;letter-spacing:.08em;text-transform:uppercase;font-variant-numeric:tabular-nums;
+  transition:border-color .15s,background .15s,box-shadow .2s;}
+.ddbtn .lab{color:var(--muted);}
+.ddbtn .val{color:var(--ink);}
+.ddbtn .car{color:var(--muted);font-size:8px;transition:transform .2s;}
+.ddbtn:hover{border-color:rgba(177,92,255,.4);background:rgba(177,92,255,.08);box-shadow:0 0 16px -5px rgba(177,92,255,.5);}
+.ddwrap.open .ddbtn{border-color:rgba(177,92,255,.5);background:rgba(177,92,255,.10);box-shadow:0 0 18px -5px rgba(177,92,255,.6);}
+.ddwrap.open .car{transform:rotate(180deg);}
+.ddmenu{position:absolute;top:calc(100% + 6px);left:0;min-width:210px;max-height:330px;overflow:auto;z-index:40;display:none;
+  background:linear-gradient(180deg,#14111F 0%,#0D0B18 100%);border:1px solid rgba(177,92,255,.22);border-radius:12px;padding:6px;
+  box-shadow:0 18px 44px -12px rgba(0,0,0,.75), 0 0 26px -8px rgba(177,92,255,.3);}
+.ddwrap.open .ddmenu{display:block;animation:ddIn .16s ease-out;}
+@keyframes ddIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+.app.no-motion .ddwrap.open .ddmenu{animation:none}
+.dditem{display:flex;align-items:center;gap:10px;width:100%;padding:9px 11px;border-radius:8px;cursor:pointer;border:0;background:transparent;
+  color:var(--muted);font:500 12.5px Barlow,sans-serif;text-align:left;transition:background .15s,color .15s;}
+.dditem:hover{background:rgba(177,92,255,.08);color:var(--ink);}
+.dditem.on{background:rgba(177,92,255,.13);color:var(--ink);box-shadow:inset 2px 0 0 var(--violet), 0 0 24px -4px rgba(177,92,255,.45);}
+.dditem .cnt{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums;font-size:11px;}
+.app[data-theme="dawn"] .ddmenu{background:linear-gradient(180deg,#FBF7EC,#F4EFE4);border-color:rgba(122,47,214,.25);box-shadow:0 18px 44px -16px rgba(36,26,82,.35);}
+.app[data-theme="dawn"] .ddbtn{background:rgba(36,26,82,.04);border-color:rgba(36,26,82,.14);}
+.app[data-theme="dawn"] .dditem:hover{background:rgba(122,47,214,.08);}
+.app[data-theme="dawn"] .dditem.on{background:rgba(122,47,214,.12);box-shadow:inset 2px 0 0 var(--violet);}
 .searchpill input{background:transparent;border:0;color:var(--ink);font:400 13px Barlow,sans-serif;padding:8px 14px;width:210px;outline-offset:-2px;}
 .chart{position:relative;}
 .chart svg{display:block;width:100%;height:auto}
@@ -662,7 +688,7 @@ button{font-family:Barlow,system-ui,sans-serif}
       </div>
       <div id="tmog-hero"></div>
       <div id="tmog-controls" class="stickybar" style="display:flex;gap:12px 14px;flex-wrap:wrap;align-items:center">
-        <div class="vtabs" id="tmog-filters" style="margin:0"></div>
+        <div id="tmog-filters" style="margin:0;display:flex;gap:10px;flex-wrap:wrap;align-items:center"></div>
         <div class="searchpill" style="margin-left:auto;flex:1 1 230px;min-width:190px"><input id="tmog-search" placeholder="Search sets…" oninput="tmogPage=0;renderTmogSection()" style="width:100%"></div>
       </div>
       <div id="tmog-body"></div>
@@ -1804,40 +1830,73 @@ function tmogSetState(st) {
   });
 }
 const ARMOR_CLASSES = ['Cloth', 'Leather', 'Mail', 'Plate'];
+/* ---------- Keeper's Dropdowns: sidebar-styled filter menus ---------- */
+function ddToggle(id) {
+  const w = $(id);
+  const was = w.classList.contains('open');
+  document.querySelectorAll('.ddwrap.open').forEach(x => x.classList.remove('open'));
+  if (!was) w.classList.add('open');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.ddwrap')) document.querySelectorAll('.ddwrap.open').forEach(x => x.classList.remove('open'));
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.ddwrap.open').forEach(x => x.classList.remove('open'));
+});
+function dd(id, label, val, items) {
+  return `<div class="ddwrap" id="${id}">
+    <button class="ddbtn" onclick="event.stopPropagation();ddToggle('${id}')"><span class="lab">${label}</span><span class="val">${val}</span><span class="car">▾</span></button>
+    <div class="ddmenu">${items.map(it => `<button class="dditem ${it.on ? 'on' : ''}" onclick="${it.js}">${it.label}${it.cnt != null ? `<span class="cnt">${it.cnt}</span>` : ''}</button>`).join('')}</div>
+  </div>`;
+}
+const _tf = "tmogPage=0;renderTmogFilters();renderTmogGrid()";
 function renderTmogFilters() {
   const rows = tmogSetState();
   const counts = { all: rows.length, complete: 0, partial: 0, unstarted: 0 };
   rows.forEach(r => { if (counts[r.state] != null) counts[r.state]++; });
-  let state = [
-    ['all', 'All'], ['complete', '✓ Complete'], ['partial', 'In progress'], ['unstarted', 'Unclaimed'],
-  ].map(([k, l]) => `<button class="vtab ${tmogFilter === k ? 'on' : ''}" onclick="tmogFilter='${k}';tmogPage=0;renderTmogFilters();renderTmogGrid()">${l} · ${counts[k] ?? 0}</button>`).join('');
-  const haveAc = (tmogData.sets || []).some(x => x.ac);
+  const pieceMode = !!(tmogSlot && tmogArmor && ARMOR_CLASSES.includes(tmogArmor) && atlas && atlas[tmogSlot]);
+  let stateDef = [['all', 'All'], ['complete', '✓ Complete'], ['partial', 'In progress'], ['unstarted', 'Unclaimed']]
+    .map(([k, l]) => ({ k, l, c: counts[k] ?? 0 }));
+  if (pieceMode) {
+    const have = new Set(tmogMine.appearances || []);
+    const pieces = atlas[tmogSlot].filter(x => tmogSlot === 'CLOAK' || x.c === tmogArmor);
+    const kept = pieces.filter(x => have.has(x.a)).length;
+    stateDef = [{ k: 'all', l: 'All', c: pieces.length }, { k: 'complete', l: '✓ Kept', c: kept },
+                { k: 'unstarted', l: 'Unclaimed', c: pieces.length - kept }];
+  }
+  const stateDd = dd('dd-state', 'State', (stateDef.find(x => x.k === tmogFilter) || stateDef[0]).l,
+    stateDef.map(x => ({ on: tmogFilter === x.k, label: x.l, cnt: x.c.toLocaleString('en-US'),
+      js: `tmogFilter='${x.k}';${_tf}` })));
+  const SORTS = [['closest', 'Closest to done'], ['az', 'A – Z'], ['largest', 'Largest sets']];
+  const sortDd = dd('dd-sort', 'Sort', (SORTS.find(x => x[0] === tmogSort) || SORTS[0])[1],
+    SORTS.map(([k, l]) => ({ on: tmogSort === k, label: l, js: `tmogSort='${k}';renderTmogFilters();renderTmogGrid()` })));
   const byAc = {};
   (tmogData.sets || []).forEach(x => { if (x.ac) byAc[x.ac] = (byAc[x.ac] || 0) + 1; });
-  const armor = haveAc ? '<span style="flex-basis:100%;height:0"></span>' + ARMOR_CLASSES.filter(a => byAc[a]).map(a =>
-    `<button class="vtab ${tmogArmor === a ? 'on' : ''}" style="font-size:11px" onclick="tmogArmor=tmogArmor==='${a}'?null:'${a}';tmogSlot=null;tmogPage=0;renderTmogFilters();renderTmogGrid()">${a} · ${byAc[a]}</button>`).join('')
-    + (Object.keys(byAc).some(a => !ARMOR_CLASSES.includes(a)) ? `<button class="vtab ${tmogArmor === '__other' ? 'on' : ''}" style="font-size:11px" onclick="tmogArmor=tmogArmor==='__other'?null:'__other';tmogSlot=null;tmogPage=0;renderTmogFilters();renderTmogGrid()">Other · ${Object.entries(byAc).filter(([a]) => !ARMOR_CLASSES.includes(a)).reduce((n, [, v]) => n + v, 0)}</button>` : '')
-    : '';
-  const sort = `<button class="vtab" style="margin-left:8px;font-size:11px" onclick="tmogSort=tmogSort==='closest'?'az':tmogSort==='az'?'largest':'closest';renderTmogFilters();renderTmogGrid()">Sort · ${tmogSort === 'closest' ? 'Closest' : tmogSort === 'az' ? 'A-Z' : 'Largest'}</button>`;
-  let slots = '';
+  let armorDd = '';
+  if (Object.keys(byAc).length) {
+    const otherN = Object.entries(byAc).filter(([a]) => !ARMOR_CLASSES.includes(a)).reduce((n, [, v]) => n + v, 0);
+    const items = [{ on: !tmogArmor, label: 'All armour', cnt: (tmogData.sets || []).length.toLocaleString('en-US'), js: `tmogArmor=null;tmogSlot=null;${_tf}` }]
+      .concat(ARMOR_CLASSES.filter(a => byAc[a]).map(a => ({ on: tmogArmor === a, label: a, cnt: byAc[a].toLocaleString('en-US'), js: `tmogArmor='${a}';tmogSlot=null;${_tf}` })))
+      .concat(otherN ? [{ on: tmogArmor === '__other', label: 'Other', cnt: otherN.toLocaleString('en-US'), js: `tmogArmor='__other';tmogSlot=null;${_tf}` }] : []);
+    armorDd = dd('dd-armor', 'Armour', tmogArmor === '__other' ? 'Other' : (tmogArmor || 'All'), items);
+  }
+  let slotDd = '';
   if (tmogArmor && ARMOR_CLASSES.includes(tmogArmor)) {
     if (atlas === null) loadAtlas().then(() => { renderTmogFilters(); renderTmogGrid(); });
-    const inner = atlas && Object.keys(atlas).length ? TMOG_ARMOR_SLOTS.map(([k, l]) => {
-      const n = (atlas[k] || []).filter(x => k === 'CLOAK' || x.c === tmogArmor).length;
-      if (!n) return '';
-      return `<button class="vtab ${tmogSlot === k ? 'on' : ''}" style="font-size:10.5px" onclick="tmogSlot=tmogSlot==='${k}'?null:'${k}';tmogPage=0;renderTmogFilters();renderTmogGrid()">${l} · ${n.toLocaleString('en-US')}</button>`;
-    }).join('') : '<span class="hintline" style="align-self:center">unrolling the Great Atlas…</span>';
-    slots = '<span style="flex-basis:100%;height:0"></span><span class="hintline" style="align-self:center;letter-spacing:.14em;text-transform:uppercase;font-size:9px">Slots</span>' + inner;
-    if (tmogSlot && atlas && atlas[tmogSlot]) {
-      const have = new Set(tmogMine.appearances || []);
-      const pieces = atlas[tmogSlot].filter(x => tmogSlot === 'CLOAK' || x.c === tmogArmor);
-      const kept = pieces.filter(x => have.has(x.a)).length;
-      state = [['all', `All · ${pieces.length.toLocaleString('en-US')}`], ['complete', `✓ Kept · ${kept}`], ['unstarted', `Unclaimed · ${(pieces.length - kept).toLocaleString('en-US')}`]]
-        .map(([k, l]) => `<button class="vtab ${tmogFilter === k ? 'on' : ''}" onclick="tmogFilter='${k}';tmogPage=0;renderTmogFilters();renderTmogGrid()">${l}</button>`).join('');
+    if (atlas && Object.keys(atlas).length) {
+      const items = [{ on: !tmogSlot, label: 'Whole sets', js: `tmogSlot=null;${_tf}` }]
+        .concat(TMOG_ARMOR_SLOTS.map(([k, l]) => {
+          const n = (atlas[k] || []).filter(x => k === 'CLOAK' || x.c === tmogArmor).length;
+          return n ? { on: tmogSlot === k, label: l, cnt: n.toLocaleString('en-US'), js: `tmogSlot='${k}';${_tf}` } : null;
+        }).filter(Boolean));
+      const cur = TMOG_ARMOR_SLOTS.find(([k]) => k === tmogSlot);
+      slotDd = dd('dd-slot', 'Slot', cur ? cur[1] : 'Whole sets', items);
+    } else {
+      slotDd = `<span class="hintline">unrolling the Great Atlas…</span>`;
     }
   }
-  $('tmog-filters').innerHTML = state + sort + armor + slots;
-  $('tmog-search').placeholder = (tmogSlot && tmogArmor) ? 'Search looks…' : 'Search sets…';
+  $('tmog-filters').innerHTML = stateDd + sortDd + armorDd + slotDd;
+  $('tmog-search').placeholder = pieceMode ? 'Search looks…' : 'Search sets…';
 }
 const TMOG_ARMOR_SLOTS = [
   ['HEAD', 'Head'], ['SHOULDER', 'Shoulder'], ['CLOAK', 'Cloak'], ['CHEST', 'Chest'],
