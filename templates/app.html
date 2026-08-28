@@ -665,7 +665,7 @@ button{font-family:Barlow,system-ui,sans-serif}
       <div class="ringrow" id="ringrow"></div>
       <div id="easy-marks"></div>
       <div id="coll-controls" class="stickybar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <div class="vtabs" id="coll-filters" style="margin:0"></div>
+        <div id="coll-filters" style="margin:0;display:flex;gap:10px;flex-wrap:wrap;align-items:center"></div>
         <div class="searchpill" style="margin-left:auto"><input id="coll-search" placeholder="Search the hunt…" oninput="collPage=0;renderCollGrid()"></div>
       </div>
       <div id="coll-body"></div>
@@ -1583,6 +1583,7 @@ function renderEasy() {
       </div>`).join('')}</div>` : '';
 }
 
+const _cf = "collPage=0;renderFilters();renderCollGrid()";
 function renderFilters() {
   const st = collStats(collKind);
   const pool = collShowOwned ? st.obt.filter(x => st.mine.has(x.id)) : st.missObt;
@@ -1590,19 +1591,26 @@ function renderFilters() {
   pool.forEach(x => { bySrc[x.src || 'Unknown'] = (bySrc[x.src || 'Unknown'] || 0) + 1; });
   const tops = Object.entries(bySrc).sort((a, b) => b[1] - a[1]).slice(0, 7);
   const limN = (collShowOwned ? st.lim.filter(x => st.mine.has(x.id)) : st.missLim).length;
-  $('coll-filters').innerHTML = [
-    `<button class="vtab ${collFilter === null ? 'on' : ''}" onclick="collFilter=null;collPage=0;renderFilters();renderCollGrid()">All · ${pool.length.toLocaleString('en-US')}</button>`,
-    ...tops.map(([src, n]) => `<button class="vtab ${collFilter === src ? 'on' : ''}" onclick="collFilter='${esc(src).replace(/'/g, "\\'")}';collPage=0;renderFilters();renderCollGrid()">${esc(src)} · ${n}</button>`),
-    limN ? `<button class="vtab ${collFilter === '__limited' ? 'on' : ''}" onclick="collFilter='__limited';collPage=0;renderFilters();renderCollGrid()">⏳ Limited · ${limN}</button>` : '',
-    `<button class="vtab" style="margin-left:8px" onclick="collShowOwned=!collShowOwned;collFilter=null;collPage=0;renderFilters();renderCollGrid()">${collShowOwned ? 'Showing kept — see missing' : 'Showing missing — see kept'}</button>`,
-  ].join('');
+  const showDd = dd('dd-show', 'Showing', collShowOwned ? '✓ Kept' : '☾ Missing', [
+    { on: !collShowOwned, label: '☾ Missing — the hunt list', js: `collShowOwned=false;collFilter=null;${_cf}` },
+    { on: collShowOwned, label: '✓ Kept — the trophy hall', js: `collShowOwned=true;collFilter=null;${_cf}` },
+  ]);
+  const srcItems = [{ on: collFilter === null, label: 'All sources', cnt: pool.length.toLocaleString('en-US'), js: `collFilter=null;${_cf}` }]
+    .concat(tops.map(([src, n]) => ({ on: collFilter === src, label: esc(src), cnt: n.toLocaleString('en-US'),
+      js: `collFilter='${esc(src).replace(/'/g, "\\'")}';${_cf}` })))
+    .concat(limN ? [{ on: collFilter === '__limited', label: '⏳ Limited-time', cnt: limN.toLocaleString('en-US'), js: `collFilter='__limited';${_cf}` }] : []);
+  const srcVal = collFilter === '__limited' ? '⏳ Limited' : (collFilter || 'All');
+  const srcDd = dd('dd-src', 'Source', srcVal, srcItems);
+  let typeDd = '';
   if (collKind === 'pets') {
     const types = {};
     pool.forEach(x => { if (x.type) types[x.type] = (types[x.type] || 0) + 1; });
-    $('coll-filters').innerHTML += '<div style="flex-basis:100%;height:0"></div>' +
-      Object.entries(types).sort((a, b) => b[1] - a[1]).map(([t, n]) =>
-        `<button class="vtab ${petType === t ? 'on' : ''}" style="font-size:11px" onclick="petType=petType==='${t.replace(/'/g, "\'")}'?null:'${t.replace(/'/g, "\'")}';renderFilters();renderCollGrid()">${esc(t)} · ${n}</button>`).join('');
+    const items = [{ on: !petType, label: 'All types', js: `petType=null;${_cf}` }]
+      .concat(Object.entries(types).sort((a, b) => b[1] - a[1]).map(([t, n]) =>
+        ({ on: petType === t, label: esc(t), cnt: n.toLocaleString('en-US'), js: `petType='${t.replace(/'/g, "\\'")}';${_cf}` })));
+    typeDd = dd('dd-pettype', 'Type', petType || 'All', items);
   }
+  $('coll-filters').innerHTML = showDd + srcDd + typeDd;
 }
 
 function tileArt(x) {
@@ -1709,21 +1717,24 @@ function wpnPool() {
   if (q) pool = pool.filter(w => (w.n || '').toLowerCase().includes(q));
   return { pool, have };
 }
+const _wf = "tmogPage=0;renderWpnFilters();renderWpnGrid()";
 function renderWpnFilters() {
-  const { pool } = wpnPool();
-  const fams = Object.keys(WPN_FAMILY).map(f => {
-    const n = (armory || []).filter(w => WPN_FAMILY[f].includes(w.s)).length;
-    return `<button class="vtab ${wpnFamily === f ? 'on' : ''}" onclick="wpnFamily=wpnFamily==='${f}'?null:'${f}';wpnClass=null;tmogPage=0;renderWpnFilters();renderWpnGrid()">${f} · ${n.toLocaleString('en-US')}</button>`;
-  }).join('');
-  let classes = '';
+  const famItems = [{ on: !wpnFamily, label: 'All weapons', cnt: (armory || []).length.toLocaleString('en-US'), js: `wpnFamily=null;wpnClass=null;${_wf}` }]
+    .concat(Object.keys(WPN_FAMILY).map(f => {
+      const n = (armory || []).filter(w => WPN_FAMILY[f].includes(w.s)).length;
+      return { on: wpnFamily === f, label: f, cnt: n.toLocaleString('en-US'), js: `wpnFamily='${f}';wpnClass=null;${_wf}` };
+    }));
+  const famDd = dd('dd-fam', 'Family', wpnFamily || 'All', famItems);
+  let classDd = '';
   if (wpnFamily) {
     const byC = {};
     (armory || []).filter(w => WPN_FAMILY[wpnFamily].includes(w.s)).forEach(w => { if (w.c) byC[w.c] = (byC[w.c] || 0) + 1; });
-    classes = '<div style="flex-basis:100%;height:0"></div>' +
-      Object.entries(byC).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([c, n]) =>
-        `<button class="vtab ${wpnClass === c ? 'on' : ''}" style="font-size:11px" onclick="wpnClass=wpnClass==='${c.replace(/'/g, "\'")}'?null:'${c.replace(/'/g, "\'")}';tmogPage=0;renderWpnFilters();renderWpnGrid()">${esc(c)} · ${n}</button>`).join('');
+    const items = [{ on: !wpnClass, label: 'All kinds', js: `wpnClass=null;${_wf}` }]
+      .concat(Object.entries(byC).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([c, n]) =>
+        ({ on: wpnClass === c, label: esc(c), cnt: n.toLocaleString('en-US'), js: `wpnClass='${c.replace(/'/g, "\\'")}';${_wf}` })));
+    classDd = dd('dd-wclass', 'Kind', wpnClass || 'All', items);
   }
-  $('tmog-filters').innerHTML = fams + classes;
+  $('tmog-filters').innerHTML = famDd + classDd;
 }
 function renderWpnGrid() {
   const { pool, have } = wpnPool();
