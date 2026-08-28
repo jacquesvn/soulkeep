@@ -324,8 +324,9 @@ button{font-family:Barlow,system-ui,sans-serif}
 .iic{width:22px;height:22px;border-radius:5px;vertical-align:middle;flex:0 0 auto;}
 
 .stickybar{position:sticky;top:-34px;z-index:5;padding:10px 0 8px;margin:0 -8px 14px;padding-left:8px;padding-right:8px;
-  background:linear-gradient(180deg, color-mix(in srgb, var(--bg) 80%, transparent) 80%, transparent);backdrop-filter:blur(16px) saturate(1.15);-webkit-backdrop-filter:blur(16px) saturate(1.15);}
-.app[data-theme="dawn"] .stickybar{background:linear-gradient(180deg, rgba(244,239,228,.84) 80%, transparent);}
+  background:transparent;transition:background .25s ease;}
+.stickybar.stuck{background:linear-gradient(180deg, color-mix(in srgb, var(--bg) 80%, transparent) 80%, transparent);backdrop-filter:blur(16px) saturate(1.15);-webkit-backdrop-filter:blur(16px) saturate(1.15);}
+.app[data-theme="dawn"] .stickybar.stuck{background:linear-gradient(180deg, rgba(244,239,228,.84) 80%, transparent);}
 
 /* ---------- the hunt: rings, easy marks, gallery ---------- */
 .ringrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:18px;animation:pageIn .4s cubic-bezier(.25,.8,.3,1) both;}
@@ -1461,6 +1462,17 @@ async function decorateRaidArt(c) {
     if (id) img.src = '/api/instart/' + id; else img.remove();
   });
 }
+(() => {  // sticky bars earn their veil only once content scrolls beneath them
+  const main = document.getElementById('main');
+  if (!main) return;
+  const check = () => {
+    const top = main.getBoundingClientRect().top;
+    document.querySelectorAll('.stickybar').forEach(b =>
+      b.classList.toggle('stuck', b.getBoundingClientRect().top - top <= 14));
+  };
+  main.addEventListener('scroll', check, { passive: true });
+  setInterval(check, 600);  // view switches re-anchor bars without a scroll event
+})();
 function playedStr(sec) {
   if (!sec) return null;
   const d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600);
