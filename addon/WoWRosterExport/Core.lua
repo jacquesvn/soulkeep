@@ -1,6 +1,6 @@
 -- WoWRosterExport: snapshots per-character data the REST API can't serve
--- (gold, Great Vault, currencies, lockouts) into SavedVariables for the
--- WoW Roster desktop app. Data writes to disk on logout or /reload.
+-- (gold, Great Vault, currencies, lockouts, keystone, bags, /played) into
+-- SavedVariables for the WoW Roster desktop app. Writes to disk on logout or /reload.
 local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("PLAYER_LOGOUT")
@@ -31,9 +31,22 @@ local function collect()
     local ok2, acts = pcall(C_WeeklyRewards.GetActivities)
     if ok2 and type(acts) == "table" then
       for _, a in ipairs(acts) do
-        table.insert(d.vault, { type = a.type, index = a.index,
-                                progress = a.progress, threshold = a.threshold, level = a.level })
+        local v = { type = a.type, index = a.index,
+                    progress = a.progress, threshold = a.threshold, level = a.level }
+        -- reward preview: what the vault is actually offering, once generated
+        if a.rewards and #a.rewards > 0 and C_WeeklyRewards.GetItemHyperlink then
+          local okh, link = pcall(C_WeeklyRewards.GetItemHyperlink, a.rewards[1].itemDBID)
+          if okh and link and C_Item and C_Item.GetDetailedItemLevelInfo then
+            local oki, rilvl = pcall(C_Item.GetDetailedItemLevelInfo, link)
+            if oki and rilvl and rilvl > 0 then v.reward = rilvl end
+          end
+        end
+        table.insert(d.vault, v)
       end
+    end
+    if C_WeeklyRewards.HasAvailableRewards then
+      local okr, avail = pcall(C_WeeklyRewards.HasAvailableRewards)
+      if okr and avail then d.vault_ready = true end
     end
   end
 
@@ -42,7 +55,13 @@ local function collect()
     for i = 1, C_CurrencyInfo.GetCurrencyListSize() do
       local ok3, info = pcall(C_CurrencyInfo.GetCurrencyListInfo, i)
       if ok3 and info and not info.isHeader and (info.quantity or 0) > 0 then
-        table.insert(d.currencies, { name = info.name, qty = info.quantity })
+        local cur = { name = info.name, qty = info.quantity }
+        if (info.maxQuantity or 0) > 0 then cur.cap = info.maxQuantity end
+        if (info.maxWeeklyQuantity or 0) > 0 then
+          cur.wk = info.quantityEarnedThisWeek or 0
+          cur.wkmax = info.maxWeeklyQuantity
+        end
+        table.insert(d.currencies, cur)
       end
     end
   end
@@ -57,6 +76,46 @@ local function collect()
     end
   end
 
+  -- keystone in bag: which key this soul holds
+  if C_MythicPlus and C_MythicPlus.GetOwnedKeystoneLevel then
+    local ok4, lvl = pcall(C_MythicPlus.GetOwnedKeystoneLevel)
+    local ok5, mapID = pcall(C_MythicPlus.GetOwnedKeystoneChallengeMapID)
+    if ok4 and ok5 and lvl and mapID then
+      local mname
+      if C_ChallengeMode and C_ChallengeMode.GetMapUIInfo then
+        local okn, nm = pcall(C_ChallengeMode.GetMapUIInfo, mapID)
+        if okn then mname = nm end
+      end
+      d.keystone = { map = mname or ("map " .. mapID), level = lvl }
+    end
+  end
+
+  -- bags: everything this soul carries (aggregated by item)
+  if C_Container and C_Container.GetContainerNumSlots then
+    local agg = {}
+    for bagID = 0, 5 do
+      local slots = C_Container.GetContainerNumSlots(bagID) or 0
+      for slot = 1, slots do
+        local ok6, info = pcall(C_Container.GetContainerItemInfo, bagID, slot)
+        if ok6 and info and info.itemID and (info.stackCount or 0) > 0 then
+          local e = agg[info.itemID]
+          if e then
+            e.q = e.q + info.stackCount
+          else
+            local iname = info.itemName
+            if not iname and C_Item and C_Item.GetItemNameByID then
+              local okn2, nm2 = pcall(C_Item.GetItemNameByID, info.itemID)
+              if okn2 then iname = nm2 end
+            end
+            agg[info.itemID] = { i = info.itemID, q = info.stackCount, n = iname }
+          end
+        end
+      end
+    end
+    d.bag = {}
+    for _, e in pairs(agg) do table.insert(d.bag, e) end
+  end
+
   -- never let an early-login snapshot (data not loaded yet) clobber good values with zeros
   local prior = WoWRosterExportDB[name .. "-" .. realm]
   if prior then
@@ -65,6 +124,7 @@ local function collect()
     if (d.ilvl or 0) == 0 and (prior.ilvl or 0) > 0 then d.ilvl = prior.ilvl end
     if #d.currencies == 0 and prior.currencies and #prior.currencies > 0 then d.currencies = prior.currencies end
     if #d.vault == 0 and prior.vault and #prior.vault > 0 then d.vault = prior.vault end
+    if (not d.bag or #d.bag == 0) and prior.bag and #prior.bag > 0 then d.bag = prior.bag end
   end
   WoWRosterExportDB[name .. "-" .. realm] = d
 end

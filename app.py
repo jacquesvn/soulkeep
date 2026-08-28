@@ -3,7 +3,7 @@ which pulls live character data from /api/roster. Run:  python app.py  (or the p
 import json, os, secrets, shutil, socket, sys, threading, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-VERSION = "1.24.2"
+VERSION = "1.25.0"
 REPO = "jacquesvn/soulkeep"  # update banner watches this repo's latest release
 import webview
 from flask import Flask, render_template, request, jsonify, redirect, send_file
@@ -625,14 +625,54 @@ def api_planner():
     rows.sort(key=lambda r: -r["score"])
     return jsonify({"rows": rows[:8]})
 
+def account_bags():
+    """Aggregate bag contents across every addon-exported soul: {item_id: count}."""
+    bags = {}
+    try:
+        for ch in (gamedata.read_export().get("chars") or {}).values():
+            for e in (ch.get("bag") or []):
+                iid = e.get("i")
+                if iid:
+                    bags[int(iid)] = bags.get(int(iid), 0) + int(e.get("q") or 0)
+    except Exception:
+        pass
+    return bags
+
+@app.route("/api/economy/bagsell")
+def api_econ_bagsell():
+    """What's in the army's bags that the AH values right now."""
+    s = economy.summary()
+    prices = {int(k): v for k, v in (s or {}).get("prices", {}).items()}
+    best = {}
+    try:
+        for cname, ch in (gamedata.read_export().get("chars") or {}).items():
+            for e in (ch.get("bag") or []):
+                iid = e.get("i")
+                p = prices.get(int(iid)) if iid else None
+                if not p:
+                    continue
+                q = int(e.get("q") or 0)
+                b = best.setdefault(int(iid), {"i": int(iid), "n": e.get("n"), "q": 0, "unit": p, "chars": set()})
+                b["q"] += q
+                b["chars"].add(cname.split("-")[0])
+                if not b["n"] and e.get("n"):
+                    b["n"] = e.get("n")
+    except Exception:
+        pass
+    rows = [{**b, "total": b["unit"] * b["q"], "chars": sorted(b["chars"])[:4]} for b in best.values()]
+    rows = [r for r in rows if r["total"] >= 100000]  # 10g+ only
+    rows.sort(key=lambda r: -r["total"])
+    return jsonify({"rows": rows[:50], "have_bags": bool(best) or bool(account_bags())})
+
 @app.route("/api/economy/profit")
 def api_econ_profit():
     cached = json.load(open(CACHE, encoding="utf-8")).get("chars", []) if os.path.exists(CACHE) else []
     crafters = [c for c in cached if not c.get("error") and c.get("professions")]
+    bags = account_bags()
     def one(c):
         e = c["entry"]
         ids = wowapi.get_known_recipes(e["region"], e["realm"], e["name"])
-        return economy.profit_for(ids, c["name"])
+        return economy.profit_for(ids, c["name"], bags)
     rows = []
     with ThreadPoolExecutor(max_workers=6) as pool:
         for group in pool.map(one, crafters):

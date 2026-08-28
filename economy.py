@@ -250,8 +250,9 @@ def deals(limit=12, min_samples=3, min_discount=25):
     return out[:limit]
 
 # ---------- profit engine ----------
-def profit_for(known_recipe_ids, char_label):
-    """Join a character's known recipes against the recipe cache + AH prices."""
+def profit_for(known_recipe_ids, char_label, bags=None):
+    """Join a character's known recipes against the recipe cache + AH prices.
+    bags: optional {item_id: count} across the account — adds 'craftable now'."""
     rec = staticdata.load("recipes") or {}
     s = summary()
     prices = {int(k): v for k, v in (s or {}).get("prices", {}).items()}
@@ -273,7 +274,10 @@ def profit_for(known_recipe_ids, char_label):
             else:
                 cost += p * (g["qty"] or 1)
         qty = r.get("qty") or 1
+        craftable = 0
+        if bags and r["reagents"]:
+            craftable = min((bags.get(g["id"], 0) // max(1, g["qty"] or 1)) for g in r["reagents"])
         rows.append({"char": char_label, "prof": r["prof"], "recipe": r["name"],
                      "crafted_id": cids[0], "sale": sale * qty, "cost": cost,
-                     "margin": sale * qty - cost, "missing": missing})
+                     "margin": sale * qty - cost, "missing": missing, "craftable": craftable})
     return rows

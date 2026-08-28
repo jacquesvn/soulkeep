@@ -1253,7 +1253,8 @@ function renderDetail() {
       <div class="panel">
         <div class="p-eyebrow" style="margin-bottom:12px">Currencies</div>
         <div class="runs">${g.currencies.slice(0, 8).map(cu => `
-          <div class="run"><span>${esc(cu.name)}</span><span class="s">${Number(cu.qty).toLocaleString('en-US')}</span></div>`).join('')}</div>
+          <div class="run" style="flex-wrap:wrap;row-gap:4px"><span>${esc(cu.name)}</span><span class="s">${Number(cu.qty).toLocaleString('en-US')}${cu.cap ? ' / ' + Number(cu.cap).toLocaleString('en-US') : ''}${cu.wkmax ? ` <span style="color:var(--muted)">· wk ${cu.wk}/${cu.wkmax}</span>` : ''}</span>
+          ${cu.cap ? `<div class="pbar" style="flex-basis:100%"><i style="width:${Math.min(100, (cu.qty / cu.cap) * 100).toFixed(1)}%"></i></div>` : ''}</div>`).join('')}</div>
       </div>` : ''}
     </div>
     <div class="dcol">
@@ -1494,7 +1495,8 @@ function vaultSegs(acts) {
     rows.sort((a, b) => (a.index || 0) - (b.index || 0));
     const top = rows[rows.length - 1];
     const done = rows.filter(r => r.progress >= r.threshold).length;
-    return `<div class="wcell"><span class="wlabel">${VAULT_LABEL[t] || 'Tier ' + t} ${done}/${rows.length} slots</span>
+    const rw = Math.max(0, ...rows.map(r => r.reward || 0));
+    return `<div class="wcell"><span class="wlabel">${VAULT_LABEL[t] || 'Tier ' + t} ${done}/${rows.length} slots${rw ? ` <span class="gold-t">→ ilvl ${rw}</span>` : ''}</span>
       <div class="segs" style="min-width:110px">${rows.map(r =>
         `<div class="seg ${r.progress >= r.threshold ? 'm' : ''}" title="${r.progress}/${r.threshold}"></div>`).join('')}</div></div>`;
   }).join('');
@@ -1534,6 +1536,8 @@ function renderBoard() {
         <div class="wname" style="color:${c.class_color};cursor:pointer" role="button" tabindex="0" title="Open ${esc(c.name)}" onclick="sel='${esc(ekey(c.entry))}';renderDetail();setView('detail')">${esc(c.name)}<div style="font:400 10.5px Barlow,sans-serif;color:var(--muted);letter-spacing:.04em">${esc(c.realm)} · ilvl ${c.ilvl ?? '—'}</div></div>
         ${g ? vaultSegs(g.vault) : '<div class="wcell"><span class="wlabel">Vault</span><span class="hintline">no addon export yet — log them out once</span></div>'}
         <div class="wcell"><span class="wlabel">Keys this week</span><span class="wval ${weekRuns ? 'good' : ''}">${weekRuns ? weekRuns + ' run' + (weekRuns > 1 ? 's' : '') + ' · best +' + bestKey : 'none'}</span></div>
+        ${g && g.keystone ? `<div class="wcell"><span class="wlabel">Key held</span><span class="wval" style="color:var(--glow)">${esc(g.keystone.map || '?')} +${g.keystone.level}</span></div>` : ''}
+        ${g && g.vault_ready ? `<div class="wcell"><span class="wlabel">Great Vault</span><span class="wval gold-t">⚑ ready to claim</span></div>` : ''}
         <div class="wcell"><span class="wlabel">Lockouts</span><span class="wval">${g && g.lockouts && g.lockouts.length ? g.lockouts.map(l => esc(l.name) + ' ' + l.done + '/' + l.total).join(' · ') : '—'}</span></div>
         <div class="wcell"><span class="wlabel">Gold</span><span class="wval gold-t">${g && g.gold != null ? goldStr(g.gold) : '—'}</span></div>
         ${g && g.played ? `<div class="wcell"><span class="wlabel">Played</span><span class="wval" style="color:var(--glow)">${playedStr(g.played)}</span></div>` : ''}
@@ -2426,6 +2430,10 @@ async function renderEconomy() {
           <div id="profit-pills" style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto"></div>
         </div>
         <div id="profit-body" class="tblwrap"><div class="hintline">${ah.ts ? 'Consulting every crafter on the roster…' : 'Refresh the AH first — profits need live prices.'}</div></div>
+        <div style="display:flex;align-items:center;gap:10px;margin:18px 0 12px">
+          <div class="p-eyebrow">From the Bags</div>
+        </div>
+        <div id="bagsell-body" class="tblwrap"><div class="hintline">weighing what the army carries…</div></div>
       </div>
       <div class="dcol">
         ${coffers.length ? `
@@ -2465,6 +2473,7 @@ async function renderEconomy() {
   tokenChart();
   loadMovers();
   if (ah.ts && !profitBusy) econProfit();
+  loadBagsell();
   if (S.tokenAlert && t && t.price / 10000 <= S.tokenAlert) showToast(`WoW Token at ${goldStr(t.price)} — under your ${S.tokenAlert.toLocaleString('en-US')}g alert!`, 'gold');
   loadDeals();
   (econ.watches || []).forEach(async w => {
@@ -2517,7 +2526,7 @@ function profitTable() {
   return `<table class="tbl"><tr><th></th><th>Recipe</th><th>Crafter</th><th class="num">Sale</th><th class="num">Cost</th><th class="num">Margin</th><th></th></tr>
     ${rows.slice(0, 40).map(r => `<tr>
       <td style="width:26px;padding-right:0"><img class="iic" src="/api/icon/${r.crafted_id}" alt="" loading="lazy" onerror="this.style.display='none'"></td>
-      <td>${esc(r.recipe)}${r.missing.length ? ` <span title="No AH price for: ${esc(r.missing.join(', '))}" style="color:var(--warn)">*</span>` : ''}</td>
+      <td>${esc(r.recipe)}${r.craftable ? ` <span class="good" style="font-size:11px" title="craftable right now from the army's bags">×${r.craftable} ready</span>` : ''}${r.missing.length ? ` <span title="No AH price for: ${esc(r.missing.join(', '))}" style="color:var(--warn)">*</span>` : ''}</td>
       <td style="color:var(--muted)">${esc(r.char)} · ${esc(r.prof)}</td>
       <td class="num gold-t">${goldStr(r.sale)}</td><td class="num">${goldStr(r.cost)}</td>
       <td class="num ${r.margin >= 0 ? 'good' : 'bad'}">${r.margin >= 0 ? '+' : '−'}${goldStr(Math.abs(r.margin))}</td>
@@ -2527,6 +2536,26 @@ function profitTable() {
 async function econRefresh() {
   await fetch('/api/economy/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ region: 'eu', realm: 'draenor' }) });
   renderEconomy();
+}
+async function loadBagsell() {
+  const el = $('bagsell-body');
+  if (!el) return;
+  try {
+    const j = await (await fetch('/api/economy/bagsell')).json();
+    if (!(j.rows || []).length) {
+      el.innerHTML = `<div class="hintline">${j.have_bags ? 'Nothing in the bags worth 10g+ on the AH right now.' : 'Bag data appears after the addon update — reinstall it in Settings, /reload, and log each soul out once.'}</div>`;
+      return;
+    }
+    el.innerHTML = `<table class="tbl"><tr><th></th><th>Item</th><th>Held by</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Worth</th></tr>
+      ${j.rows.slice(0, 20).map(r => `<tr>
+        <td style="width:26px;padding-right:0"><img class="iic" src="/api/icon/${r.i}" alt="" loading="lazy" onerror="this.style.display='none'"></td>
+        <td>${esc(r.n || ('item ' + r.i))}</td>
+        <td style="color:var(--muted)">${r.chars.map(esc).join(', ')}</td>
+        <td class="num">${Number(r.q).toLocaleString('en-US')}</td>
+        <td class="num">${goldStr(r.unit)}</td>
+        <td class="num gold-t">${goldStr(r.total)}</td></tr>`).join('')}</table>
+      <div class="hintline" style="margin-top:8px">Bag contents × live AH prices · top 20 by total worth.</div>`;
+  } catch (e) { el.innerHTML = '<div class="hintline">the coffers resist appraisal.</div>'; }
 }
 async function econProfit() {
   profitBusy = true;
