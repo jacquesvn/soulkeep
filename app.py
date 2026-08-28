@@ -3,7 +3,7 @@ which pulls live character data from /api/roster. Run:  python app.py  (or the p
 import json, os, secrets, shutil, socket, sys, threading, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-VERSION = "1.21.1"
+VERSION = "1.22.0"
 REPO = "jacquesvn/soulkeep"  # update banner watches this repo's latest release
 import webview
 from flask import Flask, render_template, request, jsonify, redirect, send_file
@@ -82,8 +82,21 @@ def api_roster():
         chars = fetch_all(roster)
     except RuntimeError:  # bnet.env missing — a fresh install someone was gifted
         return jsonify({"chars": [], "noauth": True})
-    for e, c in zip(roster, chars):
+    prior = {}
+    if os.path.exists(CACHE):  # keep-prior: a transient API error must not slumber a healthy soul
+        try:
+            for pc in json.load(open(CACHE, encoding="utf-8")).get("chars", []):
+                if pc.get("entry") and not pc.get("error"):
+                    prior[key(pc["entry"])] = pc
+        except (ValueError, KeyError):
+            pass
+    for i, (e, c) in enumerate(zip(roster, chars)):
         c["entry"] = e  # the region/realm/name key the client sends back for /api/remove
+        if c.get("error") and key(e) in prior:
+            old_c = dict(prior[key(e)])
+            old_c["entry"] = e
+            old_c["stale"] = True
+            chars[i] = old_c
     try:
         json.dump({"chars": chars}, open(CACHE, "w", encoding="utf-8"))
     except OSError:

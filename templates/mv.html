@@ -30,6 +30,10 @@ html,body{margin:0;background:transparent;overflow:hidden}
     return [parts[0], parts[1]];
   });
   window.report = { made: false };
+  if (!id) {
+    document.getElementById('ltext').textContent = 'no model chosen — the aether awaits';
+    throw new Error('no model id');
+  }
   try {
     const aspect = (window.innerWidth > 0 && window.innerHeight > 0)
       ? window.innerWidth / window.innerHeight : 600 / 400;

@@ -23,7 +23,6 @@ a{color:#C77DFF;text-decoration:none}a:hover{color:#F3C766}
 button{font-family:Barlow,system-ui,sans-serif}
 
 @keyframes drift{from{background-position:0 0}to{background-position:-600px 300px}}
-@keyframes corona{0%,100%{box-shadow:0 0 14px 3px rgba(177,92,255,.45), inset 0 0 8px rgba(177,92,255,.35)}50%{box-shadow:0 0 22px 6px rgba(199,125,255,.6), inset 0 0 10px rgba(199,125,255,.5)}}
 @keyframes breathe{0%,100%{opacity:.55}50%{opacity:.8}}
 @keyframes cardZoom{to{transform:scale(1.045);opacity:0;filter:brightness(1.35)}}
 @keyframes pageIn{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:none}}
@@ -40,7 +39,6 @@ button{font-family:Barlow,system-ui,sans-serif}
   background:radial-gradient(720px 460px at 78% -8%, rgba(177,92,255,.32), transparent 62%),radial-gradient(520px 400px at 12% 32%, rgba(122,47,214,.26), transparent 65%),radial-gradient(620px 420px at 96% 62%, rgba(243,199,102,.10), transparent 65%),radial-gradient(640px 460px at 30% 108%, rgba(36,26,82,.85), transparent 70%);}
 .wisps{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:calc(var(--starop) * .9);}
 .disc{position:relative;background:url('/icon-512.png') center/contain no-repeat;}
-@keyframes soulpulse{0%,100%{opacity:.55;transform:scale(.92)}50%{opacity:.95;transform:scale(1.06)}}
 .app.no-motion .stars{animation:none}
 .app.no-motion .disc{animation:none}
 
@@ -758,7 +756,7 @@ button{font-family:Barlow,system-ui,sans-serif}
           <button class="sw" id="sw-slumber" role="switch" aria-checked="true" aria-label="Show slumbering characters" onclick="toggle('showSlumber',this)"><i></i></button>
         </div>
         <div class="set-row">
-          <div><div class="set-l">Ambient motion</div><div class="set-d">Starfield drift &amp; corona pulse</div></div>
+          <div><div class="set-l">Ambient motion</div><div class="set-d">Starfield drift &amp; soul glow</div></div>
           <button class="sw" id="sw-motion" role="switch" aria-checked="true" aria-label="Ambient motion" onclick="toggle('motion',this)"><i></i></button>
         </div>
       </div>
@@ -2563,7 +2561,10 @@ async function renderReps() {
     if (!best[r.faction] || pctv > best[r.faction].pctv)
       best[r.faction] = { ...r, char: cr.char, pctv };
   }));
-  let rows = Object.values(best).sort((a, b) => b.pctv - a.pctv);
+  // closest to Exalted first: standing tier (or renown) outranks raw bar-fill,
+  // so a Revered 90% beats an ancient faction parked at Friendly 99%
+  const repRank = r => (r.renown != null ? 6.5 + Math.min(1, r.renown / 30) : (r.tier ?? 0)) + r.pctv * 0.99;
+  let rows = Object.values(best).sort((a, b) => repRank(b) - repRank(a));
   if (repQ) rows = rows.filter(r => (r.faction || '').toLowerCase().includes(repQ) || (r.char || '').toLowerCase().includes(repQ));
   body.innerHTML = `<div class="searchpill" style="margin-bottom:12px"><input id="rep-search" placeholder="Filter factions…" value="${esc(repQ)}" oninput="repQ=this.value.toLowerCase();renderReps();requestAnimationFrame(()=>{const b=$('rep-search');if(b){b.focus();b.setSelectionRange(b.value.length,b.value.length);}})"></div>` +
   (rows.length ? `<div class="panel tblwrap"><table class="tbl">
