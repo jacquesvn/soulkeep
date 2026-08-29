@@ -1068,9 +1068,24 @@ function renderRoster() {
       <div class="empty-t">Waking the souls…</div>
       <div class="empty-s">Calling the roster home from the Battle.net API.</div></div>`;
   } else if (!list.length) {
-    wrap.innerHTML = `<div class="empty"><div class="disc disc-110"></div>
-      <div class="empty-t">The keep stands empty</div>
-      <div class="empty-s">Bind a soul above. Only recently-active characters answer the call.</div></div>`;
+    const slumbering = chars.length - chars.filter(awake).length;
+    if (chars.length && slumbering === chars.length) {
+      // the roster is full, but every soul is slumbering (hidden by default)
+      wrap.innerHTML = `<div class="empty"><div class="disc disc-110"></div>
+        <div class="empty-t">${chars.length} soul${chars.length === 1 ? '' : 's'} slumber</div>
+        <div class="empty-s">None have stirred yet — the Battle.net API only wakes recently-active characters. Log each one in once (a quick /reload in the character screen counts) to rouse them, or reveal them all now.</div>
+        <button class="pill-btn" style="flex:0 0 auto;max-width:240px" onclick="toggle('showSlumber', null)">☾ Show slumbering souls</button></div>`;
+    } else if (!chars.length) {
+      // genuinely empty roster — guide a fresh friend to the import
+      wrap.innerHTML = `<div class="empty"><div class="disc disc-110"></div>
+        <div class="empty-t">The keep stands empty</div>
+        <div class="empty-s">${acct && acct.connected
+          ? 'Bind a soul above with region · realm · name — only recently-active characters answer the call.'
+          : 'Open Settings and Connect Battle.net to summon your whole roster at once — or bind one above by region · realm · name.'}</div>
+        ${acct && acct.connected ? '' : '<button class="pill-btn" style="flex:0 0 auto;max-width:240px" onclick="openSettings()">⚙ Open Settings</button>'}</div>`;
+    } else {
+      wrap.innerHTML = `<div class="empty"><div class="disc disc-110"></div><div class="empty-t">No souls match</div><div class="empty-s">Clear the search to see the rest of the keep.</div></div>`;
+    }
   } else {
     wrap.innerHTML = `<div class="grid">${list.map((c, i) => cardHtml(c, i)).join('')}</div>`;
   }
