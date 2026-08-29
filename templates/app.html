@@ -719,7 +719,7 @@ button{font-family:Barlow,system-ui,sans-serif}
 
     <section id="view-economy" style="display:none">
       <div class="vhead">
-        <div class="eyebrow">Gold · Auction House · Draenor EU</div>
+        <div class="eyebrow" id="econ-realm">Gold · Auction House</div>
         <h1 class="vtitle">ECONOMY</h1>
       </div>
       <div id="econ-body"></div>
@@ -876,6 +876,9 @@ let armTimer = null, refreshTimer = null;
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// jsq: safe for a value dropped inside a '...' JS string within an inline handler —
+// JS-escape the RAW string first, then HTML-escape (esc-then-escape leaves apostrophes broken).
+const jsq = s => esc(String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
 const num = n => (n == null ? '—' : Number(n).toLocaleString('en-US'));
 const ekey = e => `${e.region}/${e.realm}/${e.name}`;
 
@@ -1178,7 +1181,7 @@ function renderDetail() {
   const pct = Math.min(100, (c.mplus_rating || 0) / 3500 * 100).toFixed(1);
   const gear = (c.gear || []).map(g => `
     <div class="gear-row" role="button" tabindex="0" style="cursor:pointer" title="Open the Wowhead guide"
-         onclick="openGuide('${esc(g.name).replace(/'/g, "\\'")}')">
+         onclick="openGuide('${jsq(g.name)}')">
       <span class="g-slot">${esc(g.slot)}</span>
       <span class="g-name" style="color:${g.qcol}">${esc(g.name)}</span>
       ${g.ench ? '<span class="g-ench" title="Enchanted">✦</span>' : ''}
@@ -1326,7 +1329,7 @@ async function charLook3d() {
     const j = await (await fetch(`/api/charlook/${e.region}/${e.realm}/${e.name}`)).json();
     if (!$('lb-back').classList.contains('open')) return;
     if (j.error || !(j.items || []).length) { $('lb-chips').innerHTML = '<span class="chip miss-chip"><span class="v">their look could not be summoned</span></span>'; return; }
-    const race = RACES.find(r => (j.race || '').includes(r[0])) || RACES[0];
+    const race = RACES.filter(r => (j.race || '').includes(r[0])).sort((a, b) => b[0].length - a[0].length)[0] || RACES[0];
     const chrId = (j.gender === 'FEMALE') ? race[2] : race[1];
     const CHAR_SLOT = { HEAD: 1, SHOULDER: 3, SHIRT: 4, CHEST: 5, WAIST: 6, LEGS: 7, FEET: 8,
       WRIST: 9, HANDS: 10, BACK: 16, TABARD: 19, MAIN_HAND: 21, OFF_HAND: 22 };
@@ -1542,8 +1545,8 @@ function renderBoard() {
   if (!aw.length) { body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">No souls awake</div></div>'; return; }
   body.innerHTML = `<div class="hintline" style="margin-bottom:12px;letter-spacing:.14em;text-transform:uppercase;font-size:10px">⏳ Weekly reset in <b style="color:var(--gold);font-family:'Barlow Condensed';font-size:12px">${resetCountdown()}</b> · EU · Wednesday 04:00 UTC</div>` + aw.map((c, i) => {
     const g = gd(c);
-    const weekRuns = (c.runs || []).length;
-    const bestKey = weekRuns ? Math.max(...c.runs.map(r => r.key)) : null;
+    const weekRuns = c.week_runs || 0;
+    const bestKey = c.week_best_key || null;
     return `<div class="panel" style="margin-bottom:12px;animation:pageIn .4s cubic-bezier(.25,.8,.3,1) ${i * 40}ms both">
       <div class="wrow">
         <div class="wname" style="color:${c.class_color};cursor:pointer" role="button" tabindex="0" title="Open ${esc(c.name)}" onclick="sel='${esc(ekey(c.entry))}';renderDetail();setView('detail')">${esc(c.name)}<div style="font:400 10.5px Barlow,sans-serif;color:var(--muted);letter-spacing:.04em">${esc(c.realm)} · ilvl ${c.ilvl ?? '—'}</div></div>
@@ -1675,7 +1678,7 @@ function renderFilters() {
   ]);
   const srcItems = [{ on: collFilter === null, label: 'All sources', cnt: pool.length.toLocaleString('en-US'), js: `collFilter=null;${_cf}` }]
     .concat(tops.map(([src, n]) => ({ on: collFilter === src, label: esc(src), cnt: n.toLocaleString('en-US'),
-      js: `collFilter='${esc(src).replace(/'/g, "\\'")}';${_cf}` })))
+      js: `collFilter='${jsq(src)}';${_cf}` })))
     .concat(limN ? [{ on: collFilter === '__limited', label: '⏳ Limited-time', cnt: limN.toLocaleString('en-US'), js: `collFilter='__limited';${_cf}` }] : []);
   const srcVal = collFilter === '__limited' ? '⏳ Limited' : (collFilter || 'All');
   const srcDd = dd('dd-src', 'Source', srcVal, srcItems);
@@ -1762,7 +1765,7 @@ function renderTmogSection() {
 }
 async function renderWpnHall() {
   await loadArmory();
-  const have = new Set(tmogMine.appearances || []);
+  const have = new Set((tmogMine && tmogMine.appearances) || []);
   const all = armory || [];
   const owned = all.filter(w => have.has(w.a)).length;
   const pct = all.length ? owned / all.length : 0;
@@ -1787,7 +1790,7 @@ async function renderWpnHall() {
   renderWpnGrid();
 }
 function wpnPool() {
-  const have = new Set(tmogMine.appearances || []);
+  const have = new Set((tmogMine && tmogMine.appearances) || []);
   let pool = (armory || []);
   if (wpnFamily) pool = pool.filter(w => WPN_FAMILY[wpnFamily].includes(w.s));
   if (wpnClass) pool = pool.filter(w => w.c === wpnClass);
@@ -1911,11 +1914,11 @@ function renderTmog() {
   renderTmogGrid();
 }
 function tmogSetState(st) {
-  const have = new Set(tmogMine.appearances || []);
-  return (tmogData.sets || []).map(x => {
+  const have = new Set((tmogMine && tmogMine.appearances) || []);
+  return ((tmogData && tmogData.sets) || []).map(x => {
     const n = x.apps.filter(a => have.has(a)).length;
     return { ...x, n, m: x.apps.length,
-      state: x.m === 0 ? 'empty' : n === x.apps.length ? 'complete' : n > 0 ? 'partial' : 'unstarted' };
+      state: x.apps.length === 0 ? 'empty' : n === x.apps.length ? 'complete' : n > 0 ? 'partial' : 'unstarted' };
   });
 }
 const ARMOR_CLASSES = ['Cloth', 'Leather', 'Mail', 'Plate'];
@@ -1947,7 +1950,7 @@ function renderTmogFilters() {
   let stateDef = [['all', 'All'], ['complete', '✓ Complete'], ['partial', 'In progress'], ['unstarted', 'Unclaimed']]
     .map(([k, l]) => ({ k, l, c: counts[k] ?? 0 }));
   if (pieceMode) {
-    const have = new Set(tmogMine.appearances || []);
+    const have = new Set((tmogMine && tmogMine.appearances) || []);
     const pieces = atlas[tmogSlot].filter(x => tmogSlot === 'CLOAK' || x.c === tmogArmor);
     const kept = pieces.filter(x => have.has(x.a)).length;
     stateDef = [{ k: 'all', l: 'All', c: pieces.length }, { k: 'complete', l: '✓ Kept', c: kept },
@@ -2080,7 +2083,7 @@ function lbFit() {
 async function tmogLb(setId) {
   const r = tmogSetState().find(x => x.id === setId);
   if (!r) return;
-  const have = new Set(tmogMine.appearances || []);
+  const have = new Set((tmogMine && tmogMine.appearances) || []);
   $('lb-hero').innerHTML = r.icon_item ? `<img class="iconic" src="/api/icon/${r.icon_item}" alt="">` : `<div class="ph">${esc((r.name || '?')[0])}</div>`;
   $('lb-name').textContent = r.name;
   $('lb-chips').innerHTML = [
@@ -2124,7 +2127,7 @@ function renderTmogPieces() {
     body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">Unrolling the Great Atlas…</div></div>';
     return;
   }
-  const have = new Set(tmogMine.appearances || []);
+  const have = new Set((tmogMine && tmogMine.appearances) || []);
   let rows = atlas[tmogSlot].filter(x => tmogSlot === 'CLOAK' || x.c === tmogArmor);
   if (tmogFilter === 'complete') rows = rows.filter(x => have.has(x.a));
   else if (tmogFilter === 'unstarted') rows = rows.filter(x => !have.has(x.a));
@@ -2150,7 +2153,7 @@ const PIECE_SLOT_TYPE = { HEAD: 1, SHOULDER: 3, BODY: 4, CHEST: 5, WAIST: 6, LEG
 function tmogPieceLb(key, aid) {
   const x = (atlas[key] || []).find(w => w.a === aid);
   if (!x) return;
-  const have = new Set(tmogMine.appearances || []);
+  const have = new Set((tmogMine && tmogMine.appearances) || []);
   $('lb-hero').innerHTML = x.i ? `<img class="iconic" src="/api/icon/${x.i}" alt="">` : `<div class="ph">${esc((x.n || '?')[0])}</div>`;
   $('lb-name').textContent = x.n;
   const lbl = (TMOG_ARMOR_SLOTS.find(([k]) => k === key) || [key, key])[1];
@@ -2235,8 +2238,8 @@ async function renderStudio() {
           <button class="pill-btn" style="flex:0 0 auto" onclick="studioSave()">Save</button>
         </div>
         <div>${Object.keys(saved).length ? Object.keys(saved).map(n => `
-          <span class="outfit-pill"><b onclick="studioLoad('${esc(n).replace(/'/g, "\\'")}')" title="Wear it">${esc(n)}</b>
-          <button class="rm-btn" title="Discard" onclick="studioDelete('${esc(n).replace(/'/g, "\\'")}')">✕</button></span>`).join('')
+          <span class="outfit-pill"><b onclick="studioLoad('${jsq(n)}')" title="Wear it">${esc(n)}</b>
+          <button class="rm-btn" title="Discard" onclick="studioDelete('${jsq(n)}')">✕</button></span>`).join('')
           : '<span class="hintline">Saved outfits appear here.</span>'}</div>
       </div>
     </div>
@@ -2417,6 +2420,8 @@ async function openGuide(name) {
 let econ = null, profitRows = null, profitCrafter = null, profitBusy = false;
 async function renderEconomy() {
   const body = $('econ-body');
+  const pr = primaryRealm();
+  const er = $('econ-realm'); if (er) er.textContent = `Gold · Auction House · ${pr.realm ? pr.realm[0].toUpperCase() + pr.realm.slice(1) : ''} ${(pr.region || '').toUpperCase()}`.trim();
   if (!econ) body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">Counting the coffers…</div></div>';
   try { econ = await (await fetch('/api/economy/summary')).json(); } catch (e) { body.innerHTML = '<div class="hintline">Economy unreachable.</div>'; return; }
   const t = econ.token, ah = econ.ah;
@@ -2543,11 +2548,19 @@ function profitTable() {
       <td style="color:var(--muted)">${esc(r.char)} · ${esc(r.prof)}</td>
       <td class="num gold-t">${goldStr(r.sale)}</td><td class="num">${goldStr(r.cost)}</td>
       <td class="num ${r.margin >= 0 ? 'good' : 'bad'}">${r.margin >= 0 ? '+' : '−'}${goldStr(Math.abs(r.margin))}</td>
-      <td style="width:26px"><span class="guide" style="cursor:pointer;color:var(--glow)" title="Wowhead guide" onclick="openGuide('${esc(r.recipe).replace(/'/g, "\\'")}')">↗</span></td></tr>`).join('')}</table>
+      <td style="width:26px"><span class="guide" style="cursor:pointer;color:var(--glow)" title="Wowhead guide" onclick="openGuide('${jsq(r.recipe)}')">↗</span></td></tr>`).join('')}</table>
     <div class="hintline" style="margin-top:8px">* some reagents had no AH listing — true cost is higher. Top 40 by margin.</div>`;
 }
+function primaryRealm() {
+  // the region/realm the most roster souls live on — the AH the user actually trades on
+  const counts = {};
+  (chars || []).forEach(c => { if (c.entry) { const k = c.entry.region + '|' + c.entry.realm; counts[k] = (counts[k] || 0) + 1; } });
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  if (top) { const [region, realm] = top[0].split('|'); return { region, realm }; }
+  return { region: 'eu', realm: 'draenor' };
+}
 async function econRefresh() {
-  await fetch('/api/economy/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ region: 'eu', realm: 'draenor' }) });
+  await fetch('/api/economy/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(primaryRealm()) });
   renderEconomy();
 }
 async function loadBagsell() {
@@ -2583,7 +2596,7 @@ async function watchSearch() {
   $('watch-results').innerHTML = '<div class="hintline">searching…</div>';
   const j = await (await fetch('/api/economy/search?q=' + encodeURIComponent(q))).json();
   $('watch-results').innerHTML = (j.results || []).slice(0, 6).map(r =>
-    `<button class="vtab" style="margin:0 6px 8px 0" onclick="watchAdd(${r.id},'${esc(r.name).replace(/'/g, "\\'")}')">${esc(r.name)}</button>`).join('') || '<div class="hintline">nothing found</div>';
+    `<button class="vtab" style="margin:0 6px 8px 0" onclick="watchAdd(${r.id},'${jsq(r.name)}')">${esc(r.name)}</button>`).join('') || '<div class="hintline">nothing found</div>';
 }
 async function watchAdd(id, name) {
   await fetch('/api/economy/watch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, name }) });
@@ -2648,7 +2661,7 @@ async function renderAch() {
         <td>${esc(r.name)}</td>
         <td><div class="pbar gold"><i style="width:${r.pct}%"></i></div></td>
         <td class="num" style="color:var(--muted)">${r.done.toLocaleString('en-US')} / ${r.total.toLocaleString('en-US')}</td>
-        <td style="width:26px"><span class="guide" style="cursor:pointer;color:var(--glow)" title="Wowhead guide" onclick="openGuide('${esc(r.name).replace(/'/g, "\\'")}')">↗</span></td>
+        <td style="width:26px"><span class="guide" style="cursor:pointer;color:var(--glow)" title="Wowhead guide" onclick="openGuide('${jsq(r.name)}')">↗</span></td>
       </tr>`).join('')}
     </table></div>` : '<div class="hintline">No near-complete achievements found (or none awake to read them from).</div>';
 }
@@ -2749,7 +2762,7 @@ async function forgeBrag(btn) {
       stats.push({ label: 'Full sets', value: (tmogMine.sets || []).length, tone: 'violet' });
     }
     if (typeof armory !== 'undefined' && armory && armory.length && tmogMine) {
-      const have = new Set(tmogMine.appearances || []);
+      const have = new Set((tmogMine && tmogMine.appearances) || []);
       stats.push({ label: 'Weapon looks', value: armory.filter(w => have.has(w.a)).length, tone: 'gold' });
     }
     const totKept = Object.values(gdata.chars || {}).reduce((a, g) => a + (g.played || 0), 0);

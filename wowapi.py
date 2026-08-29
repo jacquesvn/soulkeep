@@ -306,10 +306,13 @@ def get_character(region, realm, name):
                      "qcol": QUALITY_COLORS.get(it.get("quality", {}).get("name"), "#FFFFFF"),
                      "ench": bool(it.get("enchantments"))})
 
-    runs = []
+    runs, week_runs, week_best_key = [], 0, None
     if not mpl.get("_error"):
-        best = sorted((mpl.get("current_period", {}).get("best_runs") or []),
-                      key=lambda r: -(r.get("mythic_rating", {}).get("rating") or 0))
+        all_best = mpl.get("current_period", {}).get("best_runs") or []
+        week_runs = len(all_best)
+        keys = [r.get("keystone_level") for r in all_best if r.get("keystone_level")]
+        week_best_key = max(keys) if keys else None
+        best = sorted(all_best, key=lambda r: -(r.get("mythic_rating", {}).get("rating") or 0))
         runs = [{"key": r.get("keystone_level"), "dungeon": r.get("dungeon", {}).get("name"),
                  "score": round(r.get("mythic_rating", {}).get("rating") or 0, 1)} for r in best[:3]]
 
@@ -342,7 +345,7 @@ def get_character(region, realm, name):
         "mplus_rating": round(rating) if rating else None,
         "raid": raid_str, "raid_name": raid_name, "raid_rows": raid_rows, "raid_hist": raid_hist,
         "professions": [x["name"] for x in prof_rows], "prof_rows": prof_rows,
-        "gear": gear, "runs": runs,
+        "gear": gear, "runs": runs, "week_runs": week_runs, "week_best_key": week_best_key,
         "mounts": len(mounts.get("mounts") or []) if not mounts.get("_error") else None,
         "pets": len(pets.get("pets") or []) if not pets.get("_error") else None,
         "avatar": avatar, "render": render,

@@ -3,7 +3,7 @@ which pulls live character data from /api/roster. Run:  python app.py  (or the p
 import json, os, secrets, shutil, socket, sys, threading, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-VERSION = "1.27.0"
+VERSION = "1.28.0"
 REPO = "jacquesvn/soulkeep"  # update banner watches this repo's latest release
 import webview
 from flask import Flask, render_template, request, jsonify, redirect, send_file
@@ -52,7 +52,16 @@ def apply_current_raid(c):
     else:
         c["raid"], c["raid_name"], c["raid_rows"] = None, None, []
     c["raid_season"] = cur.get("expansion")
+    cur_names = set(names)  # current-tier raids belong to the front panel, not the Hall of Ages
+    if c.get("raid_hist"):
+        c["raid_hist"] = [h for h in c["raid_hist"] if h.get("name") not in cur_names]
     return c
+
+def primary_realm():
+    """The region/realm the most roster characters live on — the AH the user cares about."""
+    from collections import Counter
+    c = Counter((e["region"].lower(), e["realm"].lower()) for e in load_roster())
+    return c.most_common(1)[0][0] if c else ("eu", "draenor")
 
 def fetch_all(roster):
     if not roster:
@@ -525,7 +534,8 @@ def api_econ_summary():
 @app.route("/api/economy/refresh", methods=["POST"])
 def api_econ_refresh():
     d = request.get_json(force=True, silent=True) or {}
-    economy.refresh_ah_async(d.get("region", "eu"), d.get("realm", "draenor"))
+    pr_region, pr_realm = primary_realm()
+    economy.refresh_ah_async(d.get("region") or pr_region, d.get("realm") or pr_realm)
     return jsonify({"ok": True})
 
 @app.route("/api/economy/token_history")
@@ -883,7 +893,7 @@ def ah_autorefresh():
     try:
         s = economy.summary()
         if time.time() - ((s or {}).get("ts") or 0) > 3600:
-            economy.refresh_ah_async()
+            economy.refresh_ah_async(*primary_realm())
     except Exception:
         pass
 

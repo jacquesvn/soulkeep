@@ -56,6 +56,39 @@ def _tokens(text):
         kind = m.lastgroup
         yield kind, m.group()
 
+_LUA_ESC = {"n": "\n", "r": "\r", "t": "\t", "a": "\a", "b": "\b",
+            "f": "\f", "v": "\v", "\\": "\\", '"': '"', "'": "'"}
+
+def _unescape_lua(raw):
+    r"""Unescape a Lua string body. WoW writes non-ASCII as decimal \ddd byte
+    escapes (Lua, not Python octal), so gather consecutive \ddd into a byte run
+    and decode it as UTF-8; pass raw UTF-8 characters through untouched."""
+    out, buf, i, n = [], bytearray(), 0, len(raw)
+    def flush():
+        if buf:
+            out.append(buf.decode("utf-8", "replace"))
+            buf.clear()
+    while i < n:
+        ch = raw[i]
+        if ch == "\\" and i + 1 < n:
+            nxt = raw[i + 1]
+            if nxt.isdigit():
+                j, num = i + 1, ""
+                while j < n and raw[j].isdigit() and len(num) < 3:
+                    num += raw[j]; j += 1
+                buf.append(int(num) & 0xFF)
+                i = j
+                continue
+            flush()
+            out.append(_LUA_ESC.get(nxt, nxt))
+            i += 2
+            continue
+        flush()
+        out.append(ch)
+        i += 1
+    flush()
+    return "".join(out)
+
 def parse_lua_table(text):
     """Parse `Name = { ... }` SavedVariables into a python dict. Tolerant, not a full Lua parser."""
     # Blizzard writes array entries as `value, -- [n]` — strip those trailing index comments
@@ -70,7 +103,7 @@ def parse_lua_table(text):
             return table()
         pos += 1
         if kind == "str":
-            return tok[1:-1].encode().decode("unicode_escape", errors="replace")
+            return _unescape_lua(tok[1:-1])
         if kind == "num":
             f = float(tok)
             return int(f) if f.is_integer() else f
