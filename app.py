@@ -3,7 +3,7 @@ which pulls live character data from /api/roster. Run:  python app.py  (or the p
 import json, os, secrets, shutil, socket, sys, threading, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-VERSION = "1.29.0"
+VERSION = "1.30.0"
 REPO = "jacquesvn/soulkeep"  # update banner watches this repo's latest release
 import webview
 from flask import Flask, render_template, request, jsonify, redirect, send_file
@@ -22,6 +22,9 @@ CACHE = os.path.join(APPDIR, "roster_cache.json")
 app = Flask(__name__, template_folder=os.path.join(BUNDLE, "templates"))
 app.config["TEMPLATES_AUTO_RELOAD"] = not FROZEN
 
+_CACHE_LOCK = threading.Lock()   # serializes grow-cache mutate+dump (thread pools hit these)
+_ROSTER_LOCK = threading.Lock()  # serializes roster.json read-modify-write
+
 def _atomic_json(obj, path):
     tmp = path + ".tmp"
     try:
@@ -34,10 +37,15 @@ def _atomic_json(obj, path):
         pass
 
 def load_roster():
-    return json.load(open(ROSTER, encoding="utf-8")) if os.path.exists(ROSTER) else []
+    if not os.path.exists(ROSTER):
+        return []
+    try:
+        return json.load(open(ROSTER, encoding="utf-8"))
+    except (ValueError, OSError):  # a torn roster.json must not brick the whole app
+        return []
 
 def save_roster(r):
-    json.dump(r, open(ROSTER, "w", encoding="utf-8"), indent=2)
+    _atomic_json(r, ROSTER)
 
 def key(c):
     return (c["region"].lower(), c["realm"].lower(), c["name"].lower())
@@ -156,11 +164,9 @@ def api_instart(jid):
         m = wowapi._get(AUTH["region"], f"/data/wow/media/journal-instance/{jid}", f"static-{AUTH['region']}")
         url = next((a.get("value") for a in (m.get("assets") or []) if a.get("key") == "tile"), None)
         if url:
-            _INSTART[str(jid)] = url
-            try:
-                _atomic_json(_INSTART, INSTART)
-            except OSError:
-                pass
+            with _CACHE_LOCK:
+                _INSTART[str(jid)] = url
+                _atomic_json(dict(_INSTART), INSTART)
     return redirect(url) if url else (jsonify({"error": "no art"}), 404)
 
 # ---------- progress history (the Time Machine's ledger) ----------
@@ -192,7 +198,7 @@ def snapshot_history(chars):
             with open(HISTORY, "a", encoding="utf-8") as f:
                 for r in rows:
                     f.write(json.dumps(r) + "\n")
-            json.dump(idx, open(HIST_IDX, "w", encoding="utf-8"))
+            _atomic_json(idx, HIST_IDX)
         except OSError:
             pass
 
@@ -224,12 +230,13 @@ def api_add():
          "name": (d.get("name") or "").strip().lower()}
     if not (e["region"] and e["realm"] and e["name"]):
         return jsonify({"error": "region, realm and name are all required"}), 400
-    r = load_roster()
-    if any(key(x) == key(e) for x in r):
-        return jsonify({"error": "already on the roster"}), 409
-    c = apply_current_raid(wowapi.get_character(e["region"], e["realm"], e["name"]))
-    r.append(e)
-    save_roster(r)
+    c = apply_current_raid(wowapi.get_character(e["region"], e["realm"], e["name"]))  # network — before the lock
+    with _ROSTER_LOCK:
+        r = load_roster()
+        if any(key(x) == key(e) for x in r):
+            return jsonify({"error": "already on the roster"}), 409
+        r.append(e)
+        save_roster(r)
     c["entry"] = e
     return jsonify({"char": c})
 
@@ -237,7 +244,8 @@ def api_add():
 def api_remove():
     d = request.get_json(force=True)
     e = {"region": d.get("region", ""), "realm": d.get("realm", ""), "name": d.get("name", "")}
-    save_roster([c for c in load_roster() if key(c) != key(e)])
+    with _ROSTER_LOCK:
+        save_roster([c for c in load_roster() if key(c) != key(e)])
     return jsonify({"ok": True})
 
 # ---------- Battle.net login -> auto-roster ----------
@@ -254,8 +262,9 @@ def auth_login():
 
 @app.route("/auth/callback")
 def auth_callback():
-    if not request.args.get("code") or request.args.get("state") != AUTH["state"]:
-        return redirect("/?auth=failed")
+    if not AUTH.get("state") or not request.args.get("code") or request.args.get("state") != AUTH["state"]:
+        return redirect("/?auth=failed")  # no login in progress, or state mismatch — reject
+    AUTH["state"] = None  # single-use: the code+state can't be replayed
     try:
         wowapi.exchange_code(request.args["code"], _redirect_uri())
     except Exception:
@@ -270,17 +279,18 @@ def import_account(region):
     res = wowapi.get_account_chars(region, tok)
     if res.get("_error"):
         return 0
-    r = load_roster()
-    have = {key(e) for e in r}
-    added = 0
-    for c in res["chars"]:
-        if (c.get("level") or 0) < 10 or not c.get("realm_slug") or not c.get("name"):
-            continue
-        e = {"region": region, "realm": c["realm_slug"], "name": c["name"].lower()}
-        if key(e) not in have:
-            r.append(e); have.add(key(e)); added += 1
-    if added:
-        save_roster(r)
+    with _ROSTER_LOCK:
+        r = load_roster()
+        have = {key(e) for e in r}
+        added = 0
+        for c in res["chars"]:
+            if (c.get("level") or 0) < 10 or not c.get("realm_slug") or not c.get("name"):
+                continue
+            e = {"region": region, "realm": c["realm_slug"], "name": c["name"].lower()}
+            if key(e) not in have:
+                r.append(e); have.add(key(e)); added += 1
+        if added:
+            save_roster(r)
     return added
 
 @app.route("/api/import", methods=["POST"])
@@ -413,11 +423,9 @@ def api_tmog_appearance(aid):
         got = wowapi.get_appearance(AUTH["region"], aid)
         if got is None:
             return jsonify({"error": "not found"}), 404
-        _TMOG_APPS[k] = got
-        try:
-            _atomic_json(_TMOG_APPS, TMOG_APPS)
-        except OSError:
-            pass
+        with _CACHE_LOCK:
+            _TMOG_APPS[k] = got
+            _atomic_json(dict(_TMOG_APPS), TMOG_APPS)
     return jsonify(_TMOG_APPS[k])
 
 # ---------- brag cards ----------
@@ -473,7 +481,7 @@ def api_brag():
     img.save(out)
     try:
         os.startfile(out)
-    except OSError:
+    except (OSError, AttributeError):  # os.startfile is Windows-only
         pass
     return jsonify({"ok": True, "path": out})
 
@@ -500,11 +508,9 @@ def item_display_id(region, item_id):
     if apps and apps[0].get("id"):
         a = wowapi._get(region, f"/data/wow/item-appearance/{apps[0]['id']}", f"static-{region}")
         disp = a.get("item_display_info_id")
-    _ITEM_DISP[k] = disp
-    try:
-        _atomic_json(_ITEM_DISP, ITEM_DISP)
-    except OSError:
-        pass
+    with _CACHE_LOCK:
+        _ITEM_DISP[k] = disp
+        _atomic_json(dict(_ITEM_DISP), ITEM_DISP)
     return disp
 
 @app.route("/api/charlook/<region>/<realm>/<name>")
@@ -632,7 +638,9 @@ def api_achievements():
                 continue
             budget -= 1
             d = wowapi._get(e["region"], f"/data/wow/achievement/{r['id']}", f"static-{e['region']}")
-            req = None
+            if d.get("_error"):
+                budget += 1  # refund — don't cache a null from a transient failure
+                continue
             cr = (d.get("criteria") or {})
             req = cr.get("amount") or ((cr.get("child_criteria") or [{}])[0].get("amount") if cr.get("child_criteria") else None)
             _ACH_REQS[k] = req
@@ -640,10 +648,8 @@ def api_achievements():
         if req and req > 1 and r["amount"] < req:
             resolved.append({"id": r["id"], "name": r["name"], "done": r["amount"], "total": req,
                              "pct": round(min(99, r["amount"] / req * 100))})
-    try:
-        _atomic_json(_ACH_REQS, ACH_REQS)
-    except OSError:
-        pass
+    with _CACHE_LOCK:
+        _atomic_json(dict(_ACH_REQS), ACH_REQS)
     rows = sorted(ratio_rows + resolved, key=lambda x: -x["pct"])[:40]
     return jsonify({"rows": rows, "char": c.get("name")})
 

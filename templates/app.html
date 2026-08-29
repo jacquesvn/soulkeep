@@ -1518,11 +1518,20 @@ function vaultSegs(acts) {
         `<div class="seg ${r.progress >= r.threshold ? 'm' : ''}" title="${r.progress}/${r.threshold}"></div>`).join('')}</div></div>`;
   }).join('');
 }
+const RESET_BY_REGION = {   // [weekday (0=Sun), reset hour in UTC]; DST shifts NA by an hour but the day is stable
+  us: [2, 15], eu: [3, 4], kr: [3, 15], tw: [3, 15], cn: [3, 15],
+};
+function resetInfo() {
+  const reg = (typeof primaryRealm === 'function' ? primaryRealm().region : 'eu') || 'eu';
+  const [wd, hr] = RESET_BY_REGION[reg] || RESET_BY_REGION.eu;
+  return { region: reg.toUpperCase(), wd, hr, label: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][wd] };
+}
 function resetCountdown() {
   const now = new Date();
+  const { wd, hr } = resetInfo();
   const reset = new Date(now);
-  reset.setUTCHours(4, 0, 0, 0);
-  let days = (3 - now.getUTCDay() + 7) % 7;   // 3 = Wednesday
+  reset.setUTCHours(hr, 0, 0, 0);
+  let days = (wd - now.getUTCDay() + 7) % 7;
   if (days === 0 && now >= reset) days = 7;
   reset.setUTCDate(reset.getUTCDate() + days);
   const ms = reset - now, h = Math.floor(ms / 3600000), d = Math.floor(h / 24);
@@ -1544,7 +1553,7 @@ function renderBoard() {
   const aw = chars.filter(awake);
   const body = $('board-body');
   if (!aw.length) { body.innerHTML = '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">No souls awake</div></div>'; return; }
-  body.innerHTML = `<div class="hintline" style="margin-bottom:12px;letter-spacing:.14em;text-transform:uppercase;font-size:10px">⏳ Weekly reset in <b style="color:var(--gold);font-family:'Barlow Condensed';font-size:12px">${resetCountdown()}</b> · EU · Wednesday 04:00 UTC</div>` + aw.map((c, i) => {
+  body.innerHTML = `<div class="hintline" style="margin-bottom:12px;letter-spacing:.14em;text-transform:uppercase;font-size:10px">⏳ Weekly reset in <b style="color:var(--gold);font-family:'Barlow Condensed';font-size:12px">${resetCountdown()}</b> · ${resetInfo().region} · ${resetInfo().label}</div>` + aw.map((c, i) => {
     const g = gd(c);
     const weekRuns = c.week_runs || 0;
     const bestKey = c.week_best_key || null;
@@ -1834,9 +1843,10 @@ function renderWpnGrid() {
     : '<div class="empty"><div class="disc disc-110"></div><div class="empty-t">No weapons here</div></div>';
 }
 function wpnLb(aid) {
+  ++lbSeq;
   const w = (armory || []).find(x => x.a === aid);
   if (!w) return;
-  const kept = new Set(tmogMine.appearances || []).has(aid);
+  const kept = new Set((tmogMine && tmogMine.appearances) || []).has(aid);
   $('lb-hero').innerHTML = `<iframe class="lb3d" style="height:360px" src="/mv?d=${w.d}&t=1" title="Weapon model — drag to turn, scroll to zoom"></iframe><button class="mv-expand" title="Grand view" onclick="mvExpand()">⛶</button>`;
   $('lb-name').textContent = w.n;
   $('lb-chips').innerHTML = [
@@ -2155,6 +2165,7 @@ function renderTmogPieces() {
 }
 const PIECE_SLOT_TYPE = { HEAD: 1, SHOULDER: 3, BODY: 4, CHEST: 5, WAIST: 6, LEGS: 7, FEET: 8, WRIST: 9, HAND: 10, CLOAK: 16, TABARD: 19 };
 function tmogPieceLb(key, aid) {
+  ++lbSeq;
   const x = (atlas[key] || []).find(w => w.a === aid);
   if (!x) return;
   const have = new Set((tmogMine && tmogMine.appearances) || []);
@@ -2331,6 +2342,7 @@ let lbPool = [], lbIdx = 0;
 let _tokenAlertArmed = null;
 let lbSeq = 0;  // bumps each time a lightbox opens; a late async continuation checks it
 function lbOpenId(id, poolIds) {
+  ++lbSeq;
   const index = collIndex[collKind] || [];
   const byId = new Map(index.map(x => [x.id, x]));
   lbPool = (poolIds || []).map(i => byId.get(i)).filter(Boolean);
@@ -2395,7 +2407,7 @@ function lb3d(dispId) {
   $('lb-extra').innerHTML = '<span class="hintline">drag to turn · scroll to zoom</span>';
 }
 function lbNav(d) { if (!lbPool.length) return; lbIdx = (lbIdx + d + lbPool.length) % lbPool.length; lbRender(); }
-function lbClose() { $('lb-back').classList.remove('open'); }
+function lbClose() { ++lbSeq; $('lb-back').classList.remove('open'); }
 document.addEventListener('keydown', e => {
   if (!/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) {
     if (e.key === '/') {
@@ -2648,7 +2660,7 @@ async function renderProgress() {
   if (!progChar || !keys.includes(progChar)) progChar = keys[0];
   const METRICS = { ilvl: 'Item level', mplus: 'M+ rating', gold: 'Gold', mounts: 'Mounts', ach: 'Achievement pts' };
   body.innerHTML = `
-    <div class="vtabs">${keys.map(k => `<button class="vtab ${k === progChar ? 'on' : ''}" onclick="progChar='${esc(k)}';renderProgress()">${esc(k.split('-')[0])}</button>`).join('')}</div>
+    <div class="vtabs">${keys.map(k => `<button class="vtab ${k === progChar ? 'on' : ''}" onclick="progChar='${jsq(k)}';renderProgress()">${esc(k.split('-')[0])}</button>`).join('')}</div>
     <div class="vtabs">${Object.entries(METRICS).map(([m, l]) => `<button class="vtab ${m === progMetric ? 'on' : ''}" onclick="progMetric='${m}';renderProgress()">${l}</button>`).join('')}</div>
     <div class="panel"><div class="p-eyebrow" style="margin-bottom:12px">${METRICS[progMetric]} · ${esc(progChar)}</div><div id="prog-chart" class="chart hintline">…</div></div>
     <div class="hintline" style="margin-top:12px">One snapshot per refresh, at most every six hours. The longer the app lives, the richer the story.</div>`;

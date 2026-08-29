@@ -14,14 +14,18 @@ local sawInstanceInfo = false  -- true once the server has answered RequestRaidI
 -- the (already-suppressed) no-op as the "original" and thus mute chat forever.
 local pendingPlayed = nil
 local savedDisplayTimePlayed = nil
+local ourNoop = function() end  -- stable identity so we only revert OUR own hook
 local function requestPlayed()
   if not RequestTimePlayed then return end
   if savedDisplayTimePlayed == nil and ChatFrame_DisplayTimePlayed then
     savedDisplayTimePlayed = ChatFrame_DisplayTimePlayed
-    ChatFrame_DisplayTimePlayed = function() end
+    ChatFrame_DisplayTimePlayed = ourNoop
     C_Timer.After(1.5, function()
       if savedDisplayTimePlayed then
-        ChatFrame_DisplayTimePlayed = savedDisplayTimePlayed
+        -- only restore if nobody else replaced our no-op meanwhile (don't clobber another addon)
+        if ChatFrame_DisplayTimePlayed == ourNoop then
+          ChatFrame_DisplayTimePlayed = savedDisplayTimePlayed
+        end
         savedDisplayTimePlayed = nil
       end
     end)

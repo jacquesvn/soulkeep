@@ -35,7 +35,11 @@ def token(region="eu"):
 
 def token_history(limit=500):
     try:
-        return [json.loads(x) for x in open(TOKEN_HIST, encoding="utf-8").readlines()[-limit:]]
+        out = []
+        for x in open(TOKEN_HIST, encoding="utf-8").readlines()[-limit:]:
+            try: out.append(json.loads(x))
+            except ValueError: continue
+        return out
     except OSError:
         return []
 
@@ -74,7 +78,7 @@ def refresh_ah(region="eu", realm_slug="draenor"):
     with _LOCK:
         if REFRESH["running"]:
             return
-        REFRESH.update(running=True, error=None, step="starting")
+        REFRESH.update(running=True, error=None, warn=None, step="starting")
     try:
         if (region or "").lower() not in {"us", "eu", "kr", "tw", "cn"}:
             raise ValueError(f"bad region {region!r}")
@@ -82,15 +86,15 @@ def refresh_ah(region="eu", realm_slug="draenor"):
         prices = {}
         REFRESH["step"] = "realm auctions"
         crid = connected_realm_id(region, realm_slug)
-        if not crid:
-            raise ValueError(f"realm lookup failed for {realm_slug} ({region}) — no prices written")
-        _min_prices_stream(_stream(f"https://{region}.api.blizzard.com/data/wow/connected-realm/{crid}/auctions?{q}"), prices)
+        if crid:
+            _min_prices_stream(_stream(f"https://{region}.api.blizzard.com/data/wow/connected-realm/{crid}/auctions?{q}"), prices)
+        else:
+            REFRESH["warn"] = f"realm auctions unavailable for {realm_slug} — commodity prices only"
         REFRESH["step"] = "commodities (large)"
         _min_prices_stream(_stream(f"https://{region}.api.blizzard.com/data/wow/auctions/commodities?{q}"), prices)
         ts = int(time.time())
-        json.dump({"ts": ts, "region": region, "realm": realm_slug,
-                   "prices": {str(k): v for k, v in prices.items()}},
-                  open(SUMMARY, "w", encoding="utf-8"))
+        _atomic_dump({"ts": ts, "region": region, "realm": realm_slug,
+                      "prices": {str(k): v for k, v in prices.items()}}, SUMMARY)
         _append_watch_history(ts, prices)
         REFRESH.update(step="done", ts=ts)
     except Exception as e:
@@ -118,11 +122,14 @@ _WATCH_LOCK = threading.Lock()
 
 def _atomic_dump(obj, path):
     tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(obj, f)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(obj, f)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except OSError:
+        pass
 
 def add_watch(item_id, name):
     with _WATCH_LOCK:
@@ -154,7 +161,8 @@ def price_history(item_id, limit=300):
     out = []
     try:
         for line in open(PRICE_HIST, encoding="utf-8"):
-            r = json.loads(line)
+            try: r = json.loads(line)
+            except ValueError: continue
             if r["id"] == item_id:
                 out.append(r)
     except OSError:
@@ -203,7 +211,8 @@ def movers(limit=12):
     hist = {}
     try:
         for line in open(PRICE_HIST, encoding="utf-8"):
-            r = json.loads(line)
+            try: r = json.loads(line)
+            except ValueError: continue
             hist.setdefault(r["id"], []).append((r["ts"], r["p"]))
     except OSError:
         return []
@@ -235,7 +244,8 @@ def deals(limit=12, min_samples=3, min_discount=25):
     hist = {}
     try:
         for line in open(PRICE_HIST, encoding="utf-8"):
-            r = json.loads(line)
+            try: r = json.loads(line)
+            except ValueError: continue
             hist.setdefault(r["id"], []).append((r["ts"], r["p"]))
     except OSError:
         return []
