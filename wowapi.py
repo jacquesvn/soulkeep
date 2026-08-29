@@ -64,7 +64,11 @@ def token():
     _TOKEN["value"], _TOKEN["expires"] = j["access_token"], time.time() + j.get("expires_in", 86400)
     return _TOKEN["value"]
 
+VALID_REGIONS = {"us", "eu", "kr", "tw", "cn"}
+
 def _get(region, path, namespace):
+    if (region or "").lower() not in VALID_REGIONS:
+        return {"_error": "bad region"}
     q = urllib.parse.urlencode({"namespace": namespace, "locale": "en_US"})
     sep = "&" if "?" in path else "?"
     req = urllib.request.Request(f"https://{region}.api.blizzard.com{path}{sep}{q}")

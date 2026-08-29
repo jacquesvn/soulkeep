@@ -75,6 +75,8 @@ def refresh_ah(region="eu", realm_slug="draenor"):
             return
         REFRESH.update(running=True, error=None, step="starting")
     try:
+        if (region or "").lower() not in {"us", "eu", "kr", "tw", "cn"}:
+            raise ValueError(f"bad region {region!r}")
         q = urllib.parse.urlencode({"namespace": f"dynamic-{region}"})
         prices = {}
         REFRESH["step"] = "realm auctions"

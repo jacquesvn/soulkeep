@@ -854,6 +854,19 @@ button{font-family:Barlow,system-ui,sans-serif}
 
 <script>
 "use strict";
+// the per-session token (cookie on desktop, ?k= in the phone's QR URL) rides on every
+// mutating request so a hostile web page can't drive Soulkeep's side effects.
+const SK_TOKEN = (document.cookie.match(/(?:^|;\s*)sk_token=([^;]+)/) || [])[1]
+  || new URLSearchParams(location.search).get('k') || '';
+const _skFetch = window.fetch.bind(window);
+window.fetch = (url, opts) => {
+  opts = opts || {};
+  const m = (opts.method || 'GET').toUpperCase();
+  if (m === 'POST' || m === 'DELETE' || m === 'PUT' || m === 'PATCH') {
+    opts.headers = Object.assign({}, opts.headers, { 'X-Soulkeep-Token': SK_TOKEN });
+  }
+  return _skFetch(url, opts);
+};
 const FACTION = { Alliance: '#4A7FD6', Horde: '#C4232B' };
 const S = Object.assign({ theme: 'midnight', showSlumber: false, motion: true, autoRefresh: true, collapsed: false, sbMode: 'hover', sort: 'added' },
   (() => { try { return JSON.parse(localStorage.getItem('wr-settings') || '{}'); } catch (e) { return {}; } })());

@@ -119,7 +119,7 @@ def read_export():
             data = parse_lua_table(open(f, encoding="utf-8", errors="replace").read())
             if isinstance(data, dict):
                 chars.update(data)
-        except (OSError, ValueError, IndexError):
+        except Exception:  # a corrupt/hostile SavedVariables file must never 500 /api/roster
             continue
     return {"found": True, "wow_dir": d, "addon_installed": bool(files) or _addon_present(d),
             "has_data": bool(chars), "chars": chars}

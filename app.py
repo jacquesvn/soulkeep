@@ -3,7 +3,7 @@ which pulls live character data from /api/roster. Run:  python app.py  (or the p
 import json, os, secrets, shutil, socket, sys, threading, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-VERSION = "1.26.2"
+VERSION = "1.27.0"
 REPO = "jacquesvn/soulkeep"  # update banner watches this repo's latest release
 import webview
 from flask import Flask, render_template, request, jsonify, redirect, send_file
@@ -61,9 +61,24 @@ def fetch_all(roster):
         return list(pool.map(lambda e: apply_current_raid(
             wowapi.get_character(e["region"], e["realm"], e["name"])), roster))
 
+SESSION_TOKEN = secrets.token_urlsafe(24)
+
+@app.before_request
+def _guard_mutations():
+    """Mutating calls must carry the per-session token. A custom header can't be
+    forged cross-site (it forces a CORS preflight this CORS-less app fails), so a
+    hostile web page the user visits cannot drive Soulkeep's side effects."""
+    if request.method in ("POST", "DELETE", "PUT", "PATCH"):
+        if request.headers.get("X-Soulkeep-Token") != SESSION_TOKEN:
+            return jsonify({"error": "forbidden"}), 403
+
 @app.route("/")
 def index():
-    return render_template("app.html")
+    resp = app.make_response(render_template("app.html"))
+    tok = request.args.get("k") or SESSION_TOKEN  # phone opens ?k=<token> from the QR
+    resp.set_cookie("sk_token", tok if tok == SESSION_TOKEN else SESSION_TOKEN,
+                    samesite="Strict", max_age=31536000)
+    return resp
 
 @app.route("/api/roster")
 def api_roster():
@@ -164,7 +179,15 @@ def snapshot_history(chars):
 @app.route("/api/history")
 def api_history():
     try:
-        rows = [json.loads(x) for x in open(HISTORY, encoding="utf-8")]
+        rows = []
+        for x in open(HISTORY, encoding="utf-8"):
+            x = x.strip()
+            if not x:
+                continue
+            try:
+                rows.append(json.loads(x))
+            except ValueError:
+                continue  # a truncated final line from a crash mid-append — skip it
     except OSError:
         rows = []
     return jsonify({"rows": rows[-5000:]})
@@ -260,7 +283,7 @@ def api_account():
     ip = lan_ip()
     return jsonify({"connected": bool(wowapi.user_token()),
                     "redirect_uri": _redirect_uri(),
-                    "phone_url": f"http://{ip}:{AUTH['port']}" if ip else None})
+                    "phone_url": f"http://{ip}:{AUTH['port']}/?k={SESSION_TOKEN}" if ip else None})
 
 # ---------- game data (companion addon SavedVariables) ----------
 @app.route("/api/gamedata")
@@ -302,8 +325,17 @@ def api_static_build():
     return jsonify({"ok": True})
 
 # ---------- collections / reputations / M+ season ----------
+def _read_cache_chars():
+    """The roster cache, tolerant of a torn/corrupt file (returns [] rather than 500)."""
+    if not os.path.exists(CACHE):
+        return []
+    try:
+        return json.load(open(CACHE, encoding="utf-8")).get("chars", [])
+    except (ValueError, OSError):
+        return []
+
 def first_awake():
-    for c in (json.load(open(CACHE, encoding="utf-8")).get("chars", []) if os.path.exists(CACHE) else []):
+    for c in (_read_cache_chars()):
         if not c.get("error"):
             return c
     return None
@@ -319,7 +351,7 @@ def api_collections():
 @app.route("/api/reputations")
 def api_reputations():
     roster = load_roster()
-    cached = json.load(open(CACHE, encoding="utf-8")).get("chars", []) if os.path.exists(CACHE) else []
+    cached = _read_cache_chars()
     awake = [c["entry"] for c in cached if not c.get("error")]
     def one(e):
         return {"char": e["name"].capitalize(), "realm": e["realm"],
@@ -513,7 +545,7 @@ def api_econ_watch():
 
 @app.route("/api/economy/pricehistory")
 def api_price_history():
-    iid = int(request.args.get("id", 0))
+    iid = request.args.get("id", 0, type=int) or 0
     s = economy.summary()
     cur = {int(k): v for k, v in (s or {}).get("prices", {}).items()}.get(iid)
     return jsonify({"rows": economy.price_history(iid), "current": cur})
@@ -597,7 +629,7 @@ def api_achievements():
 @app.route("/api/planner")
 def api_planner():
     """Which dungeon serves the most alts: weakest slots per awake char x journal drops."""
-    cached = json.load(open(CACHE, encoding="utf-8")).get("chars", []) if os.path.exists(CACHE) else []
+    cached = _read_cache_chars()
     journal = staticdata.load("journal") or []
     SLOT_MAP = {"Shoulders": ["Shoulder"], "Ring 1": ["Finger"], "Ring 2": ["Finger"],
                 "Trinket 1": ["Trinket"], "Trinket 2": ["Trinket"], "Wrist": ["Wrist"],
@@ -666,7 +698,7 @@ def api_econ_bagsell():
 
 @app.route("/api/economy/profit")
 def api_econ_profit():
-    cached = json.load(open(CACHE, encoding="utf-8")).get("chars", []) if os.path.exists(CACHE) else []
+    cached = _read_cache_chars()
     crafters = [c for c in cached if not c.get("error") and c.get("professions")]
     bags = account_bags()
     def one(c):
@@ -773,6 +805,14 @@ def zam_proxy(path):
     if ".." in path or path.startswith("/"):
         return jsonify({"error": "bad path"}), 400
     local = os.path.join(ZAMCACHE, path.replace("/", os.sep))
+    # a drive-absolute segment (C:/...) survives the checks above but os.path.join
+    # would discard ZAMCACHE — confine the resolved path to the cache, always.
+    root = os.path.realpath(ZAMCACHE)
+    try:  # commonpath raises across drives (C:\ vs D:\) — that's also a bad path
+        if os.path.commonpath([os.path.realpath(local), root]) != root:
+            return jsonify({"error": "bad path"}), 400
+    except ValueError:
+        return jsonify({"error": "bad path"}), 400
     if not os.path.exists(local):
         try:
             req = urllib.request.Request("https://wow.zamimg.com/modelviewer/live/" + path,
@@ -819,7 +859,7 @@ def qr_png():
     ip = lan_ip()
     if not ip:
         return jsonify({"error": "no LAN address"}), 404
-    img = qrcode.make(f"http://{ip}:{AUTH['port']}", box_size=6, border=2)
+    img = qrcode.make(f"http://{ip}:{AUTH['port']}/?k={SESSION_TOKEN}", box_size=6, border=2)
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     buf.seek(0)
