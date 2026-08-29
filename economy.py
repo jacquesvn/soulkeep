@@ -1,6 +1,7 @@
 """Auction-house economy layer: AH price summaries (items + region commodities),
 WoW Token tracking, price watches with history, and the crafting profit engine.
 The commodity dump is huge (100MB+), so it streams via ijson to a {item: price} map."""
+import threading
 import gzip, json, os, sys, threading, time, urllib.parse, urllib.request
 import staticdata
 import wowapi
@@ -81,8 +82,9 @@ def refresh_ah(region="eu", realm_slug="draenor"):
         prices = {}
         REFRESH["step"] = "realm auctions"
         crid = connected_realm_id(region, realm_slug)
-        if crid:
-            _min_prices_stream(_stream(f"https://{region}.api.blizzard.com/data/wow/connected-realm/{crid}/auctions?{q}"), prices)
+        if not crid:
+            raise ValueError(f"realm lookup failed for {realm_slug} ({region}) — no prices written")
+        _min_prices_stream(_stream(f"https://{region}.api.blizzard.com/data/wow/connected-realm/{crid}/auctions?{q}"), prices)
         REFRESH["step"] = "commodities (large)"
         _min_prices_stream(_stream(f"https://{region}.api.blizzard.com/data/wow/auctions/commodities?{q}"), prices)
         ts = int(time.time())
@@ -112,16 +114,28 @@ def watches():
     except (OSError, ValueError):
         return []
 
+_WATCH_LOCK = threading.Lock()
+
+def _atomic_dump(obj, path):
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(obj, f)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
+
 def add_watch(item_id, name):
-    w = watches()
-    if not any(x["id"] == item_id for x in w):
-        w.append({"id": item_id, "name": name})
-        json.dump(w, open(WATCHES, "w", encoding="utf-8"))
+    with _WATCH_LOCK:
+        w = watches()
+        if not any(x["id"] == item_id for x in w):
+            w.append({"id": item_id, "name": name})
+            _atomic_dump(w, WATCHES)
     return w
 
 def remove_watch(item_id):
-    w = [x for x in watches() if x["id"] != item_id]
-    json.dump(w, open(WATCHES, "w", encoding="utf-8"))
+    with _WATCH_LOCK:
+        w = [x for x in watches() if x["id"] != item_id]
+        _atomic_dump(w, WATCHES)
     return w
 
 def _append_watch_history(ts, prices):

@@ -3,7 +3,7 @@ which pulls live character data from /api/roster. Run:  python app.py  (or the p
 import json, os, secrets, shutil, socket, sys, threading, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-VERSION = "1.28.0"
+VERSION = "1.29.0"
 REPO = "jacquesvn/soulkeep"  # update banner watches this repo's latest release
 import webview
 from flask import Flask, render_template, request, jsonify, redirect, send_file
@@ -22,6 +22,17 @@ CACHE = os.path.join(APPDIR, "roster_cache.json")
 app = Flask(__name__, template_folder=os.path.join(BUNDLE, "templates"))
 app.config["TEMPLATES_AUTO_RELOAD"] = not FROZEN
 
+def _atomic_json(obj, path):
+    tmp = path + ".tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(obj, f)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except OSError:
+        pass
+
 def load_roster():
     return json.load(open(ROSTER, encoding="utf-8")) if os.path.exists(ROSTER) else []
 
@@ -34,7 +45,7 @@ def key(c):
 _CURRENT_TIER = None
 def current_tier():
     global _CURRENT_TIER
-    if _CURRENT_TIER is None:
+    if not _CURRENT_TIER:  # re-read the 5KB file until it has content (survives a first-run build)
         _CURRENT_TIER = staticdata.load("current") or {}
     return _CURRENT_TIER
 
@@ -122,7 +133,7 @@ def api_roster():
             old_c["stale"] = True
             chars[i] = old_c
     try:
-        json.dump({"chars": chars}, open(CACHE, "w", encoding="utf-8"))
+        _atomic_json({"chars": chars}, CACHE)
     except OSError:
         pass
     snapshot_history(chars)
@@ -147,7 +158,7 @@ def api_instart(jid):
         if url:
             _INSTART[str(jid)] = url
             try:
-                json.dump(_INSTART, open(INSTART, "w", encoding="utf-8"))
+                _atomic_json(_INSTART, INSTART)
             except OSError:
                 pass
     return redirect(url) if url else (jsonify({"error": "no art"}), 404)
@@ -404,7 +415,7 @@ def api_tmog_appearance(aid):
             return jsonify({"error": "not found"}), 404
         _TMOG_APPS[k] = got
         try:
-            json.dump(_TMOG_APPS, open(TMOG_APPS, "w", encoding="utf-8"))
+            _atomic_json(_TMOG_APPS, TMOG_APPS)
         except OSError:
             pass
     return jsonify(_TMOG_APPS[k])
@@ -491,7 +502,7 @@ def item_display_id(region, item_id):
         disp = a.get("item_display_info_id")
     _ITEM_DISP[k] = disp
     try:
-        json.dump(_ITEM_DISP, open(ITEM_DISP, "w", encoding="utf-8"))
+        _atomic_json(_ITEM_DISP, ITEM_DISP)
     except OSError:
         pass
     return disp
@@ -630,7 +641,7 @@ def api_achievements():
             resolved.append({"id": r["id"], "name": r["name"], "done": r["amount"], "total": req,
                              "pct": round(min(99, r["amount"] / req * 100))})
     try:
-        json.dump(_ACH_REQS, open(ACH_REQS, "w", encoding="utf-8"))
+        _atomic_json(_ACH_REQS, ACH_REQS)
     except OSError:
         pass
     rows = sorted(ratio_rows + resolved, key=lambda x: -x["pct"])[:40]
@@ -719,7 +730,9 @@ def api_econ_profit():
     with ThreadPoolExecutor(max_workers=6) as pool:
         for group in pool.map(one, crafters):
             rows.extend(group)
-    rows.sort(key=lambda r: -r["margin"])
+    # a recipe with an unpriced reagent has an understated cost (that reagent counted
+    # as free), so its margin is optimistic — rank those below fully-priced recipes.
+    rows.sort(key=lambda r: (bool(r.get("missing")), -r["margin"]))
     return jsonify({"rows": rows[:120], "have_ah": bool(economy.summary())})
 
 # ---------- PWA bits (full install needs https hosting; LAN browsing works today) ----------

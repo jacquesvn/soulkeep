@@ -5,15 +5,28 @@ local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("PLAYER_LOGOUT")
 f:RegisterEvent("TIME_PLAYED_MSG")
+f:RegisterEvent("UPDATE_INSTANCE_INFO")
 
--- /played capture: request quietly, cache the reply, embed it in every snapshot
+local sawInstanceInfo = false  -- true once the server has answered RequestRaidInfo()
+
+-- /played capture: request quietly, cache the reply, embed it in every snapshot.
+-- Guarded against re-entry: a second request within the 1.5s window must not save
+-- the (already-suppressed) no-op as the "original" and thus mute chat forever.
 local pendingPlayed = nil
+local savedDisplayTimePlayed = nil
 local function requestPlayed()
   if not RequestTimePlayed then return end
-  local orig = ChatFrame_DisplayTimePlayed
-  if orig then ChatFrame_DisplayTimePlayed = function() end end
+  if savedDisplayTimePlayed == nil and ChatFrame_DisplayTimePlayed then
+    savedDisplayTimePlayed = ChatFrame_DisplayTimePlayed
+    ChatFrame_DisplayTimePlayed = function() end
+    C_Timer.After(1.5, function()
+      if savedDisplayTimePlayed then
+        ChatFrame_DisplayTimePlayed = savedDisplayTimePlayed
+        savedDisplayTimePlayed = nil
+      end
+    end)
+  end
   RequestTimePlayed()
-  if orig then C_Timer.After(1.5, function() ChatFrame_DisplayTimePlayed = orig end) end
 end
 
 local function collect()
@@ -52,6 +65,29 @@ local function collect()
 
   d.currencies = {}
   if C_CurrencyInfo and C_CurrencyInfo.GetCurrencyListSize then
+    -- currencies under a COLLAPSED header don't enumerate — expand them all first,
+    -- remember which were collapsed (by name), collect, then restore the UI state.
+    local collapsedHeaders = {}
+    if C_CurrencyInfo.ExpandCurrencyList then
+      for i = 1, C_CurrencyInfo.GetCurrencyListSize() do
+        local okh, info = pcall(C_CurrencyInfo.GetCurrencyListInfo, i)
+        if okh and info and info.isHeader and info.isHeaderExpanded == false then
+          collapsedHeaders[info.name] = true
+        end
+      end
+      local didExpand = true
+      while didExpand do  -- expand one, restart (indices shift as the list grows)
+        didExpand = false
+        for i = 1, C_CurrencyInfo.GetCurrencyListSize() do
+          local okh, info = pcall(C_CurrencyInfo.GetCurrencyListInfo, i)
+          if okh and info and info.isHeader and info.isHeaderExpanded == false then
+            pcall(C_CurrencyInfo.ExpandCurrencyList, i, true)
+            didExpand = true
+            break
+          end
+        end
+      end
+    end
     for i = 1, C_CurrencyInfo.GetCurrencyListSize() do
       local ok3, info = pcall(C_CurrencyInfo.GetCurrencyListInfo, i)
       if ok3 and info and not info.isHeader and (info.quantity or 0) > 0 then
@@ -64,8 +100,18 @@ local function collect()
         table.insert(d.currencies, cur)
       end
     end
+    if next(collapsedHeaders) and C_CurrencyInfo.ExpandCurrencyList then  -- restore collapse state
+      for i = 1, C_CurrencyInfo.GetCurrencyListSize() do
+        local okh, info = pcall(C_CurrencyInfo.GetCurrencyListInfo, i)
+        if okh and info and info.isHeader and collapsedHeaders[info.name] then
+          pcall(C_CurrencyInfo.ExpandCurrencyList, i, false)
+        end
+      end
+    end
   end
 
+  -- lockouts: GetSavedInstanceInfo is empty until the server answers RequestRaidInfo(),
+  -- so only trust a read once UPDATE_INSTANCE_INFO has fired (else keep the prior list below).
   d.lockouts = {}
   if GetNumSavedInstances then
     for i = 1, GetNumSavedInstances() do
@@ -125,6 +171,10 @@ local function collect()
     if #d.currencies == 0 and prior.currencies and #prior.currencies > 0 then d.currencies = prior.currencies end
     if #d.vault == 0 and prior.vault and #prior.vault > 0 then d.vault = prior.vault end
     if (not d.bag or #d.bag == 0) and prior.bag and #prior.bag > 0 then d.bag = prior.bag end
+    -- until the server has answered RequestRaidInfo, an empty lockout read is unreliable
+    if not sawInstanceInfo and #d.lockouts == 0 and prior.lockouts and #prior.lockouts > 0 then
+      d.lockouts = prior.lockouts
+    end
   end
   WoWRosterExportDB[name .. "-" .. realm] = d
 end
@@ -140,7 +190,13 @@ f:SetScript("OnEvent", function(_, ev, arg1)
     end
     return
   end
+  if ev == "UPDATE_INSTANCE_INFO" then
+    sawInstanceInfo = true  -- lockout data is now trustworthy; re-snapshot with it
+    pcall(collect)
+    return
+  end
   if ev == "PLAYER_ENTERING_WORLD" then
+    if RequestRaidInfo then pcall(RequestRaidInfo) end  -- ask for lockouts (UPDATE_INSTANCE_INFO answers)
     C_Timer.After(2, function() pcall(requestPlayed) end)  -- reply is cached; any later snapshot embeds it
     C_Timer.After(10, function() pcall(collect) end)   -- let vault/currency data load in
     C_Timer.After(45, function() if not pendingPlayed then pcall(requestPlayed) end end)

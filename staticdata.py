@@ -1,6 +1,7 @@
 """One-time builders for game-wide static data: every mount/pet/toy (with sources),
 the Dungeon Journal loot map, crafting recipes, and the current M+ season. Cached as
 compact JSON under data/ so the app never refetches thousands of endpoints."""
+import threading
 import json, os, sys, threading
 from concurrent.futures import ThreadPoolExecutor
 import wowapi
@@ -27,10 +28,23 @@ def load(name):
                 pass
     return None
 
+_SAVE_LOCK = threading.Lock()
+
 def _save(name, obj):
     os.makedirs(DATA, exist_ok=True)
-    json.dump(obj, open(os.path.join(DATA, name + ".json"), "w", encoding="utf-8"),
-              ensure_ascii=False, separators=(",", ":"))
+    path = os.path.join(DATA, name + ".json")
+    # never let a failed build wipe a good cache with an empty payload
+    if not obj or (isinstance(obj, (list, dict)) and len(obj) == 0):
+        if os.path.exists(path) and os.path.getsize(path) > 2:
+            _log(f"{name}: refusing to overwrite existing cache with empty result")
+            return
+    with _SAVE_LOCK:
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(obj, f, ensure_ascii=False, separators=(",", ":"))
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
 
 def _many(items, fn, workers=12):
     """Run fn over items concurrently, tracking BUILD progress; drops failures."""
@@ -487,10 +501,13 @@ def build_current(region="eu"):
                       "instance_ids": inst_ids})
     _log(f"current: {exp} — {len(raids)} season raids, {len(inst_ids)} instances mapped")
 
+_BUILD_LOCK = threading.Lock()
+
 def build_all(region="eu"):
-    if BUILD["running"]:
-        return
-    BUILD.update(running=True, log=[])
+    with _BUILD_LOCK:
+        if BUILD["running"]:
+            return
+        BUILD.update(running=True, log=[])
     try:
         for fn in (build_season, build_current, build_mounts, build_toys, build_journal, build_recipes, augment_recipes, build_pets, augment_media, augment_pets_3d, build_tmog, augment_toys_use, build_armory, augment_armory_items, augment_tmog_classes, build_armorlooks):
             try:

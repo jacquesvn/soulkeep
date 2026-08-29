@@ -1,6 +1,7 @@
 """Blizzard WoW API fetch + normalize layer for WoW Roster. Stdlib only.
 Reads creds from bnet.env / env vars. Caches the OAuth token. get_character() returns a clean,
 UI-ready dict (our data model) — the thing the dashboard renders."""
+import threading
 import base64, json, os, sys, time, urllib.error, urllib.parse, urllib.request
 
 _TOKEN = {"value": None, "expires": 0}
@@ -52,9 +53,17 @@ def _creds():
         raise RuntimeError("Missing BNET_CLIENT_ID / BNET_CLIENT_SECRET (set env or bnet.env).")
     return cid, sec
 
+_TOKEN_LOCK = threading.Lock()
+
 def token():
     if _TOKEN["value"] and time.time() < _TOKEN["expires"] - 60:
         return _TOKEN["value"]
+    with _TOKEN_LOCK:
+        if _TOKEN["value"] and time.time() < _TOKEN["expires"] - 60:  # another thread refreshed it
+            return _TOKEN["value"]
+        return _token_refresh()
+
+def _token_refresh():
     cid, sec = _creds()
     data = urllib.parse.urlencode({"grant_type": "client_credentials"}).encode()
     req = urllib.request.Request("https://oauth.battle.net/token", data=data)

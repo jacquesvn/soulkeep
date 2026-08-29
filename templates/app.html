@@ -1324,10 +1324,11 @@ async function charLook3d() {
   $('lb-guide').onclick = () => openGuide(c.name + ' ' + (c.realm || ''));
   $('lb-extra').innerHTML = ''; $('lb-count').textContent = '';
   lbPool = []; document.querySelectorAll('.lb-nav').forEach(b => b.style.display = 'none');
+  const _seq = ++lbSeq;
   $('lb-back').classList.add('open');
   try {
     const j = await (await fetch(`/api/charlook/${e.region}/${e.realm}/${e.name}`)).json();
-    if (!$('lb-back').classList.contains('open')) return;
+    if (_seq !== lbSeq || !$('lb-back').classList.contains('open')) return;
     if (j.error || !(j.items || []).length) { $('lb-chips').innerHTML = '<span class="chip miss-chip"><span class="v">their look could not be summoned</span></span>'; return; }
     const race = RACES.filter(r => (j.race || '').includes(r[0])).sort((a, b) => b[0].length - a[0].length)[0] || RACES[0];
     const chrId = (j.gender === 'FEMALE') ? race[2] : race[1];
@@ -1974,7 +1975,7 @@ function renderTmogFilters() {
   }
   let slotDd = '';
   if (tmogArmor && ARMOR_CLASSES.includes(tmogArmor)) {
-    if (atlas === null) loadAtlas().then(() => { renderTmogFilters(); renderTmogGrid(); });
+    if (!_atlasPromise) loadAtlas().then(() => { if (tmogSection === 'sets') { renderTmogFilters(); renderTmogGrid(); } });
     if (atlas && Object.keys(atlas).length) {
       const items = [{ on: !tmogSlot, label: 'Whole sets', js: `tmogSlot=null;${_tf}` }]
         .concat(TMOG_ARMOR_SLOTS.map(([k, l]) => {
@@ -2038,10 +2039,12 @@ let armory = null, fitWeapon = null;
 const WPN_SLOT = { WEAPON: 21, TWOHWEAPON: 21, WEAPONMAINHAND: 21,
                    SHIELD: 22, HOLDABLE: 22, WEAPONOFFHAND: 22,
                    RANGED: 26, RANGEDRIGHT: 26 };
-async function loadArmory() {
-  if (armory !== null) return;
-  armory = [];
-  try { armory = (await (await fetch('/api/static/weapons')).json()).data || []; } catch (e) {}
+let _armoryPromise = null;
+function loadArmory() {
+  return _armoryPromise || (_armoryPromise = (async () => {
+    try { armory = (await (await fetch('/api/static/weapons')).json()).data || []; }
+    catch (e) { armory = []; _armoryPromise = null; }  // let a later caller retry
+  })());
 }
 function armorySuggest(q) {
   const dl = $('wpn-list');
@@ -2100,12 +2103,13 @@ async function tmogLb(setId) {
   $('lb-extra').innerHTML = ''; $('lb-count').textContent = '';
   lbPool = [];
   document.querySelectorAll('.lb-nav').forEach(b => b.style.display = 'none');
+  const _seq = ++lbSeq;
   $('lb-back').classList.add('open');
   const pieces = await Promise.all(r.apps.map(async a => {
     try { return { a, d: await (await fetch('/api/tmog/appearance/' + a)).json() }; }
     catch (e) { return { a, d: null }; }
   }));
-  if (!$('lb-back').classList.contains('open')) return;
+  if (_seq !== lbSeq || !$('lb-back').classList.contains('open')) return;
   tmogPieces = pieces.filter(x => x.d).map(x => ({ slot_type: x.d.slot_type, disp: x.d.disp }));
   if (tmogPieces.some(x => x.disp && TMOG_SLOT[x.slot_type])) {
     $('lb-extra').innerHTML = `<button class="lb3d-btn" style="position:static;transform:none;animation:btnpulse 2.6s ease-in-out infinite" onclick="lbFit()">⚜ Fit on a model</button>`;
@@ -2182,14 +2186,15 @@ const STUDIO_SLOTS = [
   ['CHEST', 'Chest', 5], ['BODY', 'Shirt', 4], ['TABARD', 'Tabard', 19],
   ['WRIST', 'Wrist', 9], ['HAND', 'Hands', 10], ['WAIST', 'Waist', 6],
   ['LEGS', 'Legs', 7], ['FEET', 'Feet', 8]];
-async function loadAtlas() {
-  if (atlas !== null) return;
-  atlas = {};
-  try {
-    const j = await (await fetch('/api/static/armorlooks')).json();
-    atlas = j.data || {};
-    if (atlas.CHEST && atlas.ROBE) atlas.CHEST = atlas.CHEST.concat(atlas.ROBE);  // robes render in the chest slot
-  } catch (e) {}
+let _atlasPromise = null;
+function loadAtlas() {
+  return _atlasPromise || (_atlasPromise = (async () => {
+    try {
+      const j = await (await fetch('/api/static/armorlooks')).json();
+      atlas = j.data || {};
+      if (atlas.CHEST && atlas.ROBE) atlas.CHEST = atlas.CHEST.concat(atlas.ROBE);  // robes render in the chest slot
+    } catch (e) { atlas = {}; _atlasPromise = null; }
+  })());
 }
 async function renderStudio() {
   $('tmog-hero').innerHTML = ''; $('tmog-filters').innerHTML = '';
@@ -2323,6 +2328,8 @@ function studioDelete(name) {
 
 /* ---------- trophy lightbox ---------- */
 let lbPool = [], lbIdx = 0;
+let _tokenAlertArmed = null;
+let lbSeq = 0;  // bumps each time a lightbox opens; a late async continuation checks it
 function lbOpenId(id, poolIds) {
   const index = collIndex[collKind] || [];
   const byId = new Map(index.map(x => [x.id, x]));
@@ -2492,7 +2499,12 @@ async function renderEconomy() {
   loadMovers();
   if (ah.ts && !profitBusy) econProfit();
   loadBagsell();
-  if (S.tokenAlert && t && t.price / 10000 <= S.tokenAlert) showToast(`WoW Token at ${goldStr(t.price)} — under your ${S.tokenAlert.toLocaleString('en-US')}g alert!`, 'gold');
+  if (S.tokenAlert && t && t.price / 10000 <= S.tokenAlert) {
+    if (_tokenAlertArmed !== S.tokenAlert) {  // fire once per crossing, re-arm only when price recovers or the threshold changes
+      showToast(`WoW Token at ${goldStr(t.price)} — under your ${S.tokenAlert.toLocaleString('en-US')}g alert!`, 'gold');
+      _tokenAlertArmed = S.tokenAlert;
+    }
+  } else { _tokenAlertArmed = null; }
   loadDeals();
   (econ.watches || []).forEach(async w => {
     try {

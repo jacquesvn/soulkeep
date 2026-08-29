@@ -2,7 +2,7 @@
 ## Title: WoW Roster Export
 ## Notes: Exports gold, Great Vault, currencies, lockouts, keystone, bags and /played for the WoW Roster desktop app.
 ## Author: Oblivion & Ser Claude
-## Version: 0.3
+## Version: 0.4
 ## SavedVariables: WoWRosterExportDB
 
 Core.lua
